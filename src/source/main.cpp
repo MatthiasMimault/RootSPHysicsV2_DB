@@ -116,8 +116,8 @@ bool ShowsVersion(int argc,char** argv){
   return(ret);
 }
 
-//==============================================================================
-//==============================================================================
+//=============================================================================
+//=============================================================================
 int main(int argc, char** argv){
   int errcode=1;
   if(ShowsVersion(argc,argv))return(errcode);
@@ -127,12 +127,11 @@ int main(int argc, char** argv){
   std::string appnamesub;
   for(unsigned c=0;c<=unsigned(appname.size());c++)appnamesub=appnamesub+"=";
   printf("\n%s\n%s\n",appname.c_str(),appnamesub.c_str());
-
   JCfgRun cfg;
   JLog2 log;
   try{
     cfg.LoadArgv(argc,argv);
-    //cfg.VisuConfig();
+    cfg.VisuConfig();
     if(!cfg.PrintInfo){
       log.Init(cfg.DirOut+"/Run.out",cfg.DirDataOut,cfg.CsvSepComa);
       log.AddFileInfo(cfg.DirOut+"/Run.out","Log file of the simulation.");
@@ -148,11 +147,11 @@ int main(int argc, char** argv){
         sph.Run(appname,&cfg,&log);
       }
       #ifdef _WITHGPU
-      else{
+     else{
         JSphGpuSingle sph;
         sph.Run(appname,&cfg,&log);
       }
-      #endif
+#endif
     }
     errcode=0;
   }

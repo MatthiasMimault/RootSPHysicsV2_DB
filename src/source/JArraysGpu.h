@@ -106,19 +106,21 @@ public:
   void SetArraySize(unsigned size);
   unsigned GetArraySize()const{ return(Arrays1b->GetArraySize()); }
 
-  byte*        ReserveByte(){       return((byte*)Arrays1b->Reserve());         }
-  word*        ReserveWord(){       return((word*)Arrays2b->Reserve());         }
-  unsigned*    ReserveUint(){       return((unsigned*)Arrays4b->Reserve());     }
-  int*         ReserveInt(){        return((int*)Arrays4b->Reserve());          }
-  float*       ReserveFloat(){      return((float*)Arrays4b->Reserve());        }
-  float3*      ReserveFloat3(){     return((float3*)Arrays12b->Reserve());      }
-  float4*      ReserveFloat4(){     return((float4*)Arrays16b->Reserve());      }
-  double*      ReserveDouble(){     return((double*)Arrays8b->Reserve());       }
-  double2*     ReserveDouble2(){    return((double2*)Arrays16b->Reserve());     }
-  double3*     ReserveDouble3(){    return((double3*)Arrays24b->Reserve());     }
-  double4*     ReserveDouble4(){    return((double4*)Arrays32b->Reserve());     }
+
+  byte*        ReserveByte() { return((byte*)Arrays1b->Reserve()); }
+  word*        ReserveWord() { return((word*)Arrays2b->Reserve()); }
+  unsigned*    ReserveUint() { return((unsigned*)Arrays4b->Reserve()); }
+  int*         ReserveInt() { return((int*)Arrays4b->Reserve()); }
+  float*       ReserveFloat() { return((float*)Arrays4b->Reserve()); }
+  float3*     ReserveFloat3() { return((float3*)Arrays12b->Reserve()); }
+  float4*     ReserveFloat4() { return((float4*)Arrays16b->Reserve()); }
+  double*      ReserveDouble() { return((double*)Arrays8b->Reserve()); }
+  double2*    ReserveDouble2() { return((double2*)Arrays16b->Reserve()); }
+  double3*    ReserveDouble3() { return((double3*)Arrays24b->Reserve()); }
   tsymatrix3f* ReserveSymatrix3f() { return((tsymatrix3f*)Arrays24b->Reserve()); }
-  tmatrix3f* ReserveMatrix3f_M() { return((tmatrix3f*)Arrays36b->Reserve()); }
+  //Matthias
+  tmatrix3f*   ReserveMatrix3f_M() { return((tmatrix3f*)Arrays36b->Reserve()); }
+  bool*        ReserveBool() { return((bool*)Arrays1b->Reserve()); }
 #ifdef CODE_SIZE4
   typecode*    ReserveTypeCode(){   return(ReserveUint());                      }
 #else
@@ -126,6 +128,7 @@ public:
 #endif
 
   void Free(byte     *pointer){ Arrays1b->Free(pointer);  }
+  void Free(bool     *pointer) { Arrays1b->Free(pointer); }
   void Free(word     *pointer){ Arrays2b->Free(pointer);  }
   void Free(unsigned *pointer){ Arrays4b->Free(pointer);  }
   void Free(int      *pointer){ Arrays4b->Free(pointer);  }

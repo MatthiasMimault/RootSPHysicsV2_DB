@@ -37,7 +37,7 @@ inline bool IsGPUCapableP2P(const cudaDeviceProp *pProp){
 #endif
 }
 
-//==============================================================================
+//===============================================================================
 /// Returns name about selected GPU.
 //==============================================================================
 std::string GetCudaDeviceName(int gid){
@@ -123,7 +123,7 @@ StGpuInfo GetCudaDeviceInfo(int gid){
 }
 
 //==============================================================================
-/// Returns information about detected GPUs (code from deviceQuery example).
+/// Returns information about detected GPUs (code from deviceQuery example) .
 //==============================================================================
 int GetCudaDevicesInfo(std::vector<std::string> *gpuinfo,std::vector<StGpuInfo> *gpuprops){
   if(gpuinfo)gpuinfo->push_back("[CUDA Capable device(s)]");

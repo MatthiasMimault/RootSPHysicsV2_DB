@@ -18,6 +18,8 @@
 
 /// \file JSphGpuSingle.cpp \brief Implements the class \ref JSphGpuSingle.
 
+#include "JSphSolidGpu_L.h"
+#include "JSphSolidGpu_ker_L.h"
 #include "JSphGpuSingle.h"
 #include "JCellDivGpuSingle.h"
 #include "JArraysGpu.h"
@@ -33,6 +35,8 @@
 #include "JSphGpu_ker.h"
 #include "JBlockSizeAuto.h"
 #include "JGaugeSystem.h"
+#include <climits>
+#include <fstream>
 
 using namespace std;
 //==============================================================================
@@ -182,7 +186,7 @@ void JSphGpuSingle::ConfigDomain(){
   Np=PartsLoaded->GetCount(); Npb=CaseNpb; NpbOk=Npb;
   //-Allocates memory for arrays with fixed size (motion and floating bodies).
   AllocGpuMemoryFixed();
-  //-Allocates GPU memory for particles.
+  //-Allocates GPU memory for particles
   AllocGpuMemoryParticles(Np,0);
   //-Allocates memory on the CPU.
   AllocCpuMemoryFixed();
@@ -192,6 +196,7 @@ void JSphGpuSingle::ConfigDomain(){
   memcpy(AuxPos,PartsLoaded->GetPos(),sizeof(tdouble3)*Np);
   memcpy(Idp,PartsLoaded->GetIdp(),sizeof(unsigned)*Np);
   memcpy(Velrhop,PartsLoaded->GetVelRhop(),sizeof(tfloat4)*Np);
+  for (int i = 0; i < Np; i++) { Mass[i] = MassFluid; }
 
   //-Computes radius of floating bodies.
   if(CaseNfloat && PeriActive!=0 && !PartBegin)CalcFloatingRadius(Np,AuxPos,Idp);
@@ -408,7 +413,7 @@ void JSphGpuSingle::RunCellDivide(bool updateperiodic){
   //-Manages excluded particles fixed, moving and floating before aborting the execution.
   if(CellDivSingle->GetNpbOut())AbortBoundOut();
 
-  //-Collect position of floating particles. | Recupera posiciones de floatings.
+  //-Collect position of floating particles. | Recupera posiciones de floatings..
   if(CaseNfloat)cusph::CalcRidp(PeriActive!=0,Np-Npb,Npb,CaseNpb,CaseNpb+CaseNfloat,Codeg,Idpg,FtRidpg);
   TmgStop(Timers,TMG_NlSortData);
 
@@ -436,11 +441,12 @@ void JSphGpuSingle::AbortBoundOut(){
   JSph::AbortBoundOut(nboundout,Idp,AuxPos,AuxVel,AuxRhop,Code);
 }
 
-//==============================================================================
+//===============================================================================
 /// Interaction for force computation.
-/// Interaccion para el calculo de fuerzas.
+/// Interaccion para el calculo de fuerzas
 //==============================================================================
 void JSphGpuSingle::Interaction_Forces(TpInter tinter){
+
   const char met[]="Interaction_Forces";
   PreInteraction_Forces(tinter);
   TmgStart(Timers,TMG_CfForces);
@@ -456,30 +462,38 @@ void JSphGpuSingle::Interaction_Forces(TpInter tinter){
     bsfluid=BlockSizes.forcesfluid=BsAuto->GetKernel(0)->GetOptimumBs();
     bsbound=BlockSizes.forcesbound=BsAuto->GetKernel(1)->GetOptimumBs();
   }
+  
+ //-Interaction Fluid-Fluid/Bound & Bound-Fluid..
+ //cusph::Interaction_Forces(Psingle,TKernel,WithFloating,UseDEM,lamsps,TDeltaSph,CellMode,Visco*ViscoBoundFactor,Visco,bsbound,bsfluid,Np,Npb,NpbOk,CellDivSingle->GetNcells(),CellDivSingle->GetBeginCell(),CellDivSingle->GetCellDomainMin(),Dcellg,Posxyg,Poszg,PsPospressg,Velrhopg,Codeg,Idpg,FtoMasspg,SpsTaug,SpsGradvelg,ViscDtg,Arg,Aceg,Deltag,TShifting,ShiftPosg,ShiftDetectg,Simulate2D,NULL,NULL);
 
-  //-Interaction Fluid-Fluid/Bound & Bound-Fluid.
-  cusph::Interaction_Forces(Psingle,TKernel,WithFloating,UseDEM,lamsps,TDeltaSph,CellMode,Visco*ViscoBoundFactor,Visco,bsbound,bsfluid,Np,Npb,NpbOk,CellDivSingle->GetNcells(),CellDivSingle->GetBeginCell(),CellDivSingle->GetCellDomainMin(),Dcellg,Posxyg,Poszg,PsPospressg,Velrhopg,Codeg,Idpg,FtoMasspg,SpsTaug,SpsGradvelg,ViscDtg,Arg,Aceg,Deltag,TShifting,ShiftPosg,ShiftDetectg,Simulate2D,NULL,NULL);
+  //-Interaction Lucas Sol .
+ cuSol::Interaction_Forces_M(TKernel, WithFloating, TShifting, TVisco, TDeltaSph, UseDEM, CellMode, Visco*ViscoBoundFactor, Visco, bsbound, bsfluid, Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellg, Posxyg, Poszg, PsPospressg, Velrhopg, Idpg, Codeg, JauTauc2_M, JauGradvelc2_M, JauOmega_M, JauTauc2_M, JauGradvelc2_M, JauTauDot_M, JauOmega_M, ViscDtg, Arg, Aceg, Deltag, ShiftPosg, ShiftDetectg, Simulate2D, NULL, NULL, Pressg, Porec_M, Massc_M, AnisotropyG_M, Mu, FtoMasspg);
 
-  //-Interaction DEM Floating-Bound & Floating-Floating. //(DEM)
+  //-Interaction DEM Floating-Bound & Floating-Floating.//(DEM) ..
   if(UseDEM)cusph::Interaction_ForcesDem(Psingle,CellMode,BlockSizes.forcesdem,CaseNfloat,CellDivSingle->GetNcells(),CellDivSingle->GetBeginCell(),CellDivSingle->GetCellDomainMin(),Dcellg,FtRidpg,DemDatag,float(DemDtForce),Posxyg,Poszg,PsPospressg,Velrhopg,Codeg,Idpg,ViscDtg,Aceg,NULL);
+
+  // fin de la modif
+
 
   //-For 2D simulations always overrides the 2nd component (Y axis).
   //-Para simulaciones 2D anula siempre la 2º componente.
   if(Simulate2D)cusph::Resety(Np-Npb,Npb,Aceg);
 
   //-Computes Tau for Laminar+SPS.
-  if(lamsps)cusph::ComputeSpsTau(Np,Npb,SpsSmag,SpsBlin,Velrhopg,SpsGradvelg,SpsTaug);
+  //if(lamsps)cusph::ComputeSpsTau(Np,Npb,SpsSmag,SpsBlin,Velrhopg,SpsGradvelg,SpsTaug);
 
   if(Deltag)cusph::AddDelta(Np-Npb,Deltag+Npb,Arg+Npb);//-Adds the Delta-SPH correction for the density. | Añade correccion de Delta-SPH a Arg[]. 
   CheckCudaError(met,"Failed while executing kernels of interaction.");
 
-  //-Calculates maximum value of ViscDt.
+  //-Calculates maximum value of ViscDt. 
   if(Np)ViscDtMax=cusph::ReduMaxFloat(Np,0,ViscDtg,CellDivSingle->GetAuxMem(cusph::ReduMaxFloatSize(Np)));
+  TmgStop(Timers,TMG_CfForces);
+ 
   //-Calculates maximum value of Ace using ViscDtg like auxiliar memory.
   AceMax=ComputeAceMax(ViscDtg); 
-  CheckCudaError(met,"Failed in reduction of viscdt.");
-  TmgStop(Timers,TMG_CfForces);
+  CheckCudaError(met,"Failed in reduction of viscdt."); 
 }
+
 
 //==============================================================================
 /// Returns the maximum value of  (ace.x^2 + ace.y^2 + ace.z^2) from Acec[].
@@ -494,7 +508,7 @@ double JSphGpuSingle::ComputeAceMax(float *auxmem){
   return(sqrt(double(acemax)));
 }
 
-//==============================================================================
+//==============================================================================+
 /// Particle interaction and update of particle data according to
 /// the computed forces using the Verlet time stepping scheme.
 ///
@@ -502,15 +516,18 @@ double JSphGpuSingle::ComputeAceMax(float *auxmem){
 /// calculadas en la interaccion usando Verlet.
 //==============================================================================
 double JSphGpuSingle::ComputeStep_Ver(){
-  Interaction_Forces(INTER_Forces);    //-Interaction.
-  const double dt=DtVariable(true);    //-Calculate new dt.
+
+  Interaction_Forces(INTER_Forces);    //-Interaction..
+
+const double dt=DtVariable(true);    //-Calculate new dt.
   DemDtForce=dt;                       //(DEM)
   if(TShifting)RunShifting(dt);        //-Shifting.
-  ComputeVerlet(dt);                   //-Update particles using Verlet.
+  ComputeVerlet(dt);                   //-Update particles using Verlet. // A bouger
   if(CaseNfloat)RunFloating(dt,false); //-Control of floating bodies.
   PosInteraction_Forces();             //-Free memory used for interaction.
   if(Damping)RunDamping(dt,Np,Npb,Posxyg,Poszg,Codeg,Velrhopg); //-Aplies Damping.
-  return(dt);
+ 
+ return(dt);
 }
 
 //==============================================================================
@@ -610,60 +627,84 @@ void JSphGpuSingle::RunGaugeSystem(double timestep){
 void JSphGpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
   const char* met="Run";
   if(!cfg||!log)return;
-  AppName=appname; Log=log;
+  AppName=appname; Log=log; 
 
   //-Selection of GPU.
   //-------------------
-  SelecDevice(cfg->GpuId);
+  SelecDevice(cfg->GpuId); 
 
-  //-Configures timers.
+  //-Configures timers. //OK
   //-------------------
-  TmgCreation(Timers,cfg->SvTimers);
+  TmgCreation(Timers,cfg->SvTimers); 
   TmgStart(Timers,TMG_Init);
 
-  //-Load parameters and values of input. | Carga de parametros y datos de entrada.
+  //-Load parameters and values of input. | Carga de parametros y datos de entrada. //OK
   //--------------------------------------------------------------------------------
-  LoadConfig(cfg);
-  LoadCaseParticles();
-  ConfigConstants(Simulate2D);
-  ConfigDomain();
-  ConfigRunMode("Single-Gpu");
-  VisuParticleSummary();
 
-  //-Initialisation of execution variables. | Inicializacion de variables de ejecucion.
+ 
+  printf("---1---");
+  LoadConfig(cfg); 
+  printf("---2---");
+  LoadCaseParticles();
+  printf("---3---");
+  ConfigConstants(Simulate2D);
+  printf("---4---");
+  ConfigDomain();
+  printf("---5---");
+  ConfigRunMode("Single-Gpu");
+  printf("---6---");
+  VisuParticleSummary();
+  printf("---7---");
+
+
+
+  //-Initialisation of execution variables. | Inicializacion de variables de ejecucion. 
   //------------------------------------------------------------------------------------
-  InitRun();
+  InitRun(); // 
   RunGaugeSystem(TimeStep);
   UpdateMaxValues();
   PrintAllocMemory(GetAllocMemoryCpu(),GetAllocMemoryGpu());
-  SaveData(); 
+  SaveData(); //Change
   TmgResetValues(Timers);
   TmgStop(Timers,TMG_Init);
   PartNstep=-1; Part++;
 
   //-Main Loop.
-  //------------
+  //-------------
+ 
   JTimeControl tc("30,60,300,600");//-Shows information at 0.5, 1, 5 y 10 minutes (before first PART).
   bool partoutstop=false;
   TimerSim.Start();
   TimerPart.Start();
   Log->Print(string("\n[Initialising simulation (")+RunCode+")  "+fun::GetDateTime()+"]");
   PrintHeadPart();
+
   while(TimeStep<TimeMax){
-    if(ViscoTime)Visco=ViscoTime->GetVisco(float(TimeStep));
+
+    if(ViscoTime)Visco=ViscoTime->GetVisco(float(TimeStep)); //OK
+
+	
+	//  Control of Step //OK
     double stepdt=ComputeStep();
+
+	//RunMotiom : OK
     RunGaugeSystem(TimeStep+stepdt);
     if(PartDtMin>stepdt)PartDtMin=stepdt; if(PartDtMax<stepdt)PartDtMax=stepdt;
     if(CaseNmoving)RunMotion(stepdt);
-    RunCellDivide(true);
+
+
+	// No div cellulaire pour l'instant
+     RunCellDivide(true);
+
     TimeStep+=stepdt;
+
     partoutstop=(Np<NpMinimum || !Np);
     if(TimeStep>=TimePartNext || partoutstop){
       if(partoutstop){
         Log->PrintWarning("Particles OUT limit reached...");
         TimeMax=TimeStep;
       }
-      SaveData();
+      SaveData(); //Change
       Part++;
       PartNstep=Nstep;
       TimeStepM1=TimeStep;
@@ -674,6 +715,7 @@ void JSphGpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
     Nstep++;
     if(Part<=PartIni+1 && tc.CheckTime())Log->Print(string("  ")+tc.GetInfoFinish((TimeStep-TimeStepIni)/(TimeMax-TimeStepIni)));
     //if(Nstep>=2)break;
+
   }
   TimerSim.Stop(); TimerTot.Stop();
 
@@ -725,6 +767,51 @@ void JSphGpuSingle::SaveData(){
   JSph::SaveData(npsave,Idp,AuxPos,AuxVel,AuxRhop,1,vdom,&infoplus);
   TmgStop(Timers,TMG_SuSavePart);
 }
+
+//==============================================================================
+/// Generates files with output data. lucas
+//==============================================================================
+void JSphGpuSingle::SaveData_L() {
+	const bool save = (SvData != SDAT_None && SvData != SDAT_Info);
+	const unsigned npsave = Np - NpbPer - NpfPer; //-Subtracts the periodic particles if they exist. | Resta las periodicas si las hubiera.
+												  //-Retrieves particle data from the GPU. | Recupera datos de particulas en GPU.
+	if (save) {
+		TmgStart(Timers, TMG_SuDownData);
+		unsigned npnormal = ParticlesDataDown_L(Np, 0, false, true, PeriActive != 0);
+		if (npnormal != npsave)RunException("SaveData", "The number of particles is invalid.");
+		TmgStop(Timers, TMG_SuDownData);
+	}
+	//-Retrieve floating object data from the GPU. | Recupera datos de floatings en GPU.
+	if (FtCount) {
+		TmgStart(Timers, TMG_SuDownData);
+		UpdateFtObjs();
+		TmgStop(Timers, TMG_SuDownData);
+	}
+	//-Collects additional information. | Reune informacion adicional.
+	TmgStart(Timers, TMG_SuSavePart);
+	StInfoPartPlus infoplus;
+	memset(&infoplus, 0, sizeof(StInfoPartPlus));
+	if (SvData&SDAT_Info) {
+		infoplus.nct = CellDivSingle->GetNct();
+		infoplus.npbin = NpbOk;
+		infoplus.npbout = Npb - NpbOk;
+		infoplus.npf = Np - Npb;
+		infoplus.npbper = NpbPer;
+		infoplus.npfper = NpfPer;
+		infoplus.memorycpualloc = this->GetAllocMemoryCpu();
+		infoplus.gpudata = true;
+		infoplus.memorynctalloc = infoplus.memorynctused = GetMemoryGpuNct();
+		infoplus.memorynpalloc = infoplus.memorynpused = GetMemoryGpuNp();
+		TimerSim.Stop();
+		infoplus.timesim = TimerSim.GetElapsedTimeD() / 1000.;
+	}
+	//-Stores particle data. | Graba datos de particulas.
+	const tdouble3 vdom[2] = { OrderDecode(CellDivSingle->GetDomainLimits(true)),OrderDecode(CellDivSingle->GetDomainLimits(false)) };
+	JSph::SaveData(npsave, Idp, AuxPos, AuxVel, AuxRhop, 1, vdom, &infoplus);
+	TmgStop(Timers, TMG_SuSavePart);
+}
+
+
 
 //==============================================================================
 /// Displays and stores final summary of the execution.

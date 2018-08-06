@@ -73,8 +73,7 @@ void JSpaceCtes::Reset(){
   // Extension Domain
   BordDomain = 0;
   // Solid
-  //K = 0; Mu = 0;
-  Ef = Et = Gf = nuf1 = nuf2 = 0;
+  K = 0; Mu = 0;
   // Pore
   PoreZero = 0;
   // Mass
@@ -221,21 +220,16 @@ void JSpaceCtes::ReadXmlRun(JXml *sxml, TiXmlElement* node) {
 void JSpaceCtes::ReadAddXmlRun_M(JXml *sxml, TiXmlElement* node) {
 	// Solid parameters
 	SetBordDomain(sxml->ReadElementDouble(node, "borddomain", "value"));
-	SetYoung1(sxml->ReadElementDouble(node, "young1", "value"));
-	SetYoung2(sxml->ReadElementDouble(node, "young2", "value"));
-	SetShear(sxml->ReadElementDouble(node, "shear1", "value"));
-	SetPoisson11(sxml->ReadElementDouble(node, "poisson11", "value"));
-	SetPoisson12(sxml->ReadElementDouble(node, "poisson12", "value"));
-	//SetYoung(sxml->ReadElementDouble(node, "young", "value"));
-	//SetShear(sxml->ReadElementDouble(node, "shear", "value"));
+	SetYoung(sxml->ReadElementDouble(node, "young", "value"));
+	SetShear(sxml->ReadElementDouble(node, "shear", "value"));
 	SetPoreZero(sxml->ReadElementDouble(node, "porezero", "value"));
 	SetLambdaMass(sxml->ReadElementDouble(node, "lambdamass", "value"));
 	SetSizeDivision(sxml->ReadElementDouble(node, "sizedivision", "value"));
 	SetLocalDivision(sxml->ReadElementDouble3(node, "localdivision"));
 	SetSpreadDivision(sxml->ReadElementFloat(node, "spreaddivision", "value"));
 	SetVelocityDivisionCoef(sxml->ReadElementFloat(node, "velocitydivisioncoef", "value"));
-	//SetAnisotropyK(sxml->ReadElementDouble3(node, "anisotropyk"));
-	//SetAnisotropyG(sxml->ReadElementTsymatrix3f(node, "anisotropyg", "value"));
+	SetAnisotropyK(sxml->ReadElementDouble3(node, "anisotropyk"));
+	SetAnisotropyG(sxml->ReadElementTsymatrix3f(node, "anisotropyg", "value"));
 
 }
 

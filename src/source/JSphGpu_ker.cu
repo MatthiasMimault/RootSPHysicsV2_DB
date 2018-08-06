@@ -108,30 +108,40 @@ template <unsigned blockSize> __global__ void KerReduMaxFloat(unsigned n,unsigne
 //==============================================================================
 float ReduMaxFloat(unsigned ndata,unsigned inidata,float* data,float* resu){
   float resf;
-  if(1){
-    unsigned n=ndata,ini=inidata;
-    unsigned smemSize=SPHBSIZE*sizeof(float);
-    dim3 sgrid=GetGridSize(n,SPHBSIZE);
-    unsigned n_blocks=sgrid.x*sgrid.y;
-    float *dat=data;
-    float *resu1=resu,*resu2=resu+n_blocks;
-    float *res=resu1;
-    while(n>1){
-      KerReduMaxFloat<SPHBSIZE><<<sgrid,SPHBSIZE,smemSize>>>(n,ini,dat,res);
-      n=n_blocks; ini=0;
-      sgrid=GetGridSize(n,SPHBSIZE);  
-      n_blocks=sgrid.x*sgrid.y;
-      if(n>1){
-        dat=res; res=(dat==resu1? resu2: resu1); 
-      }
-    }
-    if(ndata>1)cudaMemcpy(&resf,res,sizeof(float),cudaMemcpyDeviceToHost);
-    else cudaMemcpy(&resf,data,sizeof(float),cudaMemcpyDeviceToHost);
+  if (1) {  
+
+	  unsigned n = ndata, ini = inidata;
+	  unsigned smemSize = SPHBSIZE * sizeof(float);
+	  dim3 sgrid = GetGridSize(n, SPHBSIZE);
+	  unsigned n_blocks = sgrid.x*sgrid.y;
+	  float *dat = data;
+	  float *resu1 = resu, *resu2 = resu + n_blocks;
+	  float *res = resu1;
+	  while (n > 1) {
+		  KerReduMaxFloat<SPHBSIZE> <<<sgrid, SPHBSIZE, smemSize >>> (n, ini, dat, res);
+		  n = n_blocks; ini = 0;
+		  sgrid = GetGridSize(n, SPHBSIZE);
+		  n_blocks = sgrid.x*sgrid.y;
+		  if (n > 1) {
+			  dat = res; res = (dat == resu1 ? resu2 : resu1);
+		  }
+	  }
+
+	  if (ndata > 1) {
+		  cudaMemcpy(&resf, res, sizeof(float), cudaMemcpyDeviceToHost);
+	  }
+	  else {
+			cudaMemcpy(&resf, data, sizeof(float), cudaMemcpyDeviceToHost);
+
+	  }	  
+
   }
+
   //else{//-Using Thrust library is slower than ReduMasFloat() with ndata < 5M.
   //  thrust::device_ptr<float> dev_ptr(data);
   //  resf=thrust::reduce(dev_ptr,dev_ptr+ndata,-FLT_MAX,thrust::maximum<float>());
   //}
+
   return(resf);
 }
 
@@ -921,6 +931,7 @@ template<bool psingle,TpKernel tker,TpFtMode ftmode,bool lamsps,TpDeltaSph tdelt
       }
     }
     //-Stores results.
+	printf("%f/%f/%f/%f/%f/%f \n", shift, arp1, acep1.x, acep1.y, acep1.z, visc);
     if(shift||arp1||acep1.x||acep1.y||acep1.z||visc){
       if(tdelta==DELTA_Dynamic&&deltap1!=FLT_MAX)arp1+=deltap1;
       if(tdelta==DELTA_DynamicExt){

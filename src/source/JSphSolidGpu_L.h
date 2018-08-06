@@ -1,4 +1,4 @@
-//HEAD_DSPH
+// HEAD_DSPH
 /*
 <DUALSPHYSICS>  Copyright (c) 2017 by Dr Jose M. Dominguez et al. (see http://dual.sphysics.org/index.php/developers/).
 
@@ -16,32 +16,30 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General
 You should have received a copy of the GNU Lesser General Public License along with DualSPHysics. If not, see <http://www.gnu.org/licenses/>.
 */
 
-/// \file JSphSolidCpu.h \brief Declares the class \ref JSphSolidCpu.
-
-#ifndef _JSphSolidCpu_
-#define _JSphSolidCpu_
+/// \file JSphSolidCpu.cpp \brief Implements the class \ref JSphSolidCpu.
+#ifndef _JSphSolidGpu_
+#define _JSphSolidGpu_
 
 #include "Types.h"
-#include "JSphTimersCpu.h"
+#include "JSphTimersGpu.h"
 #include "JSph.h"
 #include <string>
 
 class JPartsOut;
-class JArraysCpu;
-class JCellDivCpu;
+class JArraysGpu;
+class JCellDivGpu;
 
+//##############################################################################.
+//# JSphSolidGpu
 //##############################################################################
-//# JSphSolidCpu
-//##############################################################################
-/// \brief Defines the attributes and functions to be used only in CPU simulations.
+/// \brief Defines the attributes and functions to be used only in GPU simulations.
 
-class JSphSolidCpu : public JSph
+class JSphSolidGpu : public JSph
 {
 private:
-	JCellDivCpu * CellDiv;
+	JCellDivGpu * CellDiv;
 
 protected:
-	int OmpThreads;        ///<Max number of OpenMP threads in execution on CPU host (minimum 1). | Numero maximo de hilos OpenMP en ejecucion por host en CPU (minimo 1).
 	std::string RunMode;   ///<Overall mode of execution (symmetry, openmp, load balancing). |  Almacena modo de ejecucion (simetria,openmp,balanceo,...).
 
 						   //-Number of particles in domain | Numero de particulas del dominio.
@@ -57,25 +55,27 @@ protected:
 	bool WithFloating;
 	bool BoundChanged;  ///<Indicates if selected boundary has changed since last call of divide. | Indica si el contorno seleccionado a cambiado desde el ultimo divide.
 
-	unsigned CpuParticlesSize;  ///<Number of particles with reserved memory on the CPU. | Numero de particulas para las cuales se reservo memoria en cpu.
-	llong MemCpuParticles;      ///<Memory reserved for particles' vectors. | Mermoria reservada para vectores de datos de particulas.
-	llong MemCpuFixed;          ///<Memory reserved in AllocMemoryFixed. | Mermoria reservada en AllocMemoryFixed.
+	unsigned GpuParticlesSize;  ///<Number of particles with reserved memory on the CPU. | Numero de particulas para las cuales se reservo memoria en cpu.
+	llong MemGpuParticles;      ///<Memory reserved for particles' vectors. | Mermoria reservada para vectores de datos de particulas.
+	llong MemGpuFixed;          ///<Memory reserved in AllocMemoryFixed. | Mermoria reservada en AllocMemoryFixed.
 
 								//-Particle Position according to id. | Posicion de particula segun id.
 	unsigned *RidpMove; ///<Only for moving boundary particles [CaseNmoving] and when CaseNmoving!=0 | Solo para boundary moving particles [CaseNmoving] y cuando CaseNmoving!=0 
 
 						//-List of particle arrays on CPU. | Lista de arrays en CPU para particulas.
-	JArraysCpu* ArraysCpu;
+	JArraysGpu* ArraysGpu;
 
 	//-Execution Variables for particles (size=ParticlesSize). | Variables con datos de las particulas para ejecucion (size=ParticlesSize).
 	unsigned *Idpc;    ///<Identifier of particle | Identificador de particula.
 	typecode *Codec;   ///<Indicator of group of particles & other special markers. | Indica el grupo de las particulas y otras marcas especiales.
 	unsigned *Dcellc;  ///<Cells inside DomCells coded with DomCellCode. | Celda dentro de DomCells codificada con DomCellCode.
-	tdouble3 *Posc;
-	tfloat4 *Velrhopc;
+	double3 *Posc;
+	float4 *Velrhopg;
 
+	double2 *Posxyg;
+	double *Poszg;
 	//-Variables for compute step: VERLET. | Vars. para compute step: VERLET.
-	tfloat4 *VelrhopM1c;  ///<Verlet: in order to keep previous values. | Verlet: para guardar valores anteriores.
+	float4 *VelrhopM1c;  ///<Verlet: in order to keep previous values. | Verlet: para guardar valores anteriores.
 	int VerletStep;
 	float *MassM1c_M;
 
@@ -90,43 +90,47 @@ protected:
 	StFtoForcesRes *FtoForcesRes; ///<Stores data to update floatings [FtCount].
 
 								  //-Variables for computation of forces | Vars. para computo de fuerzas.
-	tfloat3 *PsPosc;       ///<Position and prrhop for Pos-Single interaction | Posicion y prrhop para interaccion Pos-Single.
+	float4 *PsPospressg;
+	float3 *PsPosg;
 
-	tfloat3 *Acec;         ///<Sum of interaction forces | Acumula fuerzas de interaccion
-	float *Arc;
-	float *Deltac;         ///<Adjusted sum with Delta-SPH with DELTA_DynamicExt | Acumula ajuste de Delta-SPH con DELTA_DynamicExt
+	float *ViscDtg;
+	float3 *Aceg;         ///<Sum of interaction forces | Acumula fuerzas de interaccion
+	float *Arg;
+	float *Deltag;         ///<Adjusted sum with Delta-SPH with DELTA_DynamicExt | Acumula ajuste de Delta-SPH con DELTA_DynamicExt
 
-	tfloat3 *ShiftPosc;    ///<Particle displacement using Shifting.
-	float *ShiftDetectc;   ///<Used to detect free surface with Shifting.
+	float3 *ShiftPosg;    ///<Particle displacement using Shifting.
+	float *ShiftDetectg;   ///<Used to detect free surface with Shifting.
 
 	double VelMax;        ///<Maximum value of Vel[] sqrt(vel.x^2 + vel.y^2 + vel.z^2) computed in PreInteraction_Forces().
 	double AceMax;        ///<Maximum value of Ace[] sqrt(ace.x^2 + ace.y^2 + ace.z^2) computed in Interaction_Forces().
 	float ViscDtMax;      ///<Max value of ViscDt calculated in Interaction_Forces() / Valor maximo de ViscDt calculado en Interaction_Forces().
 
 						  //-Variables for computing forces [INTER_Forces,INTER_ForcesCorr] | Vars. derivadas para computo de fuerzas [INTER_Forces,INTER_ForcesCorr]
-	float *Pressc;       ///< Press[]=B*((Rhop/Rhop0)^gamma-1)
-	tfloat3 *Press3Dc;       ///< Press[]=B*((Rhop/Rhop0)^gamma-1)
+	float3 *Press3Dg;       ///< Press[]=B*((Rhop/Rhop0)^gamma-1)
 
-	// Matthias - Pore pressure
+							 // Matthias - Pore pressure
 	bool *Divisionc_M;
-	float *Porec_M; 
+	float *Porec_M;
 	float *Massc_M; // Mass, Delta mass
-	//float TimeGoing;
+					//float TimeGoing;
 
-						 //-Variables for Laminar+SPS viscosity.  
-	tsymatrix3f *SpsTauc;       ///<SPS sub-particle stress tensor.
-	tsymatrix3f *SpsGradvelc;   ///<Velocity gradients.
+					//-Variables for Laminar+SPS viscosity.  
+	tsymatrix3f *SpsTaug;       ///<SPS sub-particle stress tensor.
+	tsymatrix3f *SpsGradvelg;   ///<Velocity gradients.
 
 								// Matthias - Solid
-	//tmatrix3f *JauTauc_M;
+								//tmatrix3f *JauTauc_M;
 	tsymatrix3f *JauTauc2_M;
 	tsymatrix3f *JauTauM1c2_M;
-	//tmatrix3f *JauGradvelc_M;
 	tsymatrix3f *JauGradvelc2_M;
 	tsymatrix3f *JauTauDot_M;
 	tsymatrix3f *JauOmega_M;
 
-	TimersCpu Timers;
+	TimersGpu Timers;
+
+
+
+
 
 
 	void InitVars();
@@ -139,7 +143,7 @@ protected:
 	void ResizeCpuMemoryParticles(unsigned np);
 	void ReserveBasicArraysCpu();
 
-	bool CheckCpuParticlesSize(unsigned requirednp) { return(requirednp + PARTICLES_OVERMEMORY_MIN <= CpuParticlesSize); }
+	bool CheckGpuParticlesSize(unsigned requirednp) { return(requirednp + PARTICLES_OVERMEMORY_MIN <= GpuParticlesSize); }
 
 	template<class T> T* TSaveArrayCpu(unsigned np, const T *datasrc)const;
 	word*        SaveArrayCpu(unsigned np, const word        *datasrc)const { return(TSaveArrayCpu<word>(np, datasrc)); }
@@ -177,8 +181,8 @@ protected:
 	void ConfigOmp(const JCfgRun *cfg);
 
 	void ConfigRunMode(const JCfgRun *cfg, std::string preinfo = "");
-	void ConfigCellDiv(JCellDivCpu* celldiv) { CellDiv = celldiv; }
-	void InitFloating(); //JSphGpu
+	void ConfigCellDiv(JCellDivGpu* celldiv) { CellDiv = celldiv; };
+	void InitFloating();
 	void InitRun();
 
 	void AddAccInput();
@@ -230,7 +234,7 @@ protected:
 		, const tdouble3 *pos, const tfloat3 *pspos, const tfloat4 *velrhop, const typecode *code, const unsigned *idp
 		, const float *press, const float *pore, const float *mass
 		, float &viscdt, float *ar, tfloat3 *ace, float *delta
-		, TpShifting tshifting, tfloat3 *shiftpos, float *shiftdetect)const; 
+		, TpShifting tshifting, tfloat3 *shiftpos, float *shiftdetect)const;
 
 	template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph tdelta, bool shift> void InteractionForcesSolMass_M
 	(unsigned n, unsigned pinit, tint4 nc, int hdiv, unsigned cellinitial, float visco
@@ -239,7 +243,7 @@ protected:
 		, const tdouble3 *pos, const tfloat3 *pspos, const tfloat4 *velrhop, const typecode *code, const unsigned *idp
 		, const tfloat3 *press, const float *pore, const float *mass
 		, float &viscdt, float *ar, tfloat3 *ace, float *delta
-		, TpShifting tshifting, tfloat3 *shiftpos, float *shiftdetect)const; 
+		, TpShifting tshifting, tfloat3 *shiftpos, float *shiftdetect)const;
 
 	template<bool psingle> void InteractionForcesDEM
 	(unsigned nfloat, tint4 nc, int hdiv, unsigned cellfluid
@@ -307,7 +311,7 @@ protected:
 		, float &viscdt, float* ar, tfloat3 *ace, float *delta
 		, tsymatrix3f *jautau, tsymatrix3f *jaugradvel, tsymatrix3f *jautaudot, tsymatrix3f *jauomega
 		, tfloat3 *shiftpos, float *shiftdetect)const;
-	
+
 	void Interaction_Forces_M(unsigned np, unsigned npb, unsigned npbok
 		, tuint3 ncells, const unsigned *begincell, tuint3 cellmin, const unsigned *dcell
 		, const tdouble3 *pos, const tfloat4 *velrhop, const unsigned *idp, const typecode *code
@@ -315,7 +319,7 @@ protected:
 		, float &viscdt, float* ar, tfloat3 *ace, float *delta
 		, tsymatrix3f *jautau, tsymatrix3f *jaugradvel, tsymatrix3f *jautaudot, tsymatrix3f *jauomega
 		, tfloat3 *shiftpos, float *shiftdetect)const;
-	
+
 	void Interaction_Forces_M(unsigned np, unsigned npb, unsigned npbok
 		, tuint3 ncells, const unsigned *begincell, tuint3 cellmin, const unsigned *dcell
 		, const tdouble3 *pos, const tfloat4 *velrhop, const unsigned *idp, const typecode *code
@@ -331,7 +335,7 @@ protected:
 		, float &viscdt, float* ar, tfloat3 *ace, float *delta
 		, tsymatrix3f *jautau, tsymatrix3f *jaugradvel, tsymatrix3f *jautaudot, tsymatrix3f *jauomega
 		, tfloat3 *shiftpos, float *shiftdetect)const;
-	
+
 	void InteractionSimple_Forces_M(unsigned np, unsigned npb, unsigned npbok
 		, tuint3 ncells, const unsigned *begincell, tuint3 cellmin, const unsigned *dcell
 		, const tfloat3 *pspos, const tfloat4 *velrhop, const unsigned *idp, const typecode *code
@@ -339,7 +343,7 @@ protected:
 		, float &viscdt, float* ar, tfloat3 *ace, float *delta
 		, tsymatrix3f *jautau, tsymatrix3f *jaugradvel, tsymatrix3f *jautaudot, tsymatrix3f *jauomega
 		, tfloat3 *shiftpos, float *shiftdetect)const;
-	
+
 	void InteractionSimple_Forces_M(unsigned np, unsigned npb, unsigned npbok
 		, tuint3 ncells, const unsigned *begincell, tuint3 cellmin, const unsigned *dcell
 		, const tfloat3 *pspos, const tfloat4 *velrhop, const unsigned *idp, const typecode *code
@@ -365,7 +369,7 @@ protected:
 	template<bool shift> void ComputeEulerVarsFluid_M(tfloat4 *velrhop, double dt, tdouble3 *pos, unsigned *dcell, word *code)const;
 	template<bool shift> void ComputeEulerVarsSolid_M(tfloat4 *velrhop, double dt, tdouble3 *pos, tsymatrix3f *tau, unsigned *dcell, word *code)const;
 	template<bool shift> void ComputeEulerVarsSolidImplicit_M(tfloat4 *velrhop, double dt, tdouble3 *pos, tsymatrix3f *tau, tsymatrix3f *gradvel, tsymatrix3f *omega, unsigned *dcell, word *code)const;
-	
+
 	void ComputeVerlet(double dt);
 	template<bool shift> void ComputeSymplecticPreT(double dt);
 	void ComputeSymplecticPre(double dt);
@@ -383,22 +387,19 @@ protected:
 	void RunMotion(double stepdt);
 	void RunDamping(double dt, unsigned np, unsigned npb, const tdouble3 *pos, const typecode *code, tfloat4 *velrhop)const;
 
-	void ShowTimers(bool onlyfile = false); //JSphGpu
-	void GetTimersInfo(std::string &hinfo, std::string &dinfo)const; //JSphGpu
-	unsigned TimerGetCount()const { return(TmcGetCount()); }
-	bool TimerIsActive(unsigned ct)const { return(TmcIsActive(Timers, (CsTypeTimerCPU)ct)); }
-	float TimerGetValue(unsigned ct)const { return(TmcGetValue(Timers, (CsTypeTimerCPU)ct)); }
-	const double* TimerGetPtrValue(unsigned ct)const { return(TmcGetPtrValue(Timers, (CsTypeTimerCPU)ct)); }
-	std::string TimerGetName(unsigned ct)const { return(TmcGetName((CsTypeTimerCPU)ct)); }
+	void ShowTimers(bool onlyfile = false);
+	void GetTimersInfo(std::string &hinfo, std::string &dinfo)const;
+	unsigned TimerGetCount()const { return(TmgGetCount()); }
+	bool TimerIsActive(unsigned ct)const { return(TmgIsActive(Timers, (CsTypeTimerGPU)ct)); }
+	float TimerGetValue(unsigned ct)const { return(TmgGetValue(Timers, (CsTypeTimerGPU)ct)); }
+	const double* TimerGetPtrValue(unsigned ct)const { return(TmgGetPtrValue(Timers, (CsTypeTimerGPU)ct)); }
+	std::string TimerGetName(unsigned ct)const { return(TmgGetName((CsTypeTimerGPU)ct)); }
 	std::string TimerToText(unsigned ct)const { return(JSph::TimerToText(TimerGetName(ct), TimerGetValue(ct))); }
 
 public:
-	JSphSolidCpu(bool withmpi);
-	~JSphSolidCpu();
+	JSphSolidGpu(bool withmpi);
+	~JSphSolidGpu();
 
 	void UpdatePos(tdouble3 pos0, double dx, double dy, double dz, bool outrhop, unsigned p, tdouble3 *pos, unsigned *cell, typecode *code)const;
 };
-
 #endif
-
-
