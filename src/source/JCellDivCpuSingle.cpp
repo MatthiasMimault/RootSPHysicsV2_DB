@@ -207,15 +207,19 @@ void JCellDivCpuSingle::MakeSortFull(const unsigned* cellpart,unsigned* begincel
 //==============================================================================
 void JCellDivCpuSingle::MakeSortFluid(unsigned np,unsigned pini,const unsigned* cellpart,unsigned* begincell,unsigned* partsincell,unsigned* sortpart)const{
   //-Adjust initial position of cells | Ajusta posiciones iniciales de celdas.
-  for(unsigned box=BoxFluid;box<Nctt-1;box++)begincell[box+1]=begincell[box]+partsincell[box];
+	for (unsigned box = BoxFluid; box < Nctt - 1; box++) {
+		begincell[box + 1] = begincell[box] + partsincell[box];
+	}
   //-Put particles in their boxes | Coloca las particulas en sus cajas.
-  memset(partsincell+BoxFluid,0,sizeof(unsigned)*(Nctt-1-BoxFluid));
-  const unsigned pfin=pini+np;
-  for(unsigned p=pini;p<pfin;p++){
-    unsigned box=cellpart[p];
-    sortpart[begincell[box]+partsincell[box]]=p;
-    partsincell[box]++;
-  }
+	memset(partsincell+BoxFluid,0,sizeof(unsigned)*(Nctt-1-BoxFluid));
+
+	const unsigned pfin=pini+np;
+
+	for(unsigned p=pini;p<pfin;p++){
+		unsigned box=cellpart[p];
+		sortpart[begincell[box]+partsincell[box]]=p;
+		partsincell[box]++;
+	}
 }
 
 //==============================================================================
@@ -328,7 +332,7 @@ void JCellDivCpuSingle::Divide(unsigned npb1,unsigned npf1,unsigned npb2,unsigne
   NpbOutIgnore=CellSize(BoxBoundOutIgnore);
   NpfOutIgnore=CellSize(BoxFluidOutIgnore);
   //:printf("---> Nct:%u  BoxBoundOut:%u  SizeBeginEndCell:%u\n",Nct,BoxBoundOut,SizeBeginEndCell(Nct));
-  //:printf("---> NpbIgnore:%u  NpbOut:%u  NpfOut:%u  NpfOutIgnore:%u\n",NpbIgnore,NpbOut,NpfOut,NpfOutIgnore);
+  //:printf("\n---> NpbIgnore:%u  NpbOut:%u  NpfOut:%u  NpfOutIgnore:%u\n",NpbIgnore,NpbOut,NpfOut,NpfOutIgnore);
   NpFinal=Nptot-NpbOut-NpfOut-NpbOutIgnore-NpfOutIgnore;
   NpbFinal=Npb1+Npb2-NpbOutIgnore;
   //printf("NpFinal: %d, NpbFinal: %d\n", NpFinal, NpbFinal);

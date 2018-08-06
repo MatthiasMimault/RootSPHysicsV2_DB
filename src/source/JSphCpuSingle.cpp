@@ -97,6 +97,7 @@ void JSphCpuSingle::LoadConfig(JCfgRun *cfg){
 /// Carga particulas del caso a procesar.
 //==============================================================================
 void JSphCpuSingle::LoadCaseParticles(){
+	
   Log->Print("Loading initial state of particles...");
   PartsLoaded=new JPartsLoad4(true);
   PartsLoaded->LoadParticles(DirCase,CaseName,PartBegin,PartBeginDir);
@@ -173,7 +174,7 @@ void JSphCpuSingle::ConfigDomain(){
   MkInfo->ComputeMkDomains(Np,Posc,Codec);
 
   //-Free memory of PartsLoaded. | Libera memoria de PartsLoaded.
-  delete PartsLoaded; PartsLoaded=NULL;
+  //delete PartsLoaded; PartsLoaded=NULL;
   //-Apply configuration of CellOrder. | Aplica configuracion de CellOrder.
   ConfigCellOrder(CellOrder,Np,Posc,Velrhopc);
 
@@ -573,6 +574,10 @@ void JSphCpuSingle::RunSizeDivision_M() {
 	bool run = true;
 	unsigned count = 0;
 	// 1. Test division cellulaire
+	/*for (unsigned p = Npb; p < Np; p++) {
+		printf("\nMasse : %d %f", (int)p, Massc_M[p]);
+		
+	}*/
 
 	for (unsigned p = Npb; p < Np; p++) {
 		if (Massc_M[p] / Velrhopc[p].w > SizeDivision_M*PI*Dp*Dp*Dp/6.0) {
@@ -905,9 +910,6 @@ void JSphCpuSingle::Interaction_Forces(TpInter tinter){
   //if (Psingle)JSphSolidCpu::InteractionSimple_Forces(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, PsPosc, Velrhopc, Idpc, Codec, Pressc, viscdt, Arc, Acec, Deltac, SpsTauc, SpsGradvelc, ShiftPosc, ShiftDetectc);
   //else JSphSolidCpu::Interaction_Forces(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, Posc, Velrhopc, Idpc, Codec, Pressc, viscdt, Arc, Acec, Deltac, SpsTauc, SpsGradvelc, ShiftPosc, ShiftDetectc);
   // Matthias
-  //if (Psingle)JSphSolidCpu::InteractionSimple_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, PsPosc, Velrhopc, Idpc, Codec, Pressc, Porec_M, Massc_M, viscdt, Arc, Acec, Deltac, JauTauc2_M, JauGradvelc2_M, JauTauDot_M, JauOmega_M, ShiftPosc, ShiftDetectc);
-  //else JSphSolidCpu::Interaction_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, Posc, Velrhopc, Idpc, Codec, Pressc, Porec_M, Massc_M, viscdt, Arc, Acec, Deltac, JauTauc2_M, JauGradvelc2_M, JauTauDot_M, JauOmega_M, ShiftPosc, ShiftDetectc);
-
   //if (Psingle)JSphSolidCpu::InteractionSimple_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, PsPosc, Velrhopc, Idpc, Codec, Pressc, Porec_M, Massc_M, viscdt, Arc, Acec, Deltac, JauTauc2_M, JauGradvelc2_M, JauTauDot_M, JauOmega_M, ShiftPosc, ShiftDetectc);
   //else JSphSolidCpu::Interaction_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, Posc, Velrhopc, Idpc, Codec, Pressc, Porec_M, Massc_M, viscdt, Arc, Acec, Deltac, JauTauc2_M, JauGradvelc2_M, JauTauDot_M, JauOmega_M, ShiftPosc, ShiftDetectc);
 
@@ -1290,22 +1292,41 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
 
   //-Load parameters and values of input. | Carga de parametros y datos de entrada.
   //--------------------------------------------------------------------------------
+  //Log->Printf("\n---Runpath : %s---\n", cfg->RunPath.c_str());
+  //Log->Printf("\n---PartBeginDir : %s---\n", cfg->PartBeginDir.c_str());
+  //Log->Printf("\n---CaseName : %s---\n", cfg->CaseName.c_str()); 
+
+  Log->Printf("\n---Thibaud's part---\n");
+  GenCaseBis_T gcb;
+  gcb.Bridge(cfg->RunPath, cfg->CaseName);
+  Log->Printf("\n---Thibaud's part end---\n");
+
+
+  printf("---1---");
   LoadConfig(cfg);
+  printf("---2---");
   LoadCaseParticles();
+  printf("---3---");
   ConfigConstants(Simulate2D);
+  printf("---4---");
   ConfigDomain();
+  printf("---5---");
   ConfigRunMode(cfg);
+  printf("---6---");
   VisuParticleSummary();
+  printf("---7---");
 
   //-Initialisation of execution variables. | Inicializacion de variables de ejecucion.
   //------------------------------------------------------------------------------------
-  InitRun();
+  InitRun(PartsLoaded);
+  //-Free memory of PartsLoaded. | Libera memoria de PartsLoaded.
+  delete PartsLoaded; PartsLoaded = NULL;
   RunGaugeSystem(TimeStep);
   UpdateMaxValues();
   PrintAllocMemory(GetAllocMemoryCpu());
-  SaveData_M(); 
   TmcResetValues(Timers);
   TmcStop(Timers,TMC_Init);
+  SaveData_M();
   PartNstep=-1; Part++;
 
   //-Main Loop.
@@ -1319,11 +1340,10 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
 
   while(TimeStep<TimeMax){
     if(ViscoTime)Visco=ViscoTime->GetVisco(float(TimeStep));
-
+	//printf("\nTimeStep : %1.10f", TimeStep);
 	// Control of step - Matthias
 	//double stepdt = ComputeStep_Eul_M();
     double stepdt=ComputeStep();
-
 	RunGaugeSystem(TimeStep+stepdt);
     if(PartDtMin>stepdt)PartDtMin=stepdt; if(PartDtMax<stepdt)PartDtMax=stepdt;
     if(CaseNmoving)RunMotion(stepdt);
@@ -1334,11 +1354,10 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
 	RunCellDivide(true);
 
     TimeStep+=stepdt;
-
 	partoutstop=(Np<NpMinimum || !Np);
     if(TimeStep>=TimePartNext || partoutstop){
       if(partoutstop){
-        Log->PrintWarning("Particles OUT limit reached...");
+        Log->PrintWarning("Particles OUT limit reached..."); 
         TimeMax=TimeStep;
       }
       SaveData_M();
@@ -1428,7 +1447,6 @@ void JSphCpuSingle::SaveData_M() {
 	float *volu = NULL;
 	tfloat3 *press = NULL;
 	tsymatrix3f *tau = NULL;
-
 	if (save) {
 		//-Assign memory and collect particle values. | Asigna memoria y recupera datos de las particulas.
 		idp = ArraysCpu->ReserveUint();

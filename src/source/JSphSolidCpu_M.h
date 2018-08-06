@@ -23,6 +23,7 @@ You should have received a copy of the GNU Lesser General Public License along w
 
 #include "Types.h"
 #include "JSphTimersCpu.h"
+#include "JPartsLoad4.h"
 #include "JSph.h"
 #include <string>
 
@@ -179,7 +180,7 @@ protected:
 	void ConfigRunMode(const JCfgRun *cfg, std::string preinfo = "");
 	void ConfigCellDiv(JCellDivCpu* celldiv) { CellDiv = celldiv; }
 	void InitFloating();
-	void InitRun();
+	void InitRun(JPartsLoad4 *pl);
 
 	void AddAccInput();
 

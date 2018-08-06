@@ -35,7 +35,7 @@ using namespace std;
 //==============================================================================
 JPartsLoad4::JPartsLoad4(bool useomp):UseOmp(useomp){
   ClassName="JPartsLoad4";
-  Idp=NULL; Pos=NULL; VelRhop=NULL;
+  Idp = NULL; Pos = NULL; VelRhop = NULL; Mass = NULL;
   Reset();
 }
 
@@ -71,12 +71,14 @@ void JPartsLoad4::AllocMemory(unsigned count){
   Count=count;
   delete[] Idp;      Idp=NULL; 
   delete[] Pos;      Pos=NULL; 
-  delete[] VelRhop;  VelRhop=NULL; 
+  delete[] VelRhop;  VelRhop=NULL;
+  delete[] Mass;  Mass = NULL;
   if(Count){
     try{
       Idp=new unsigned[Count];
       Pos=new tdouble3[Count];
       VelRhop=new tfloat4[Count];
+	  Mass = new float[Count];
     }
     catch(const std::bad_alloc){
       RunException("AllocMemory","Could not allocate the requested memory.");
@@ -197,6 +199,7 @@ void JPartsLoad4::LoadParticles(const std::string &casedir,const std::string &ca
     unsigned auxsize=0;
     tfloat3 *auxf3=NULL;
     float *auxf=NULL;
+	float *auxfbis = NULL;
     for(unsigned piece=0;piece<Npiece;piece++){
       if(piece){
         if(!PartBegin)pd.LoadFileCase(dir,casename,piece,Npiece);
@@ -208,23 +211,35 @@ void JPartsLoad4::LoadParticles(const std::string &casedir,const std::string &ca
           auxsize=npok;
           delete[] auxf3; auxf3=NULL;
           delete[] auxf;  auxf=NULL;
+		  delete[] auxfbis;  auxfbis = NULL;
           auxf3=new tfloat3[auxsize];
           auxf=new float[auxsize];
+		  auxfbis = new float[auxsize];
+
         }
         if(possingle){
           pd.Get_Pos(npok,auxf3);
           for(unsigned p=0;p<npok;p++)Pos[ntot+p]=ToTDouble3(auxf3[p]);
         }
         else pd.Get_Posd(npok,Pos+ntot);
-        pd.Get_Idp(npok,Idp+ntot);  
-        pd.Get_Vel(npok,auxf3);  
-        pd.Get_Rhop(npok,auxf);  
-        for(unsigned p=0;p<npok;p++)VelRhop[ntot+p]=TFloat4(auxf3[p].x,auxf3[p].y,auxf3[p].z,auxf[p]);
+        pd.Get_Idp(npok,Idp+ntot);
+        pd.Get_Vel(npok,auxf3);
+        pd.Get_Rhop(npok,auxf);
+		pd.Get_Mass(npok,auxfbis);
+		/*for (int i = 0; i < npok; i++)
+		{
+			printf("\nx: %1.20f", auxfbis[i]);
+		}*/
+		for (unsigned p = 0; p < npok; p++) {
+			VelRhop[ntot + p] = TFloat4(auxf3[p].x, auxf3[p].y, auxf3[p].z, auxf[p]);
+			Mass[p] = auxfbis[p];
+		}
       }
       ntot+=npok;
     }
     delete[] auxf3; auxf3=NULL;
     delete[] auxf;  auxf=NULL;
+	delete[] auxfbis;  auxfbis = NULL;
   }
   //-In simulations 2D, if PosY is invalid then calculates starting from position of particles.
   if(Simulate2DPosY==DBL_MAX){

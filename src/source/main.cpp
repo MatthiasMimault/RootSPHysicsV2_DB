@@ -119,6 +119,7 @@ bool ShowsVersion(int argc,char** argv){
 //==============================================================================
 //==============================================================================
 int main(int argc, char** argv){
+
   int errcode=1;
   if(ShowsVersion(argc,argv))return(errcode);
   std::string license=getlicense_lgpl(AppInfo.GetShortName(),false);
@@ -132,7 +133,7 @@ int main(int argc, char** argv){
   JLog2 log;
   try{
     cfg.LoadArgv(argc,argv);
-    //cfg.VisuConfig();
+    cfg.VisuConfig();
     if(!cfg.PrintInfo){
       log.Init(cfg.DirOut+"/Run.out",cfg.DirDataOut,cfg.CsvSepComa);
       log.AddFileInfo(cfg.DirOut+"/Run.out","Log file of the simulation.");
@@ -148,11 +149,11 @@ int main(int argc, char** argv){
         sph.Run(appname,&cfg,&log);
       }
       #ifdef _WITHGPU
-      else{
+     else{
         JSphGpuSingle sph;
         sph.Run(appname,&cfg,&log);
       }
-      #endif
+#endif
     }
     errcode=0;
   }
