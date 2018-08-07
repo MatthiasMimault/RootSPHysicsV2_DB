@@ -222,7 +222,7 @@ void JSphCpuSingle::ResizeParticlesSize(unsigned newsize,float oversize,bool upd
 unsigned JSphCpuSingle::PeriodicMakeList(unsigned n,unsigned pini,bool stable,unsigned nmax,tdouble3 perinc,const tdouble3 *pos,const typecode *code,unsigned *listp)const{
   unsigned count=0;
   if(n){
-    //-Initialize size of list lsph to zero. | Inicializa tamaño de lista lspg a cero.
+    //-Initialize size of list lsph to zero. | Inicializa tamaÃ±o de lista lspg a cero.
     listp[nmax]=0;
     for(unsigned p=0;p<n;p++){
       const unsigned p2=p+pini;
@@ -913,10 +913,10 @@ void JSphCpuSingle::Interaction_Forces(TpInter tinter){
   //if (Psingle)JSphSolidCpu::InteractionSimple_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, PsPosc, Velrhopc, Idpc, Codec, Pressc, Porec_M, Massc_M, viscdt, Arc, Acec, Deltac, JauTauc2_M, JauGradvelc2_M, JauTauDot_M, JauOmega_M, ShiftPosc, ShiftDetectc);
   //else JSphSolidCpu::Interaction_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, Posc, Velrhopc, Idpc, Codec, Pressc, Porec_M, Massc_M, viscdt, Arc, Acec, Deltac, JauTauc2_M, JauGradvelc2_M, JauTauDot_M, JauOmega_M, ShiftPosc, ShiftDetectc);
 
-  if (Psingle)JSphSolidCpu::InteractionSimple_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, PsPosc, Velrhopc, Idpc, Codec, Press3Dc, Porec_M, Massc_M, viscdt, Arc, Acec, Deltac, JauTauc2_M, JauGradvelc2_M, JauTauDot_M, JauOmega_M, ShiftPosc, ShiftDetectc);
-  else JSphSolidCpu::Interaction_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, Posc, Velrhopc, Idpc, Codec, Press3Dc, Porec_M, Massc_M, viscdt, Arc, Acec, Deltac, JauTauc2_M, JauGradvelc2_M, JauTauDot_M, JauOmega_M, ShiftPosc, ShiftDetectc);
+  //if (Psingle)JSphSolidCpu::InteractionSimple_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, PsPosc, Velrhopc, Idpc, Codec, Press3Dc, Porec_M, Massc_M, viscdt, Arc, Acec, Deltac, JauTauc2_M, JauGradvelc2_M, JauTauDot_M, JauOmega_M, ShiftPosc, ShiftDetectc);
+  //else JSphSolidCpu::Interaction_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, Posc, Velrhopc, Idpc, Codec, Press3Dc, Porec_M, Massc_M, viscdt, Arc, Acec, Deltac, JauTauc2_M, JauGradvelc2_M, JauTauDot_M, JauOmega_M, ShiftPosc, ShiftDetectc);
 
-  //-For 2-D simulations zero the 2nd component. | Para simulaciones 2D anula siempre la 2º componente.
+  //-For 2-D simulations zero the 2nd component. | Para simulaciones 2D anula siempre la 2Âº componente.
   if(Simulate2D){
     const int ini=int(Npb),fin=int(Np),npf=int(Np-Npb);
     #ifdef OMP_USE
@@ -925,7 +925,7 @@ void JSphCpuSingle::Interaction_Forces(TpInter tinter){
     for(int p=ini;p<fin;p++)Acec[p].y=0;
   }
 
-  //-Add Delta-SPH correction to Arg[]. | Añade correccion de Delta-SPH a Arg[].
+  //-Add Delta-SPH correction to Arg[]. | AÃ±ade correccion de Delta-SPH a Arg[].
   if(Deltac){
     const int ini=int(Npb),fin=int(Np),npf=int(Np-Npb);
     #ifdef OMP_USE
@@ -1160,7 +1160,7 @@ void JSphCpuSingle::FtCalcForces(StFtoForces *ftoforces)const{
       omegaace.z=(fomegaace.x*invinert.a31+fomegaace.y*invinert.a32+fomegaace.z*invinert.a33);
       fomegaace=omegaace;
     }
-    //-Add gravity and divide by mass. | Añade gravedad y divide por la masa.
+    //-Add gravity and divide by mass. | AÃ±ade gravedad y divide por la masa.
     face.x=(face.x+fmass*Gravity.x)/fmass;
     face.y=(face.y+fmass*Gravity.y)/fmass;
     face.z=(face.z+fmass*Gravity.z)/fmass;
@@ -1217,7 +1217,7 @@ void JSphCpuSingle::RunFloating(double dt,bool predictor){
     //-Initialises forces of floatings.
     memset(FtoForces,0,sizeof(StFtoForces)*FtCount); 
 
-    //-Adds calculated forces around floating objects. | Añade fuerzas calculadas sobre floatings.
+    //-Adds calculated forces around floating objects. | AÃ±ade fuerzas calculadas sobre floatings.
     FtCalcForces(FtoForces);
     //-Calculate data to update floatings. | Calcula datos para actualizar floatings.
     FtCalcForcesRes(dt,FtoForces,FtoForcesRes);
@@ -1302,19 +1302,12 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
   Log->Printf("\n---Thibaud's part end---\n");
 
 
-  printf("---1---");
   LoadConfig(cfg);
-  printf("---2---");
   LoadCaseParticles();
-  printf("---3---");
   ConfigConstants(Simulate2D);
-  printf("---4---");
   ConfigDomain();
-  printf("---5---");
   ConfigRunMode(cfg);
-  printf("---6---");
   VisuParticleSummary();
-  printf("---7---");
 
   //-Initialisation of execution variables. | Inicializacion de variables de ejecucion.
   //------------------------------------------------------------------------------------
