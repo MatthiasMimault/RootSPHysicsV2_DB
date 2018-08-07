@@ -24,6 +24,7 @@
 #include "Types.h"
 #include "JSphCpu.h"
 #include "JSphSolidCpu_M.h"
+#include "GencaseBis_T.h"
 #include <string>
 
 class JCellDivCpuSingle;

@@ -578,7 +578,6 @@ void JSph::LoadCaseConfig(){
   //Matthias
   // Extension domain
   BordDomain = (float)ctes.GetBordDomain();
-
   // Solid anisotropic
   const float Ef = (float)ctes.GetYoung1();
   const float Et = (float)ctes.GetYoung2();
@@ -586,14 +585,12 @@ void JSph::LoadCaseConfig(){
   const float nuf1 = (float)ctes.GetPoisson11();
   const float nuf2 = (float)ctes.GetPoisson12();
   const float Gf = (float)ctes.GetShear();
-
-  const float alpha1 = Ef * (1 - nuf1) / (nf*(1 - nuf1) - 2.0f*nuf2*nuf2);
+   const float alpha1 = Ef * (1 - nuf1) / (nf*(1 - nuf1) - 2.0f*nuf2*nuf2);
   const float alpha2 = Ef * nf / (2.0f*nf*(1 - nuf1) - 4.0f*nuf2*nuf2);
   const float alpha3 = Ef * nuf2 / (nf*(1 - nuf1) - 2.0f*nuf2*nuf2);
   const float alpha4 = Gf;
   const float alpha5 = Ef / (2.0f*(1 + nuf1));
-
-  C1 = alpha2 + alpha5; C12 = alpha2 - alpha5; C13 = alpha3;
+   C1 = alpha2 + alpha5; C12 = alpha2 - alpha5; C13 = alpha3;
   C2 = alpha2 + alpha5; C23 = alpha3; C3 = alpha1;
   C4 = alpha4; C5 = alpha4; C6 = alpha4;
   
@@ -964,13 +961,14 @@ void JSph::VisuConfig()const{
   Log->Print(fun::VarStr("MassBound",MassBound));
   // Solid - anisotropic
   Log->Print("SolidVariables");
-/*  Log->Print(fun::VarStr("Young modulus", K));
+  /*  Log->Print(fun::VarStr("Young modulus", K));
   Log->Print(fun::VarStr("Shear modulus", Mu));*/
   Log->Print(fun::VarStr("Young modulus 1", Ef)); 
   Log->Print(fun::VarStr("Young modulus 2", Et));
   Log->Print(fun::VarStr("Shear modulus", Gf));
   Log->Print(fun::VarStr("Poisson modulus 11", nuf1));
   Log->Print(fun::VarStr("Poisson modulus 12", nuf2));
+
 
   if(TKernel==KERNEL_Wendland){
     Log->Print(fun::VarStr("Awen (Wendland)",Awen));
@@ -1197,6 +1195,7 @@ void JSph::ConfigCellDivision(){
   Log->Print(fun::VarStr("Hdiv",Hdiv));
   Log->Print(string("MapCells=(")+fun::Uint3Str(OrderDecode(Map_Cells))+")");
   //-Creates VTK file with map cells.
+  printf("\n---SaveMapCellsVtkSize--- %d", SaveMapCellsVtkSize());
   if(SaveMapCellsVtkSize()<1024*1024*10)SaveMapCellsVtk(Scell);
   else Log->PrintWarning("File CfgInit_MapCells.vtk was not created because number of cells is too high.");
 }
@@ -1857,7 +1856,7 @@ void JSph::SaveInitialDomainVtk()const{
 
 //==============================================================================
 /// Returns size of VTK file with map cells.
-/// Devuelve tamaño de fichero VTK con las celdas del mapa.
+/// Devuelve tamaÃ±o de fichero VTK con las celdas del mapa.
 //==============================================================================
 unsigned JSph::SaveMapCellsVtkSize()const{
   const tuint3 cells=OrderDecode(Map_Cells);
@@ -1905,7 +1904,7 @@ void JSph::SaveMapCellsVtk(float scell)const{
 
 //==============================================================================
 /// Adds basic information of resume to hinfo & dinfo.
-/// Añade la informacion basica de resumen a hinfo y dinfo.
+/// AÃ±ade la informacion basica de resumen a hinfo y dinfo.
 //==============================================================================
 void JSph::GetResInfo(float tsim,float ttot,const std::string &headplus,const std::string &detplus,std::string &hinfo,std::string &dinfo){
   hinfo=hinfo+"#RunName;RunCode;DateTime;Np;TSimul;TSeg;TTotal;MemCpu;MemGpu;Steps;PartFiles;PartsOut;MaxParticles;MaxCells;Hw;StepAlgo;Kernel;Viscosity;ViscoValue;DeltaSPH;TMax;Nbound;Nfixed;H;RhopOut;PartsRhopOut;PartsVelOut;CellMode"+headplus;

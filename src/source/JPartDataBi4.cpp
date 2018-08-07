@@ -213,6 +213,7 @@ void JPartDataBi4::ConfigParticles(ullong casenp,ullong casenfixed,ullong casenm
   Data->SetvBool("ReuseIds",reuseids);
 }
 
+
 //==============================================================================
 /// Configuracion de constantes.
 /// Configuration of constants.
@@ -277,7 +278,8 @@ std::string JPartDataBi4::GetNamePart(unsigned cpart){
 /// Añade informacion de nuevo part.
 // Add information to new part.
 //==============================================================================
-JBinaryData* JPartDataBi4::AddPartInfo(unsigned cpart,double timestep,unsigned npok,unsigned nout,unsigned step,double runtime,tdouble3 domainmin,tdouble3 domainmax,ullong nptotal,ullong idmax){
+JBinaryData* JPartDataBi4::AddPartInfo(unsigned cpart,double timestep,unsigned npok,
+	unsigned nout,unsigned step,double runtime,tdouble3 domainmin,tdouble3 domainmax,ullong nptotal,ullong idmax){
   Part->Clear();
   Cpart=cpart;
   Part->SetName(GetNamePart(cpart));
@@ -324,6 +326,18 @@ void JPartDataBi4::AddPartData(unsigned npok,const unsigned *idp,const ullong *i
   else    Part->CreateArray("Pos" ,JBinaryDataDef::DatFloat3,npok,pos,externalpointer);
   Part->CreateArray("Vel",JBinaryDataDef::DatFloat3,npok,vel,externalpointer);
   Part->CreateArray("Rhop",JBinaryDataDef::DatFloat,npok,rhop,externalpointer);
+}
+
+void  JPartDataBi4::AddPartData_T(unsigned npok, const int *idp, const tdouble3 *posd, const tfloat3 *vel, const float *rhop, const float *mp, bool externalpointer) {
+	const char met[] = "AddPartData";
+	if (!idp)RunException(met, "The id of particles is invalid.");
+	if (!posd)RunException(met, "The position of particles is invalid.");
+	//-Creates valid particles array.
+	Part->CreateArray("Idp", JBinaryDataDef::DatUint, npok, idp, externalpointer);
+	Part->CreateArray("Posd", JBinaryDataDef::DatDouble3, npok, posd, externalpointer);
+	Part->CreateArray("Vel", JBinaryDataDef::DatFloat3, npok, vel, externalpointer);
+	Part->CreateArray("Rhop", JBinaryDataDef::DatFloat, npok, rhop, externalpointer);
+	Part->CreateArray("Mass", JBinaryDataDef::DatFloat, npok, mp, externalpointer);
 }
 
 //==============================================================================
@@ -427,7 +441,9 @@ void JPartDataBi4::LoadFileData(std::string file,unsigned cpart,unsigned piece,u
   ResetData();
   Cpart=cpart; Piece=piece; Npiece=npiece;
   Data->OpenFileStructure(file,ClassName);
-  if(Piece!=Data->GetvUint("Piece")||Npiece!=Data->GetvUint("Npiece"))RunException(met,"PART configuration is invalid.");
+  if (Piece != Data->GetvUint("Piece") || Npiece != Data->GetvUint("Npiece")) {
+	  RunException(met, "PART configuration is invalid.");
+  }
   Part=Data->GetItem(GetNamePart(Cpart));
   if(!Part)RunException(met,"PART data is invalid.");
   Cpart=Part->GetvUint("Cpart");
