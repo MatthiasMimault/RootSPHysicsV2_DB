@@ -175,7 +175,8 @@ public:
   double GetEps()const{ return(Eps); }
   // Extension Domain
   double GetBordDomain()const { return BordDomain; }
-  // Solid
+
+  // Solid 
   double GetYoung()const { return(K); }
   double GetShear()const { return(Mu); }
   // Pore Pressure
@@ -218,6 +219,7 @@ public:
   // Solid
   void SetYoung(double v) { K = v; };
   void SetShear(double v) { Mu = v; };
+
   // Pore Pressure
   void SetPoreZero(double v) { PoreZero = v; };
   // Mass assimilation

@@ -434,12 +434,6 @@ protected:
   unsigned GetOutRhopCount()const{ return(OutRhopCount); }
   unsigned GetOutMoveCount()const{ return(OutMoveCount); }
 
-  void JSph::SaveData_L(unsigned npok, const unsigned *idp, const tdouble3 *pos, const tfloat3 *vel, const float *rhop, const float *pore
-	  , const tfloat3 *press, const float *mass, const tsymatrix3f *tau, unsigned ndom, const tdouble3 *vdom, const StInfoPartPlus *infoplus);
-  void JSph::SavePartData_L(unsigned npok, unsigned nout, const unsigned *idp, const tdouble3 *pos, const tfloat3 *vel
-	  , const float *rhop, const float *pore, const tfloat3 *press, const float *mass, const tsymatrix3f *tau
-	  , unsigned ndom, const tdouble3 *vdom, const StInfoPartPlus *infoplus);
-
 public:
   JSph(bool cpu,bool withmpi);
   ~JSph();

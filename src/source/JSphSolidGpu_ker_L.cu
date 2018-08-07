@@ -1647,7 +1647,7 @@ namespace cuSol {
 					//printf("Ici = %f/%f/%f/%f/%f/%f", tau2[p].xx, tau2[p].xy, tau2[p].xz, tau2[p].yy, tau2[p].yz, tau2[p].zz);
 
 					//Update mass
-					 massnew[p] = float(double(mass2[p]) + double(amass));
+					 massnew[p] = float(double(mass2[p]) + double(amass)*dt2);
 
 
 				}

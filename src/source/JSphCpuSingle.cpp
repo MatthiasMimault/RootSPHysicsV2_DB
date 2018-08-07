@@ -1015,17 +1015,13 @@ template<bool checkcodenormal> double JSphCpuSingle::ComputeAceMaxOmp(unsigned n
 double JSphCpuSingle::ComputeStep_Ver() {
 
 	Interaction_Forces(INTER_Forces);    //-Interaction.
-	
 	const double dt = DtVariable(true);    //-Calculate new dt.
 	DemDtForce = dt;                       //(DEM)
-
 	if (TShifting)RunShifting(dt);        //-Shifting.
 	ComputeVerlet(dt);                   //-Update particles using Verlet.
 	if (CaseNfloat)RunFloating(dt, false); //-Control of floating bodies.
 	PosInteraction_Forces();             //-Free memory used for interaction.
 	if (Damping)RunDamping(dt, Np, Npb, Posc, Codec, Velrhopc); //-Applies Damping.
-	
-
 	return(dt);
 }
 
@@ -1290,7 +1286,7 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
   TmcCreation(Timers,cfg->SvTimers);
   TmcStart(Timers,TMC_Init);
 
-  //-Load parameters and values of input. | Carga de parametros y datos de entrada. //OK
+  //-Load parameters and values of input. | Carga de parametros y datos de entrada.
   //--------------------------------------------------------------------------------
 
   printf("---1---");
@@ -1308,7 +1304,7 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
   printf("---7---");
 
 
-  //-Initialisation of execution variables. | Inicializacion de variables de ejecucion. //OK
+  //-Initialisation of execution variables. | Inicializacion de variables de ejecucion.
   //------------------------------------------------------------------------------------
 
   InitRun();
@@ -1342,9 +1338,9 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
     if(CaseNmoving)RunMotion(stepdt);
 
 	// Matthias - Cell division
-	//RunSizeDivision_M();
-	//RunDivisionDisplacement_M();
-	RunCellDivide(false);
+	RunSizeDivision_M();
+	RunDivisionDisplacement_M();
+	RunCellDivide(true);
 
     TimeStep+=stepdt;
 	partoutstop=(Np<NpMinimum || !Np);
@@ -1353,7 +1349,7 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
         Log->PrintWarning("Particles OUT limit reached...");
         TimeMax=TimeStep;
       }
-      SaveData(); // matthias
+      SaveData(); 
       Part++;
       PartNstep=Nstep;
       TimeStepM1=TimeStep;
