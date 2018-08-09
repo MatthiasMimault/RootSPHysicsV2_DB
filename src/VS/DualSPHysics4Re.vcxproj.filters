@@ -250,6 +250,9 @@
     <ClInclude Include="..\source\JSphSolidCpu_M.h">
       <Filter>Source</Filter>
     </ClInclude>
+    <ClInclude Include="..\source\GenCaseBis_T.h">
+      <Filter>Source</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\source\JCfgRun.cpp">

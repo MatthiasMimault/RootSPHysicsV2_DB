@@ -142,6 +142,7 @@ private:
   void ReadXmlDef(JXml *sxml,TiXmlElement* ele);
   void WriteXmlDef(JXml *sxml,TiXmlElement* ele)const;
   void ReadXmlRun(JXml *sxml, TiXmlElement* ele);
+  void ReadXmlRun_T(JXml *sxml, TiXmlElement* node);
   void ReadAddXmlRun_M(JXml *sxml, TiXmlElement* ele);
   void WriteXmlRun(JXml *sxml,TiXmlElement* ele)const;
 
@@ -154,6 +155,7 @@ public:
   void LoadXmlDef(JXml *sxml,const std::string &place);
   void SaveXmlDef(JXml *sxml,const std::string &place)const;
   void LoadXmlRun(JXml *sxml, const std::string &place);
+  void LoadXmlRun_T(JXml *sxml, const std::string &place);
   void LoadAddXmlRun_M(JXml *sxml, const std::string &place);
   void SaveXmlRun(JXml *sxml,const std::string &place)const;
 
