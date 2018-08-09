@@ -638,20 +638,13 @@ void JSphGpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
   //-Load parameters and values of input. | Carga de parametros y datos de entrada. //OK
   //--------------------------------------------------------------------------------
 
- 
-  printf("---1---");
   LoadConfig(cfg); 
-  printf("---2---");
   LoadCaseParticles();
-  printf("---3---");
   ConfigConstants(Simulate2D);
-  printf("---4---");
   ConfigDomain();
-  printf("---5---");
   ConfigRunMode("Single-Gpu");
-  printf("---6---");
   VisuParticleSummary();
-  printf("---7---");
+
 
 
 
@@ -661,7 +654,7 @@ void JSphGpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
   RunGaugeSystem(TimeStep);
   UpdateMaxValues();
   PrintAllocMemory(GetAllocMemoryCpu(),GetAllocMemoryGpu());
-  SaveData(); //Change
+  SaveData(); 
   TmgResetValues(Timers);
   TmgStop(Timers,TMG_Init);
   PartNstep=-1; Part++;
@@ -764,51 +757,6 @@ void JSphGpuSingle::SaveData(){
   JSph::SaveData(npsave,Idp,AuxPos,AuxVel,AuxRhop,1,vdom,&infoplus);
   TmgStop(Timers,TMG_SuSavePart);
 }
-
-//==============================================================================
-/// Generates files with output data. lucas
-//==============================================================================
-void JSphGpuSingle::SaveData_L() {
-	const bool save = (SvData != SDAT_None && SvData != SDAT_Info);
-	const unsigned npsave = Np - NpbPer - NpfPer; //-Subtracts the periodic particles if they exist. | Resta las periodicas si las hubiera.
-												  //-Retrieves particle data from the GPU. | Recupera datos de particulas en GPU.
-	if (save) {
-		TmgStart(Timers, TMG_SuDownData);
-		unsigned npnormal = ParticlesDataDown_L(Np, 0, false, true, PeriActive != 0);
-		if (npnormal != npsave)RunException("SaveData", "The number of particles is invalid.");
-		TmgStop(Timers, TMG_SuDownData);
-	}
-	//-Retrieve floating object data from the GPU. | Recupera datos de floatings en GPU.
-	if (FtCount) {
-		TmgStart(Timers, TMG_SuDownData);
-		UpdateFtObjs();
-		TmgStop(Timers, TMG_SuDownData);
-	}
-	//-Collects additional information. | Reune informacion adicional.
-	TmgStart(Timers, TMG_SuSavePart);
-	StInfoPartPlus infoplus;
-	memset(&infoplus, 0, sizeof(StInfoPartPlus));
-	if (SvData&SDAT_Info) {
-		infoplus.nct = CellDivSingle->GetNct();
-		infoplus.npbin = NpbOk;
-		infoplus.npbout = Npb - NpbOk;
-		infoplus.npf = Np - Npb;
-		infoplus.npbper = NpbPer;
-		infoplus.npfper = NpfPer;
-		infoplus.memorycpualloc = this->GetAllocMemoryCpu();
-		infoplus.gpudata = true;
-		infoplus.memorynctalloc = infoplus.memorynctused = GetMemoryGpuNct();
-		infoplus.memorynpalloc = infoplus.memorynpused = GetMemoryGpuNp();
-		TimerSim.Stop();
-		infoplus.timesim = TimerSim.GetElapsedTimeD() / 1000.;
-	}
-	//-Stores particle data. | Graba datos de particulas.
-	const tdouble3 vdom[2] = { OrderDecode(CellDivSingle->GetDomainLimits(true)),OrderDecode(CellDivSingle->GetDomainLimits(false)) };
-	JSph::SaveData(npsave, Idp, AuxPos, AuxVel, AuxRhop, 1, vdom, &infoplus);
-	TmgStop(Timers, TMG_SuSavePart);
-}
-
-
 
 //==============================================================================
 /// Displays and stores final summary of the execution.
