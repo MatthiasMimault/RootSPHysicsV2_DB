@@ -180,7 +180,8 @@ protected:
 	void ConfigRunMode(const JCfgRun *cfg, std::string preinfo = "");
 	void ConfigCellDiv(JCellDivCpu* celldiv) { CellDiv = celldiv; }
 	void InitFloating();
-	void InitRun(JPartsLoad4 *pl);
+	void InitRun();
+	void InitRun_T(JPartsLoad4 *pl);
 
 	void AddAccInput();
 

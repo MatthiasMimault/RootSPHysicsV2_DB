@@ -93,6 +93,20 @@ void JSphCpuSingle::LoadConfig(JCfgRun *cfg){
 }
 
 //==============================================================================
+/// Load the execution configuration.
+/// Carga la configuracion de ejecucion.
+//==============================================================================
+void JSphCpuSingle::LoadConfig_T(JCfgRun *cfg) {
+	const char met[] = "LoadConfig";
+	//-Load OpenMP configuraction. | Carga configuracion de OpenMP.
+	ConfigOmp(cfg);
+	//-Load basic general configuraction. | Carga configuracion basica general.
+	JSph::LoadConfig_T(cfg);
+	//-Checks compatibility of selected options.
+	Log->Print("**Special case configuration is loaded");
+}
+
+//==============================================================================
 /// Load particles of case and process.
 /// Carga particulas del caso a procesar.
 //==============================================================================
@@ -139,6 +153,55 @@ void JSphCpuSingle::LoadCaseParticles(){
   Map_Size=Map_PosMax-Map_PosMin;
   //-Saves initial domain in a VTK file (CasePosMin/Max, MapRealPosMin/Max and Map_PosMin/Max).
   SaveInitialDomainVtk();
+}
+
+//==============================================================================
+/// Load particles of case and process.
+/// Carga particulas del caso a procesar.
+//==============================================================================
+void JSphCpuSingle::LoadCaseParticles_T() {
+
+	Log->Print("Loading initial state of particles...");
+	PartsLoaded = new JPartsLoad4(true);
+	PartsLoaded->LoadParticles_T(DirCase, CaseName, PartBegin, PartBeginDir);
+	PartsLoaded->CheckConfig(CaseNp, CaseNfixed, CaseNmoving, CaseNfloat, CaseNfluid, PeriX, PeriY, PeriZ);
+	Log->Printf("Loaded particles: %u", PartsLoaded->GetCount());
+	//-Collect information of loaded particles. | Recupera informacion de las particulas cargadas.
+	Simulate2D = PartsLoaded->GetSimulate2D();
+	Simulate2DPosY = PartsLoaded->GetSimulate2DPosY();
+	if (Simulate2D&&PeriY)RunException("LoadCaseParticles", "Cannot use periodic conditions in Y with 2D simulations");
+	CasePosMin = PartsLoaded->GetCasePosMin();
+	CasePosMax = PartsLoaded->GetCasePosMax();
+
+	//-Calculate actual limits of simulation. | Calcula limites reales de la simulacion.
+	if (PartsLoaded->MapSizeLoaded()) {
+		PartsLoaded->GetMapSize(MapRealPosMin, MapRealPosMax);
+	}
+	else {
+		PartsLoaded->CalculeLimits(double(H)*BORDER_MAP + BordDomain, Dp / 2., PeriX, PeriY, PeriZ, MapRealPosMin, MapRealPosMax);
+		ResizeMapLimits();
+	}
+	if (PartBegin) {
+		PartBeginTimeStep = PartsLoaded->GetPartBeginTimeStep();
+		PartBeginTotalNp = PartsLoaded->GetPartBeginTotalNp();
+	}
+	Log->Print(string("MapRealPos(final)=") + fun::Double3gRangeStr(MapRealPosMin, MapRealPosMax));
+	MapRealSize = MapRealPosMax - MapRealPosMin;
+	Log->Print("**Initial state of particles is loaded");
+
+	//-Configure limits of periodic axes. | Configura limites de ejes periodicos.
+	if (PeriX)PeriXinc.x = -MapRealSize.x;
+	if (PeriY)PeriYinc.y = -MapRealSize.y;
+	if (PeriZ)PeriZinc.z = -MapRealSize.z;
+	//-Calculate simulation limits with periodic boundaries. | Calcula limites de simulacion con bordes periodicos.
+	Map_PosMin = MapRealPosMin; Map_PosMax = MapRealPosMax;
+	float dosh = float(H * 2);
+	if (PeriX) { Map_PosMin.x = Map_PosMin.x - dosh;  Map_PosMax.x = Map_PosMax.x + dosh; }
+	if (PeriY) { Map_PosMin.y = Map_PosMin.y - dosh;  Map_PosMax.y = Map_PosMax.y + dosh; }
+	if (PeriZ) { Map_PosMin.z = Map_PosMin.z - dosh;  Map_PosMax.z = Map_PosMax.z + dosh; }
+	Map_Size = Map_PosMax - Map_PosMin;
+	//-Saves initial domain in a VTK file (CasePosMin/Max, MapRealPosMin/Max and Map_PosMin/Max).
+	SaveInitialDomainVtk();
 }
 
 //==============================================================================
@@ -222,7 +285,7 @@ void JSphCpuSingle::ResizeParticlesSize(unsigned newsize,float oversize,bool upd
 unsigned JSphCpuSingle::PeriodicMakeList(unsigned n,unsigned pini,bool stable,unsigned nmax,tdouble3 perinc,const tdouble3 *pos,const typecode *code,unsigned *listp)const{
   unsigned count=0;
   if(n){
-    //-Initialize size of list lsph to zero. | Inicializa tamaÃ±o de lista lspg a cero.
+    //-Initialize size of list lsph to zero. | Inicializa tamaño de lista lspg a cero.
     listp[nmax]=0;
     for(unsigned p=0;p<n;p++){
       const unsigned p2=p+pini;
@@ -913,12 +976,10 @@ void JSphCpuSingle::Interaction_Forces(TpInter tinter){
   //if (Psingle)JSphSolidCpu::InteractionSimple_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, PsPosc, Velrhopc, Idpc, Codec, Pressc, Porec_M, Massc_M, viscdt, Arc, Acec, Deltac, JauTauc2_M, JauGradvelc2_M, JauTauDot_M, JauOmega_M, ShiftPosc, ShiftDetectc);
   //else JSphSolidCpu::Interaction_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, Posc, Velrhopc, Idpc, Codec, Pressc, Porec_M, Massc_M, viscdt, Arc, Acec, Deltac, JauTauc2_M, JauGradvelc2_M, JauTauDot_M, JauOmega_M, ShiftPosc, ShiftDetectc);
 
-  //if (Psingle)JSphSolidCpu::InteractionSimple_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, PsPosc, Velrhopc, Idpc, Codec, Pressc, Porec_M, Massc_M, viscdt, Arc, Acec, Deltac, JauTauc2_M, JauGradvelc2_M, JauTauDot_M, JauOmega_M, ShiftPosc, ShiftDetectc);
-  //else JSphSolidCpu::Interaction_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, Posc, Velrhopc, Idpc, Codec, Pressc, Porec_M, Massc_M, viscdt, Arc, Acec, Deltac, JauTauc2_M, JauGradvelc2_M, JauTauDot_M, JauOmega_M, ShiftPosc, ShiftDetectc);
-   if (Psingle)JSphSolidCpu::InteractionSimple_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, PsPosc, Velrhopc, Idpc, Codec, Press3Dc, Porec_M, Massc_M, viscdt, Arc, Acec, Deltac, JauTauc2_M, JauGradvelc2_M, JauTauDot_M, JauOmega_M, ShiftPosc, ShiftDetectc);
+  if (Psingle)JSphSolidCpu::InteractionSimple_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, PsPosc, Velrhopc, Idpc, Codec, Press3Dc, Porec_M, Massc_M, viscdt, Arc, Acec, Deltac, JauTauc2_M, JauGradvelc2_M, JauTauDot_M, JauOmega_M, ShiftPosc, ShiftDetectc);
   else JSphSolidCpu::Interaction_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, Posc, Velrhopc, Idpc, Codec, Press3Dc, Porec_M, Massc_M, viscdt, Arc, Acec, Deltac, JauTauc2_M, JauGradvelc2_M, JauTauDot_M, JauOmega_M, ShiftPosc, ShiftDetectc);
 
-  //-For 2-D simulations zero the 2nd component. | Para simulaciones 2D anula siempre la 2Âº componente.
+  //-For 2-D simulations zero the 2nd component. | Para simulaciones 2D anula siempre la 2º componente.
   if(Simulate2D){
     const int ini=int(Npb),fin=int(Np),npf=int(Np-Npb);
     #ifdef OMP_USE
@@ -927,7 +988,7 @@ void JSphCpuSingle::Interaction_Forces(TpInter tinter){
     for(int p=ini;p<fin;p++)Acec[p].y=0;
   }
 
-  //-Add Delta-SPH correction to Arg[]. | AÃ±ade correccion de Delta-SPH a Arg[].
+  //-Add Delta-SPH correction to Arg[]. | Añade correccion de Delta-SPH a Arg[].
   if(Deltac){
     const int ini=int(Npb),fin=int(Np),npf=int(Np-Npb);
     #ifdef OMP_USE
@@ -1162,7 +1223,7 @@ void JSphCpuSingle::FtCalcForces(StFtoForces *ftoforces)const{
       omegaace.z=(fomegaace.x*invinert.a31+fomegaace.y*invinert.a32+fomegaace.z*invinert.a33);
       fomegaace=omegaace;
     }
-    //-Add gravity and divide by mass. | AÃ±ade gravedad y divide por la masa.
+    //-Add gravity and divide by mass. | Añade gravedad y divide por la masa.
     face.x=(face.x+fmass*Gravity.x)/fmass;
     face.y=(face.y+fmass*Gravity.y)/fmass;
     face.z=(face.z+fmass*Gravity.z)/fmass;
@@ -1219,7 +1280,7 @@ void JSphCpuSingle::RunFloating(double dt,bool predictor){
     //-Initialises forces of floatings.
     memset(FtoForces,0,sizeof(StFtoForces)*FtCount); 
 
-    //-Adds calculated forces around floating objects. | AÃ±ade fuerzas calculadas sobre floatings.
+    //-Adds calculated forces around floating objects. | Añade fuerzas calculadas sobre floatings.
     FtCalcForces(FtoForces);
     //-Calculate data to update floatings. | Calcula datos para actualizar floatings.
     FtCalcForcesRes(dt,FtoForces,FtoForcesRes);
@@ -1300,28 +1361,57 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
 
   Log->Printf("\n---Thibaud's part---\n");
   GenCaseBis_T gcb;
-  gcb.Bridge(cfg->RunPath, cfg->CaseName);
-  Log->Printf("\n---Thibaud's part end---\n");
+  gcb.UseGencase(cfg->RunPath);
+  if (!gcb.getUseGencase()) {
+	  gcb.Bridge(cfg->CaseName);
+	  Log->Printf("\n---Thibaud's part end---\n");
+	  printf("---1---");
+	  LoadConfig_T(cfg);
+	  printf("---2---");
+	  LoadCaseParticles_T();
+	  printf("---3---");
+	  ConfigConstants(Simulate2D);
+	  printf("---4---");
+	  ConfigDomain();
+	  printf("---5---");
+	  ConfigRunMode(cfg);
+	  printf("---6---");
+	  VisuParticleSummary();
+	  printf("---7---");
+	  //-Initialisation of execution variables. | Inicializacion de variables de ejecucion.
+	  //------------------------------------------------------------------------------------
+	  InitRun_T(PartsLoaded);
+  }
+  else {
+	  Log->Printf("\n---Thibaud's part end---\n");
+	  printf("---1---");
+	  LoadConfig(cfg);
+	  printf("---2---");
+	  LoadCaseParticles();
+	  printf("---3---");
+	  ConfigConstants(Simulate2D);
+	  printf("---4---");
+	  ConfigDomain();
+	  printf("---5---");
+	  ConfigRunMode(cfg);
+	  printf("---6---");
+	  VisuParticleSummary();
+	  printf("---7---");
+	  //-Initialisation of execution variables. | Inicializacion de variables de ejecucion.
+	  //------------------------------------------------------------------------------------
+	  InitRun();
+  }
+  
 
 
-  LoadConfig(cfg);
-  LoadCaseParticles();
-  ConfigConstants(Simulate2D);
-  ConfigDomain();
-  ConfigRunMode(cfg);
-  VisuParticleSummary();
-
-  //-Initialisation of execution variables. | Inicializacion de variables de ejecucion.
-  //------------------------------------------------------------------------------------
-  InitRun(PartsLoaded);
   //-Free memory of PartsLoaded. | Libera memoria de PartsLoaded.
   delete PartsLoaded; PartsLoaded = NULL;
   RunGaugeSystem(TimeStep);
   UpdateMaxValues();
+  SaveData_M();
   PrintAllocMemory(GetAllocMemoryCpu());
   TmcResetValues(Timers);
   TmcStop(Timers,TMC_Init);
-  SaveData_M();
   PartNstep=-1; Part++;
 
   //-Main Loop.

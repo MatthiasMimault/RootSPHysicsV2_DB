@@ -73,7 +73,7 @@ void JSpaceCtes::Reset(){
   // Extension Domain
   BordDomain = 0;
   // Solid
-   //K = 0; Mu = 0;
+  //K = 0; Mu = 0;
   Ef = Et = Gf = nuf1 = nuf2 = 0;
   // Pore
   PoreZero = 0;
@@ -216,6 +216,20 @@ void JSpaceCtes::ReadXmlRun(JXml *sxml, TiXmlElement* node) {
 
 //==============================================================================
 /// Reads constants for execution of the case of xml node.
+//==============================================================================
+void JSpaceCtes::ReadXmlRun_T(JXml *sxml, TiXmlElement* node) {
+	SetGravity(sxml->ReadElementDouble3(node, "gravity"));
+	SetCFLnumber(sxml->ReadElementDouble(node, "cflnumber", "value"));
+	SetGamma(sxml->ReadElementDouble(node, "gamma", "value"));
+	SetRhop0(sxml->ReadElementDouble(node, "rhop0", "value"));
+	SetEps(sxml->ReadElementDouble(node, "eps", "value", true, 0));
+	SetDp(sxml->ReadElementDouble(node, "dp", "value"));
+	SetH(sxml->ReadElementDouble(node, "h", "value"));
+	SetB(sxml->ReadElementDouble(node, "b", "value"));
+}
+
+//==============================================================================
+/// Reads constants for execution of the case of xml node.
 /// Matthias version: including Solid
 //==============================================================================
 void JSpaceCtes::ReadAddXmlRun_M(JXml *sxml, TiXmlElement* node) {
@@ -290,6 +304,16 @@ void JSpaceCtes::LoadXmlRun(JXml *sxml, const std::string &place) {
 	TiXmlNode* node = sxml->GetNode(place, false);
 	if (!node)RunException("LoadXmlRun", std::string("The item is not found \'") + place + "\'.");
 	ReadXmlRun(sxml, node->ToElement());
+}
+
+//==============================================================================
+/// Loads constants for execution of the case of xml node.
+//==============================================================================
+void JSpaceCtes::LoadXmlRun_T(JXml *sxml, const std::string &place) {
+	Reset();
+	TiXmlNode* node = sxml->GetNode(place, false);
+	if (!node)RunException("LoadXmlRun", std::string("The item is not found \'") + place + "\'.");
+	ReadXmlRun_T(sxml, node->ToElement());
 }
 
 //==============================================================================
