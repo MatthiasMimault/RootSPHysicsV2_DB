@@ -515,13 +515,11 @@ double JSphGpuSingle::ComputeAceMax(float *auxmem){
 /// calculadas en la interaccion usando Verlet.
 //==============================================================================
 double JSphGpuSingle::ComputeStep_Ver(){
-
   Interaction_Forces(INTER_Forces);    //-Interaction..
-
-const double dt=DtVariable(true);    //-Calculate new dt.
+  const double dt=DtVariable(true);    //-Calculate new dt.
   DemDtForce=dt;                       //(DEM)
   if(TShifting)RunShifting(dt);        //-Shifting.
-  ComputeVerlet(dt);                   //-Update particles using Verlet. // A bouger
+  ComputeVerlet(dt);                   //-Update particles using Verlet. 
   if(CaseNfloat)RunFloating(dt,false); //-Control of floating bodies.
   PosInteraction_Forces();             //-Free memory used for interaction.
   if(Damping)RunDamping(dt,Np,Npb,Posxyg,Poszg,Codeg,Velrhopg); //-Aplies Damping.
