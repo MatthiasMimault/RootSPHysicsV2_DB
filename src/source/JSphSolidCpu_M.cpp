@@ -5080,10 +5080,10 @@ template<bool shift> void JSphSolidCpu::ComputeVerletVarsSolMass_M(const tfloat4
 	for (int p = pini; p<pfin; p++) {
 		// Calcul mass variation
 		const float volu = float(double(mass1[p]) / double(velrhop1[p].w));
-		const float amass = float(LambdaMass * (RhopZero / velrhop1[p].w - 1.0f));
+		const float adens = float(LambdaMass * (RhopZero / velrhop1[p].w - 1.0f));
 
 		//-Calculate density. | Calcula densidad.
-		const float rhopnew = float(double(velrhop2[p].w) + dt2 * (Arc[p] + amass / volu));
+		const float rhopnew = float(double(velrhop2[p].w) + dt2 * (Arc[p] + adens));
 		if (!WithFloating || CODE_IsFluid(code[p])) {//-Fluid Particles.
 													 //-Calculate displacement and update position. | Calcula desplazamiento y actualiza posicion.
 			double dx = double(velrhop1[p].x)*dt + double(Acec[p].x)*dt205;
@@ -5112,7 +5112,7 @@ template<bool shift> void JSphSolidCpu::ComputeVerletVarsSolMass_M(const tfloat4
 			taunew[p].zz = float(double(tau2[p].zz) + double(JauTauDot_M[p].zz)*dt2);
 
 			// Update mass
-			massnew[p] = float(double(mass2[p]) + dt2 * double(amass));
+			massnew[p] = float(double(mass2[p]) + dt2 * double(adens*volu));
 		}
 		else {//-Floating Particles.
 			velrhopnew[p] = velrhop1[p];

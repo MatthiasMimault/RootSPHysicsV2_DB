@@ -590,9 +590,9 @@ void JSph::LoadCaseConfig(){
   const float alpha3 = Ef * nuf2 / (nf*(1 - nuf1) - 2.0f*nuf2*nuf2);
   const float alpha4 = Gf;
   const float alpha5 = Ef / (2.0f*(1 + nuf1));
-   C1 = alpha2 + alpha5; C12 = alpha2 - alpha5; C13 = alpha3;
-  C2 = alpha2 + alpha5; C23 = alpha3; C3 = alpha1;
-  C4 = alpha4; C5 = alpha4; C6 = alpha4;
+   C1 = alpha1; C12 = alpha3; C13 = alpha3;
+  C2 = alpha2 + alpha5; C23 = alpha2 - alpha5; C3 = alpha2 + alpha5;
+  C4 = alpha5; C5 = alpha4; C6 = alpha4;
   
   // New B for anisotropy
   CteB3D = TFloat3((C1 + C12 + C13) / Gamma, (C2 + C12 + C23) / Gamma, (C3 + C13 + C23) / Gamma);
