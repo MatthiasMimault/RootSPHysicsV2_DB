@@ -22,8 +22,8 @@
 //:# - Se paso a usar double en lugar de float. (25-11-2013)
 //:# - El valor de Eps pasa a ser opcional para mantener compatibilidad. (08-01-2015)
 //:# - Se cambio Coefficient por CoefH pero manteniendo compatibilidad. (08-01-2015)
-//:# - Se añadio SpeedSound para asignar valor de forma explicita. (08-01-2015)
-//:# - Se añadieron comentarios al escribir el XML. (08-01-2015)
+//:# - Se aÃ±adio SpeedSound para asignar valor de forma explicita. (08-01-2015)
+//:# - Se aÃ±adieron comentarios al escribir el XML. (08-01-2015)
 //:# - Se ampliaron los limites de CFLnumber de (0.1-0.5) a (0.001-1). (08-01-2015)
 //:# - <speedsystem> y <speedsound> pasan a ser opcionales. (20-01-2015)
 //:# - <eps> solo se pasa a <constants> cuando este definido en <constantsdef>. (20-01-2015)
@@ -115,9 +115,10 @@ private:
   // Matthias
   // Extension domain
   double BordDomain;
-  // Solid
-  double K;
-  double Mu;
+  // Solid - anisotropic
+  double Ef, Et, Gf, nuf1, nuf2;
+  //double K;
+  //double Mu;
   // Pore
   double PoreZero;
   // Mass
@@ -176,9 +177,14 @@ public:
   // Extension Domain
   double GetBordDomain()const { return BordDomain; }
 
-  // Solid 
-  double GetYoung()const { return(K); }
-  double GetShear()const { return(Mu); }
+  // Solid - anisotropic
+  //double GetYoung()const { return(K); }
+  double GetYoung1()const { return(Ef); }
+  double GetYoung2()const { return(Et); }
+  double GetShear()const { return(Gf); }
+  double GetPoisson11()const { return nuf1; }
+  double GetPoisson12()const { return nuf2; }
+  //double GetShear()const { return(Mu); }
   // Pore Pressure
   double GetPoreZero()const { return(PoreZero); }
   // Mass assimilation
@@ -216,9 +222,14 @@ public:
   // Matthias
   // Extension Domain
   void SetBordDomain(double v) { BordDomain = v; }
-  // Solid
-  void SetYoung(double v) { K = v; };
-  void SetShear(double v) { Mu = v; };
+  // Solid - anisotropic
+  //void SetYoung(double v) { K = v; };
+  //void SetShear(double v) { Mu = v; };
+  void SetYoung1(double v) { Ef = v; };
+  void SetYoung2(double v) { Et = v; };
+  void SetShear(double v) { Gf = v; };
+  void SetPoisson11(double v) { nuf1 = v; };
+  void SetPoisson12(double v) { nuf2 = v; };
 
   // Pore Pressure
   void SetPoreZero(double v) { PoreZero = v; };
