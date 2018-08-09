@@ -73,7 +73,7 @@ void JSpaceCtes::Reset(){
   // Extension Domain
   BordDomain = 0;
   // Solid
-   //K = 0; Mu = 0;
+  //K = 0; Mu = 0;
   Ef = Et = Gf = nuf1 = nuf2 = 0;
   // Pore
   PoreZero = 0;
