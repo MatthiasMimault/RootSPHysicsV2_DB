@@ -44,7 +44,9 @@ protected:
   llong GetAllocMemoryCpu()const;
   void UpdateMaxValues();
   void LoadConfig(JCfgRun *cfg);
+  void LoadConfig_T(JCfgRun *cfg);
   void LoadCaseParticles();
+  void LoadCaseParticles_T();
   void ConfigDomain();
 
   void ResizeParticlesSize(unsigned newsize,float oversize,bool updatedivide);

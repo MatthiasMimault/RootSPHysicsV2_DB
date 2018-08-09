@@ -20,12 +20,28 @@ GenCaseBis_T::~GenCaseBis_T()
 {
 }
 
+void GenCaseBis_T::UseGencase(std::string runPath) {
+	string directoryXml = runPath + "/Def.xml";
+	JXml xml; xml.LoadFile(directoryXml);
+
+	int i;
+	((xml.GetNode("case.casedef.constantsdef.useGencase", false))->ToElement())->QueryIntAttribute("value", &i);
+	if (i == 1) {
+		useGencase = true;
+		printf("\n useGencase : true\n");
+	}
+	else {
+		useGencase = false;
+		printf("\n useGencase : false\n");
+	}
+
+}
 
 //==============================================================================
 /// Load the xml file Def and adds the informations about particles
 /// Load csv file and create a JPartDataBi4 with particles data
 //==============================================================================
-void GenCaseBis_T::Bridge(std::string runPath, std::string caseName) {
+void GenCaseBis_T::Bridge(std::string caseName) {
 	int *idp;
 	tdouble3 *pos;
 	tdouble3 posMin;
@@ -38,14 +54,9 @@ void GenCaseBis_T::Bridge(std::string runPath, std::string caseName) {
 	double rMax = 0;
 	double borddomain = 0;
 	int np;
-	
-	string directoryCsv = runPath + "/" + caseName + ".csv";
-
-
-	printf("chemin du Csv : %s\n",directoryCsv.c_str());
 
 	//calcul nb of particles
-	np = calculNbParticles(directoryCsv);
+	np = calculNbParticles();
 	printf("\nnp = %d\n", np);
 
 	idp = (int*)malloc(sizeof(int)*(np));
@@ -54,10 +65,10 @@ void GenCaseBis_T::Bridge(std::string runPath, std::string caseName) {
 	vol = (double*)malloc(sizeof(double)*(np));
 	mp = (float*)malloc(sizeof(float)*(np));
 	rhop = (float*)malloc(sizeof(float)*(np));
-	rhop0 = loadRhop0(caseName);
+	rhop0 = loadRhop0();
 
 	//load particles id & positions
-	loadCsv(directoryCsv, np, idp, vol, pos);
+	loadCsv(np, idp, vol, pos);
 	rMax = computeRayMax(np, vol);
 	printf("\nray = %1.10f\n", rMax);
 
@@ -96,9 +107,9 @@ void GenCaseBis_T::Bridge(std::string runPath, std::string caseName) {
 //==============================================================================
 /// 
 //==============================================================================
-int GenCaseBis_T::calculNbParticles(std::string csvPath) {
+int GenCaseBis_T::calculNbParticles() {
 	string line;
-	ifstream file(csvPath.c_str());
+	ifstream file("Data.csv");
 
 	printf("\n------entre ds calculNb------");
 
@@ -162,9 +173,9 @@ vector<std::string> GenCaseBis_T::split(std::string line, char delim)
 //==============================================================================
 /// extract particles position and return a tdouble3 with positions
 //==============================================================================
-void GenCaseBis_T::loadCsv(std::string csvPath, int np, int *idp, double *vol, tdouble3 *pos) {
+void GenCaseBis_T::loadCsv(int np, int *idp, double *vol, tdouble3 *pos) {
 	string line;
-	ifstream file(csvPath.c_str());
+	ifstream file("Data.csv");
 	vector<std::string> tempo;
 	
 
@@ -196,8 +207,8 @@ void GenCaseBis_T::loadCsv(std::string csvPath, int np, int *idp, double *vol, t
 //==============================================================================
 /// read xml file to load rhop0 value
 //==============================================================================
-float GenCaseBis_T::loadRhop0(std::string caseName) {
-	string directoryXml = caseName + "_Def.xml";
+float GenCaseBis_T::loadRhop0() {
+	string directoryXml = "Def.xml";
 	JXml xml; xml.LoadFile(directoryXml);
 	float res;
 	(((xml.GetNode("case.casedef.constantsdef.rhop0", false))->ToElement())->QueryFloatAttribute("value", &res));
@@ -272,8 +283,7 @@ double GenCaseBis_T::computeBorddomain(int np, tdouble3 posMax, tdouble3 posMin)
 /// Add particles's informations on the Xml file 
 //==============================================================================
 void GenCaseBis_T::updateXml(std::string caseName, int np, double rMax, double borddomain) {
-
-	string directoryXml = caseName + "_Def.xml";
+	string directoryXml = "Def.xml";
 	JXml xml; xml.LoadFile(directoryXml);
 
 	TiXmlNode *node = xml.GetNode("case", false); 
@@ -344,18 +354,19 @@ void GenCaseBis_T::updateXml(std::string caseName, int np, double rMax, double b
 	rhop0.SetAttribute("units_comment", ((xml.GetNode("case.casedef.constantsdef.rhop0", false))->ToElement())->Attribute("units_comment"));
 	(&constants)->InsertEndChild(rhop0);
 
-	//useless
+	char tampon2[32];
+	sprintf_s(tampon2, "%1.16f", rMax);
 	TiXmlElement dp("dp");
-	dp.SetAttribute("value", "0.2");
+	dp.SetAttribute("value", tampon2);
 	dp.SetAttribute("units_comment", "metres (m)");
 	(&constants)->InsertEndChild(dp);
 
-	//useless
+
 	double d = rMax * 3.5;
-	char tampon2[32];
-	sprintf_s(tampon2, "%1.16f", d);
+	char tampon3[32];
+	sprintf_s(tampon3, "%1.16f", d);
 	TiXmlElement h("h");
-	h.SetAttribute("value", tampon2);
+	h.SetAttribute("value", tampon3);
 	h.SetAttribute("units_comment", "metres (m)");
 	(&constants)->InsertEndChild(h);
 
@@ -366,7 +377,7 @@ void GenCaseBis_T::updateXml(std::string caseName, int np, double rMax, double b
 	(&constants)->InsertEndChild(b);
 
 	//useless
-	TiXmlElement massbound("massbound");
+	/*TiXmlElement massbound("massbound");
 	massbound.SetAttribute("value", "8.0000000000E+00");
 	massbound.SetAttribute("units_comment", "kg");
 	(&constants)->InsertEndChild(massbound);
@@ -375,7 +386,7 @@ void GenCaseBis_T::updateXml(std::string caseName, int np, double rMax, double b
 	TiXmlElement massfluid("massfluid");
 	massfluid.SetAttribute("value", "8.0000000000E+00");
 	massfluid.SetAttribute("units_comment", "kg");
-	(&constants)->InsertEndChild(massfluid);
+	(&constants)->InsertEndChild(massfluid);*/
 
 	ele2->InsertEndChild(constants);//insert constants into ele (execution note)
 	//end------------------
@@ -387,28 +398,5 @@ void GenCaseBis_T::updateXml(std::string caseName, int np, double rMax, double b
 
 	if (test) xml.SaveFile(caseName +".xml");//save the xml file
 	else xml.SaveFile(caseName + "0.xml");//save the xml file
-	
-
-	//part to add
-	/*
-	<particles np="745" nb="0" nbf="0" mkboundfirst="11" mkfluidfirst="1">
-				<_summary>
-					<fluid count="745" id="0-744" mkcount="1" mkvalues="1" />
-				</_summary>
-				<fluid mkfluid="0" mk="1" begin="0" count="745" />
-			</particles>
-			<constants>
-				<gravity x="0" y="0" z="0" units_comment="m/s^2" />
-				<cflnumber value="0.02" />
-				<gamma value="7" />
-				<rhop0 value="1000" units_comment="kg/m^3" />
-				<dp value="0.2" units_comment="metres (m)" />
-				<h value="6.9282032303E-01" units_comment="metres (m)" />
-				<b value="1.4285714286E+04" units_comment="Pascal (Pa)" />
-				<massbound value="8.0000000000E+00" units_comment="kg" />
-				<massfluid value="8.0000000000E+00" units_comment="kg" />
-			</constants>
-			<motion />
-	*/
 }
 

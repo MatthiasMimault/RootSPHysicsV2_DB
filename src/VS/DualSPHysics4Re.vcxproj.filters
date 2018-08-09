@@ -250,6 +250,9 @@
     <ClInclude Include="..\source\JSphSolidCpu_M.h">
       <Filter>Source</Filter>
     </ClInclude>
+    <ClInclude Include="..\source\GenCaseBis_T.h">
+      <Filter>Source</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\source\JCfgRun.cpp">
@@ -433,6 +436,9 @@
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="..\source\JSphSolidCpu_M.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\GenCaseBis_T.cpp">
       <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>

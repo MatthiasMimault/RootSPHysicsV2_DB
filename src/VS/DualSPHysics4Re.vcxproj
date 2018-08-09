@@ -53,7 +53,7 @@
     <UseOfMfc>false</UseOfMfc>
     <CharacterSet>MultiByte</CharacterSet>
     <WholeProgramOptimization>false</WholeProgramOptimization>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -480,6 +480,7 @@ rem %CudaNvcc% -ccbin "$(VCInstallDir)bin" %gpuhw% -use_fast_math -c %ptxinfo% -
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugCPU|x64'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="..\source\FunctionsMath.h" />
+    <ClInclude Include="..\source\GenCaseBis_T.h" />
     <ClInclude Include="..\source\JArraysCpu.h" />
     <ClInclude Include="..\source\JBinaryData.h" />
     <ClInclude Include="..\source\JBlockSizeAuto.h">
@@ -617,6 +618,7 @@ rem %CudaNvcc% -ccbin "$(VCInstallDir)bin" %gpuhw% -use_fast_math -c %ptxinfo% -
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugCPU|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\source\FunctionsMath.cpp" />
+    <ClCompile Include="..\source\GenCaseBis_T.cpp" />
     <ClCompile Include="..\source\JArraysCpu.cpp" />
     <ClCompile Include="..\source\JBinaryData.cpp" />
     <ClCompile Include="..\source\JBlockSizeAuto.cpp">

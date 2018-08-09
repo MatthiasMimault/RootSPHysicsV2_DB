@@ -551,7 +551,103 @@ void JSphSolidCpu::ConfigRunMode(const JCfgRun *cfg, std::string preinfo) {
 /// Initialisation of arrays and variables for execution.
 /// Inicializa vectores y variables para la ejecucion.
 //==============================================================================
-void JSphSolidCpu::InitRun(JPartsLoad4 *pl) {
+void JSphSolidCpu::InitRun() {
+	const char met[] = "InitRun";
+	WithFloating = (CaseNfloat>0);
+	if (TStep == STEP_Verlet) {
+		memcpy(VelrhopM1c, Velrhopc, sizeof(tfloat4)*Np);
+		memset(JauTauM1c2_M, 0, sizeof(tsymatrix3f)*Np);
+		VerletStep = 0;
+	}
+	else if (TStep == STEP_Symplectic)DtPre = DtIni;
+	if (TVisco == VISCO_LaminarSPS)memset(SpsTauc, 0, sizeof(tsymatrix3f)*Np);
+
+	// Matthias
+	//memset(JauTauc_M, 0, sizeof(tmatrix3f)*Np);
+	memset(JauTauc2_M, 0, sizeof(tsymatrix3f)*Np);
+	memset(Divisionc_M, 0, sizeof(bool)*Np);
+	for (unsigned p = 0; p < Np; p++) {
+		Massc_M[p] = MassFluid;
+		MassM1c_M[p] = MassFluid;	
+	}
+	  
+
+	if (UseDEM)DemDtForce = DtIni; //(DEM)
+	if (CaseNfloat)InitFloating();
+
+	//-Adjust paramaters to start.
+	PartIni = PartBeginFirst;
+	TimeStepIni = (!PartIni ? 0 : PartBeginTimeStep);
+	//-Adjust motion for the instant of the loaded PART.
+	if (CaseNmoving) {
+		MotionTimeMod = (!PartIni ? PartBeginTimeStep : 0);
+		Motion->ProcesTime(JSphMotion::MOMT_Simple, 0, TimeStepIni + MotionTimeMod);
+	}
+
+	//-Uses Inlet information from PART read.
+	if (PartBeginTimeStep && PartBeginTotalNp) {
+		TotalNp = PartBeginTotalNp;
+		IdMax = unsigned(TotalNp - 1);
+	}
+
+	//-Shows Initialize configuration.
+	if (InitializeInfo.size()) {
+		Log->Print("Initialization configuration:");
+		Log->Print(InitializeInfo);
+		Log->Print(" ");
+	}
+
+	//-Process Special configurations in XML.
+	JXml xml; xml.LoadFile(FileXml);
+
+	//-Configuration of GaugeSystem.
+	GaugeSystem->Config(Simulate2D, Simulate2DPosY, TimeMax, TimePart, Dp, DomPosMin, DomPosMax, Scell, Hdiv, H, MassFluid);
+	if (xml.GetNode("case.execution.special.gauges", false))GaugeSystem->LoadXml(&xml, "case.execution.special.gauges");
+
+	//-Prepares WaveGen configuration.
+	if (WaveGen) {
+		Log->Print("Wave paddles configuration:");
+		WaveGen->Init(GaugeSystem, MkInfo, TimeMax, Gravity);
+		WaveGen->VisuConfig("", " ");
+	}
+
+	//-Prepares Damping configuration.
+	if (Damping) {
+		Damping->Config(CellOrder);
+		Damping->VisuConfig("Damping configuration:", " ");
+	}
+
+	//-Prepares AccInput configuration.
+	if (AccInput) {
+		Log->Print("AccInput configuration:");
+		AccInput->Init(TimeMax);
+		AccInput->VisuConfig("", " ");
+	}
+
+	//-Configuration of SaveDt.
+	if (xml.GetNode("case.execution.special.savedt", false)) {
+		SaveDt = new JSaveDt(Log);
+		SaveDt->Config(&xml, "case.execution.special.savedt", TimeMax, TimePart);
+		SaveDt->VisuConfig("SaveDt configuration:", " ");
+	}
+
+	//-Shows configuration of JGaugeSystem.
+	if (GaugeSystem->GetCount())GaugeSystem->VisuConfig("GaugeSystem configuration:", " ");
+
+	//-Shows configuration of JTimeOut.
+	if (TimeOut->UseSpecialConfig())TimeOut->VisuConfig(Log, "TimeOut configuration:", " ");
+
+	Part = PartIni; Nstep = 0; PartNstep = 0; PartOut = 0;
+	TimeStep = TimeStepIni; TimeStepM1 = TimeStep;
+	if (DtFixed)DtIni = DtFixed->GetDt(TimeStep, DtIni);
+	TimePartNext = TimeOut->GetNextTime(TimeStep);
+}
+
+//==============================================================================
+/// Initialisation of arrays and variables for execution.
+/// Inicializa vectores y variables para la ejecucion.
+//==============================================================================
+void JSphSolidCpu::InitRun_T(JPartsLoad4 *pl) {
 	const char met[] = "InitRun";
 	WithFloating = (CaseNfloat>0);
 	if (TStep == STEP_Verlet) {
@@ -569,10 +665,10 @@ void JSphSolidCpu::InitRun(JPartsLoad4 *pl) {
 	for (unsigned p = 0; p < Np; p++) {
 		Massc_M[p] = pl->GetMass()[p];
 		MassM1c_M[p] = pl->GetMass()[p];
-		
-		
+
+
 	}
-	  
+
 
 	if (UseDEM)DemDtForce = DtIni; //(DEM)
 	if (CaseNfloat)InitFloating();

@@ -93,6 +93,20 @@ void JSphCpuSingle::LoadConfig(JCfgRun *cfg){
 }
 
 //==============================================================================
+/// Load the execution configuration.
+/// Carga la configuracion de ejecucion.
+//==============================================================================
+void JSphCpuSingle::LoadConfig_T(JCfgRun *cfg) {
+	const char met[] = "LoadConfig";
+	//-Load OpenMP configuraction. | Carga configuracion de OpenMP.
+	ConfigOmp(cfg);
+	//-Load basic general configuraction. | Carga configuracion basica general.
+	JSph::LoadConfig_T(cfg);
+	//-Checks compatibility of selected options.
+	Log->Print("**Special case configuration is loaded");
+}
+
+//==============================================================================
 /// Load particles of case and process.
 /// Carga particulas del caso a procesar.
 //==============================================================================
@@ -139,6 +153,55 @@ void JSphCpuSingle::LoadCaseParticles(){
   Map_Size=Map_PosMax-Map_PosMin;
   //-Saves initial domain in a VTK file (CasePosMin/Max, MapRealPosMin/Max and Map_PosMin/Max).
   SaveInitialDomainVtk();
+}
+
+//==============================================================================
+/// Load particles of case and process.
+/// Carga particulas del caso a procesar.
+//==============================================================================
+void JSphCpuSingle::LoadCaseParticles_T() {
+
+	Log->Print("Loading initial state of particles...");
+	PartsLoaded = new JPartsLoad4(true);
+	PartsLoaded->LoadParticles_T(DirCase, CaseName, PartBegin, PartBeginDir);
+	PartsLoaded->CheckConfig(CaseNp, CaseNfixed, CaseNmoving, CaseNfloat, CaseNfluid, PeriX, PeriY, PeriZ);
+	Log->Printf("Loaded particles: %u", PartsLoaded->GetCount());
+	//-Collect information of loaded particles. | Recupera informacion de las particulas cargadas.
+	Simulate2D = PartsLoaded->GetSimulate2D();
+	Simulate2DPosY = PartsLoaded->GetSimulate2DPosY();
+	if (Simulate2D&&PeriY)RunException("LoadCaseParticles", "Cannot use periodic conditions in Y with 2D simulations");
+	CasePosMin = PartsLoaded->GetCasePosMin();
+	CasePosMax = PartsLoaded->GetCasePosMax();
+
+	//-Calculate actual limits of simulation. | Calcula limites reales de la simulacion.
+	if (PartsLoaded->MapSizeLoaded()) {
+		PartsLoaded->GetMapSize(MapRealPosMin, MapRealPosMax);
+	}
+	else {
+		PartsLoaded->CalculeLimits(double(H)*BORDER_MAP + BordDomain, Dp / 2., PeriX, PeriY, PeriZ, MapRealPosMin, MapRealPosMax);
+		ResizeMapLimits();
+	}
+	if (PartBegin) {
+		PartBeginTimeStep = PartsLoaded->GetPartBeginTimeStep();
+		PartBeginTotalNp = PartsLoaded->GetPartBeginTotalNp();
+	}
+	Log->Print(string("MapRealPos(final)=") + fun::Double3gRangeStr(MapRealPosMin, MapRealPosMax));
+	MapRealSize = MapRealPosMax - MapRealPosMin;
+	Log->Print("**Initial state of particles is loaded");
+
+	//-Configure limits of periodic axes. | Configura limites de ejes periodicos.
+	if (PeriX)PeriXinc.x = -MapRealSize.x;
+	if (PeriY)PeriYinc.y = -MapRealSize.y;
+	if (PeriZ)PeriZinc.z = -MapRealSize.z;
+	//-Calculate simulation limits with periodic boundaries. | Calcula limites de simulacion con bordes periodicos.
+	Map_PosMin = MapRealPosMin; Map_PosMax = MapRealPosMax;
+	float dosh = float(H * 2);
+	if (PeriX) { Map_PosMin.x = Map_PosMin.x - dosh;  Map_PosMax.x = Map_PosMax.x + dosh; }
+	if (PeriY) { Map_PosMin.y = Map_PosMin.y - dosh;  Map_PosMax.y = Map_PosMax.y + dosh; }
+	if (PeriZ) { Map_PosMin.z = Map_PosMin.z - dosh;  Map_PosMax.z = Map_PosMax.z + dosh; }
+	Map_Size = Map_PosMax - Map_PosMin;
+	//-Saves initial domain in a VTK file (CasePosMin/Max, MapRealPosMin/Max and Map_PosMin/Max).
+	SaveInitialDomainVtk();
 }
 
 //==============================================================================
@@ -1298,35 +1361,57 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
 
   Log->Printf("\n---Thibaud's part---\n");
   GenCaseBis_T gcb;
-  gcb.Bridge(cfg->RunPath, cfg->CaseName);
-  Log->Printf("\n---Thibaud's part end---\n");
+  gcb.UseGencase(cfg->RunPath);
+  if (!gcb.getUseGencase()) {
+	  gcb.Bridge(cfg->CaseName);
+	  Log->Printf("\n---Thibaud's part end---\n");
+	  printf("---1---");
+	  LoadConfig_T(cfg);
+	  printf("---2---");
+	  LoadCaseParticles_T();
+	  printf("---3---");
+	  ConfigConstants(Simulate2D);
+	  printf("---4---");
+	  ConfigDomain();
+	  printf("---5---");
+	  ConfigRunMode(cfg);
+	  printf("---6---");
+	  VisuParticleSummary();
+	  printf("---7---");
+	  //-Initialisation of execution variables. | Inicializacion de variables de ejecucion.
+	  //------------------------------------------------------------------------------------
+	  InitRun_T(PartsLoaded);
+  }
+  else {
+	  Log->Printf("\n---Thibaud's part end---\n");
+	  printf("---1---");
+	  LoadConfig(cfg);
+	  printf("---2---");
+	  LoadCaseParticles();
+	  printf("---3---");
+	  ConfigConstants(Simulate2D);
+	  printf("---4---");
+	  ConfigDomain();
+	  printf("---5---");
+	  ConfigRunMode(cfg);
+	  printf("---6---");
+	  VisuParticleSummary();
+	  printf("---7---");
+	  //-Initialisation of execution variables. | Inicializacion de variables de ejecucion.
+	  //------------------------------------------------------------------------------------
+	  InitRun();
+  }
+  
 
 
-  printf("---1---");
-  LoadConfig(cfg);
-  printf("---2---");
-  LoadCaseParticles();
-  printf("---3---");
-  ConfigConstants(Simulate2D);
-  printf("---4---");
-  ConfigDomain();
-  printf("---5---");
-  ConfigRunMode(cfg);
-  printf("---6---");
-  VisuParticleSummary();
-  printf("---7---");
-
-  //-Initialisation of execution variables. | Inicializacion de variables de ejecucion.
-  //------------------------------------------------------------------------------------
-  InitRun(PartsLoaded);
   //-Free memory of PartsLoaded. | Libera memoria de PartsLoaded.
   delete PartsLoaded; PartsLoaded = NULL;
   RunGaugeSystem(TimeStep);
   UpdateMaxValues();
+  SaveData_M();
   PrintAllocMemory(GetAllocMemoryCpu());
   TmcResetValues(Timers);
   TmcStop(Timers,TMC_Init);
-  SaveData_M();
   PartNstep=-1; Part++;
 
   //-Main Loop.

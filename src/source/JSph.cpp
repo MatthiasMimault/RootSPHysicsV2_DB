@@ -439,6 +439,113 @@ void JSph::LoadConfig(const JCfgRun *cfg){
 }
 
 //==============================================================================
+/// Loads the configuration of the execution.
+//==============================================================================
+void JSph::LoadConfig_T(const JCfgRun *cfg) {
+	const char* met = "LoadConfig";
+	TimerTot.Start();
+	Stable = cfg->Stable;
+	Psingle = true; SvDouble = false; //-Options by default.
+	RunCommand = cfg->RunCommand;
+	RunPath = cfg->RunPath;
+	DirOut = fun::GetDirWithSlash(cfg->DirOut);
+	DirDataOut = (!cfg->DirDataOut.empty() ? fun::GetDirWithSlash(DirOut + cfg->DirDataOut) : DirOut);
+	CaseName = cfg->CaseName;
+	DirCase = fun::GetDirWithSlash(fun::GetDirParent(CaseName));
+	CaseName = CaseName.substr(DirCase.length());
+	if (!CaseName.length())RunException(met, "Name of the case for execution was not indicated.");
+	RunName = (cfg->RunName.length() ? cfg->RunName : CaseName);
+	FileXml = DirCase + CaseName + ".xml";
+	//Log->Printf("FileXml=\"%s\"", fun::GetPathLevels(fun::GetCanonicalPath(RunPath, FileXml), 3).c_str());
+	//Log->Printf("DirAddXml_M=\"%s\"", fun::GetPathLevels(fun::GetCanonicalPath(RunPath, DirAddXml_M), 3).c_str());
+	//Log->Printf("AddFileXml_M=\"%s\"", fun::GetPathLevels(fun::GetCanonicalPath(RunPath, AddFileXml_M), 3).c_str());
+	PartBeginDir = cfg->PartBeginDir; PartBegin = cfg->PartBegin; PartBeginFirst = cfg->PartBeginFirst;
+
+	//-Output options:
+	CsvSepComa = cfg->CsvSepComa;
+	SvData = byte(SDAT_None);
+	if (cfg->Sv_Csv && !WithMpi)SvData |= byte(SDAT_Csv);
+	if (cfg->Sv_Binx)SvData |= byte(SDAT_Binx);
+	if (cfg->Sv_Info)SvData |= byte(SDAT_Info);
+	if (cfg->Sv_Vtk)SvData |= byte(SDAT_Vtk);
+
+	SvRes = cfg->SvRes;
+	SvTimers = cfg->SvTimers;
+	SvDomainVtk = cfg->SvDomainVtk;
+
+	printf("\n");
+	RunTimeDate = fun::GetDateTime();
+	Log->Printf("[Initialising %s  %s]", ClassName.c_str(), RunTimeDate.c_str());
+
+	Log->Printf("ProgramFile=\"%s\"", fun::GetPathLevels(fun::GetCanonicalPath(RunPath, RunCommand), 3).c_str());
+	Log->Printf("ExecutionDir=\"%s\"", fun::GetPathLevels(RunPath, 3).c_str());
+	Log->Printf("XmlFile=\"%s\"", fun::GetPathLevels(fun::GetCanonicalPath(RunPath, FileXml), 3).c_str());
+	//Log->Printf("AddXmlFile_M=\"%s\"", fun::GetPathLevels(fun::GetCanonicalPath(RunPath, AddFileXml_M), 3).c_str());
+	Log->Printf("OutputDir=\"%s\"", fun::GetPathLevels(fun::GetCanonicalPath(RunPath, DirOut), 3).c_str());
+	Log->Printf("OutputDataDir=\"%s\"", fun::GetPathLevels(fun::GetCanonicalPath(RunPath, DirDataOut), 3).c_str());
+
+	if (PartBegin) {
+		Log->Print(fun::VarStr("PartBegin", PartBegin));
+		Log->Print(fun::VarStr("PartBeginDir", PartBeginDir));
+		Log->Print(fun::VarStr("PartBeginFirst", PartBeginFirst));
+	}
+
+	LoadCaseConfig_T();
+
+	//-Aplies configuration using command line.
+	if (cfg->PosDouble == 0) { Psingle = true;  SvDouble = false; }
+	else if (cfg->PosDouble == 1) { Psingle = false; SvDouble = false; }
+	else if (cfg->PosDouble == 2) { Psingle = false; SvDouble = true; }
+	if (cfg->TStep)TStep = cfg->TStep;
+	if (cfg->VerletSteps >= 0)VerletSteps = cfg->VerletSteps;
+	if (cfg->TKernel)TKernel = cfg->TKernel;
+	if (cfg->TVisco) { TVisco = cfg->TVisco; Visco = cfg->Visco; }
+	if (cfg->ViscoBoundFactor >= 0)ViscoBoundFactor = cfg->ViscoBoundFactor;
+	if (cfg->DeltaSph >= 0) {
+		DeltaSph = cfg->DeltaSph;
+		TDeltaSph = (DeltaSph ? DELTA_Dynamic : DELTA_None);
+	}
+	if (TDeltaSph == DELTA_Dynamic && Cpu)TDeltaSph = DELTA_DynamicExt; //-It is necessary because the interaction is divided in two steps: fluid-fluid/float and fluid-bound.
+
+	if (cfg->Shifting >= 0) {
+		switch (cfg->Shifting) {
+		case 0:  TShifting = SHIFT_None;     break;
+		case 1:  TShifting = SHIFT_NoBound;  break;
+		case 2:  TShifting = SHIFT_NoFixed;  break;
+		case 3:  TShifting = SHIFT_Full;     break;
+		default: RunException(met, "Shifting mode is not valid.");
+		}
+		if (TShifting != SHIFT_None) {
+			ShiftCoef = -2; ShiftTFS = 0;
+		}
+		else ShiftCoef = ShiftTFS = 0;
+	}
+
+	if (cfg->FtPause >= 0)FtPause = cfg->FtPause;
+	if (cfg->TimeMax>0)TimeMax = cfg->TimeMax;
+	//-Configuration of JTimeOut with TimePart.
+	TimeOut = new JTimeOut();
+	if (cfg->TimePart >= 0) {
+		TimePart = cfg->TimePart;
+		TimeOut->Config(TimePart);
+	}
+	else TimeOut->Config(FileXml, "case.execution.special.timeout", TimePart);
+
+	CellOrder = cfg->CellOrder;
+	CellMode = cfg->CellMode;
+	if (cfg->DomainMode == 1) {
+		ConfigDomainParticles(cfg->DomainParticlesMin, cfg->DomainParticlesMax);
+		ConfigDomainParticlesPrc(cfg->DomainParticlesPrcMin, cfg->DomainParticlesPrcMax);
+	}
+	else if (cfg->DomainMode == 2)ConfigDomainFixed(cfg->DomainFixedMin, cfg->DomainFixedMax);
+	if (cfg->RhopOutModif) {
+		RhopOutMin = cfg->RhopOutMin; RhopOutMax = cfg->RhopOutMax;
+	}
+	RhopOut = (RhopOutMin<RhopOutMax);
+	if (!RhopOut) { RhopOutMin = -FLT_MAX; RhopOutMax = FLT_MAX; }
+}
+
+//==============================================================================
 /// Loads the case configuration to be executed.
 //==============================================================================
 void JSph::LoadCaseConfig(){
@@ -724,6 +831,294 @@ void JSph::LoadCaseConfig(){
 
   NpMinimum=CaseNp-unsigned(PartsOutMax*CaseNfluid);
   Log->Print("**Basic case configuration is loaded");
+}
+
+//==============================================================================
+/// Loads the case configuration to be executed.
+//==============================================================================
+void JSph::LoadCaseConfig_T() {
+	const char* met = "LoadCaseConfig";
+	if (!fun::FileExists(FileXml))RunException(met, "Case configuration was not found.", FileXml);
+	JXml xml; xml.LoadFile(FileXml);
+	JSpaceCtes ctes;     ctes.LoadXmlRun_T(&xml, "case.execution.constants");
+	//ctes.LoadAddXmlRun_M(&addXml, "case.constantsdef");
+	ctes.LoadAddXmlRun_M(&xml, "case.casedef.constantsdef");
+	JSpaceEParms eparms; eparms.LoadXml(&xml, "case.execution.parameters");
+	JSpaceParts parts;   parts.LoadXml(&xml, "case.execution.particles");
+
+	//-Execution parameters.
+	switch (eparms.GetValueInt("PosDouble", true, 0)) {
+	case 0:  Psingle = true;  SvDouble = false;  break;
+	case 1:  Psingle = false; SvDouble = false;  break;
+	case 2:  Psingle = false; SvDouble = true;   break;
+	default: RunException(met, "PosDouble value is not valid.");
+	}
+	switch (eparms.GetValueInt("RigidAlgorithm", true, 1)) { //(DEM)
+	case 1:  UseDEM = false;  break;
+	case 2:  UseDEM = true;   break;
+	default: RunException(met, "Rigid algorithm is not valid.");
+	}
+	switch (eparms.GetValueInt("StepAlgorithm", true, 1)) {
+	case 1:  TStep = STEP_Verlet;      break;
+	case 2:  TStep = STEP_Symplectic;  break;
+	case 3:  TStep = STEP_Euler;  break;
+	default: RunException(met, "Step algorithm is not valid.");
+	}
+	VerletSteps = eparms.GetValueInt("VerletSteps", true, 40);
+	switch (eparms.GetValueInt("Kernel", true, 2)) {
+	case 1:  TKernel = KERNEL_Cubic;     break;
+	case 2:  TKernel = KERNEL_Wendland;  break;
+	case 3:  TKernel = KERNEL_Gaussian;  break;
+	default: RunException(met, "Kernel choice is not valid.");
+	}
+	switch (eparms.GetValueInt("ViscoTreatment", true, 1)) {
+	case 1:  TVisco = VISCO_Artificial;  break;
+	case 2:  TVisco = VISCO_LaminarSPS;  break;
+	default: RunException(met, "Viscosity treatment is not valid.");
+	}
+	Visco = eparms.GetValueFloat("Visco");
+	ViscoBoundFactor = eparms.GetValueFloat("ViscoBoundFactor", true, 1.f);
+	string filevisco = eparms.GetValueStr("ViscoTime", true);
+	if (!filevisco.empty()) {
+		ViscoTime = new JSphVisco();
+		ViscoTime->LoadFile(DirCase + filevisco);
+	}
+	DeltaSph = eparms.GetValueFloat("DeltaSPH", true, 0);
+	TDeltaSph = (DeltaSph ? DELTA_Dynamic : DELTA_None);
+
+	switch (eparms.GetValueInt("Shifting", true, 0)) {
+	case 0:  TShifting = SHIFT_None;     break;
+	case 1:  TShifting = SHIFT_NoBound;  break;
+	case 2:  TShifting = SHIFT_NoFixed;  break;
+	case 3:  TShifting = SHIFT_Full;     break;
+	default: RunException(met, "Shifting mode is not valid.");
+	}
+	if (TShifting != SHIFT_None) {
+		ShiftCoef = eparms.GetValueFloat("ShiftCoef", true, -2);
+		if (ShiftCoef == 0)TShifting = SHIFT_None;
+		else ShiftTFS = eparms.GetValueFloat("ShiftTFS", true, 0);
+	}
+
+	FtPause = eparms.GetValueFloat("FtPause", true, 0);
+	TimeMax = eparms.GetValueDouble("TimeMax");
+	TimePart = eparms.GetValueDouble("TimeOut");
+
+	DtIni = eparms.GetValueDouble("DtIni", true, 0);
+	DtMin = eparms.GetValueDouble("DtMin", true, 0);
+	CoefDtMin = eparms.GetValueFloat("CoefDtMin", true, 0.05f);
+	DtAllParticles = (eparms.GetValueInt("DtAllParticles", true, 0) == 1);
+
+	string filedtfixed = eparms.GetValueStr("DtFixed", true);
+	if (!filedtfixed.empty()) {
+		DtFixed = new JSphDtFixed();
+		DtFixed->LoadFile(DirCase + filedtfixed);
+	}
+	if (eparms.Exists("RhopOutMin"))RhopOutMin = eparms.GetValueFloat("RhopOutMin");
+	if (eparms.Exists("RhopOutMax"))RhopOutMax = eparms.GetValueFloat("RhopOutMax");
+	PartsOutMax = eparms.GetValueFloat("PartsOutMax", true, 1);
+
+	//-Configuration of periodic boundaries.
+	if (eparms.Exists("XPeriodicIncY")) { PeriXinc.y = eparms.GetValueDouble("XPeriodicIncY"); PeriX = true; }
+	if (eparms.Exists("XPeriodicIncZ")) { PeriXinc.z = eparms.GetValueDouble("XPeriodicIncZ"); PeriX = true; }
+	if (eparms.Exists("YPeriodicIncX")) { PeriYinc.x = eparms.GetValueDouble("YPeriodicIncX"); PeriY = true; }
+	if (eparms.Exists("YPeriodicIncZ")) { PeriYinc.z = eparms.GetValueDouble("YPeriodicIncZ"); PeriY = true; }
+	if (eparms.Exists("ZPeriodicIncX")) { PeriZinc.x = eparms.GetValueDouble("ZPeriodicIncX"); PeriZ = true; }
+	if (eparms.Exists("ZPeriodicIncY")) { PeriZinc.y = eparms.GetValueDouble("ZPeriodicIncY"); PeriZ = true; }
+	if (eparms.Exists("XYPeriodic")) { PeriXY = PeriX = PeriY = true; PeriXZ = PeriYZ = false; PeriXinc = PeriYinc = TDouble3(0); }
+	if (eparms.Exists("XZPeriodic")) { PeriXZ = PeriX = PeriZ = true; PeriXY = PeriYZ = false; PeriXinc = PeriZinc = TDouble3(0); }
+	if (eparms.Exists("YZPeriodic")) { PeriYZ = PeriY = PeriZ = true; PeriXY = PeriXZ = false; PeriYinc = PeriZinc = TDouble3(0); }
+	PeriActive = (PeriX ? 1 : 0) + (PeriY ? 2 : 0) + (PeriZ ? 4 : 0);
+
+	//-Configuration of domain size.
+	float incz = eparms.GetValueFloat("IncZ", true, 0.f);
+	if (incz) {
+		ClearCfgDomain();
+		CfgDomainParticlesPrcMax.z = incz;
+	}
+	string key;
+	if (eparms.Exists(key = "DomainParticles"))ConfigDomainParticles(TDouble3(eparms.GetValueNumDouble(key, 0), eparms.GetValueNumDouble(key, 1), eparms.GetValueNumDouble(key, 2)), TDouble3(eparms.GetValueNumDouble(key, 3), eparms.GetValueNumDouble(key, 4), eparms.GetValueNumDouble(key, 5)));
+	if (eparms.Exists(key = "DomainParticlesXmin"))ConfigDomainParticlesValue(key, -eparms.GetValueDouble(key));
+	if (eparms.Exists(key = "DomainParticlesYmin"))ConfigDomainParticlesValue(key, -eparms.GetValueDouble(key));
+	if (eparms.Exists(key = "DomainParticlesZmin"))ConfigDomainParticlesValue(key, -eparms.GetValueDouble(key));
+	if (eparms.Exists(key = "DomainParticlesXmax"))ConfigDomainParticlesValue(key, eparms.GetValueDouble(key));
+	if (eparms.Exists(key = "DomainParticlesYmax"))ConfigDomainParticlesValue(key, eparms.GetValueDouble(key));
+	if (eparms.Exists(key = "DomainParticlesZmax"))ConfigDomainParticlesValue(key, eparms.GetValueDouble(key));
+	if (eparms.Exists(key = "DomainParticlesPrc"))ConfigDomainParticlesPrc(TDouble3(eparms.GetValueNumDouble(key, 0), eparms.GetValueNumDouble(key, 1), eparms.GetValueNumDouble(key, 2)), TDouble3(eparms.GetValueNumDouble(key, 3), eparms.GetValueNumDouble(key, 4), eparms.GetValueNumDouble(key, 5)));
+	if (eparms.Exists(key = "DomainParticlesPrcXmin"))ConfigDomainParticlesPrcValue(key, -eparms.GetValueDouble(key));
+	if (eparms.Exists(key = "DomainParticlesPrcYmin"))ConfigDomainParticlesPrcValue(key, -eparms.GetValueDouble(key));
+	if (eparms.Exists(key = "DomainParticlesPrcZmin"))ConfigDomainParticlesPrcValue(key, -eparms.GetValueDouble(key));
+	if (eparms.Exists(key = "DomainParticlesPrcXmax"))ConfigDomainParticlesPrcValue(key, eparms.GetValueDouble(key));
+	if (eparms.Exists(key = "DomainParticlesPrcYmax"))ConfigDomainParticlesPrcValue(key, eparms.GetValueDouble(key));
+	if (eparms.Exists(key = "DomainParticlesPrcZmax"))ConfigDomainParticlesPrcValue(key, eparms.GetValueDouble(key));
+	if (eparms.Exists(key = "DomainFixed"))ConfigDomainFixed(TDouble3(eparms.GetValueNumDouble(key, 0), eparms.GetValueNumDouble(key, 1), eparms.GetValueNumDouble(key, 2)), TDouble3(eparms.GetValueNumDouble(key, 3), eparms.GetValueNumDouble(key, 4), eparms.GetValueNumDouble(key, 5)));
+	if (eparms.Exists(key = "DomainFixedXmin"))ConfigDomainFixedValue(key, eparms.GetValueDouble(key));
+	if (eparms.Exists(key = "DomainFixedYmin"))ConfigDomainFixedValue(key, eparms.GetValueDouble(key));
+	if (eparms.Exists(key = "DomainFixedZmin"))ConfigDomainFixedValue(key, eparms.GetValueDouble(key));
+	if (eparms.Exists(key = "DomainFixedXmax"))ConfigDomainFixedValue(key, eparms.GetValueDouble(key));
+	if (eparms.Exists(key = "DomainFixedYmax"))ConfigDomainFixedValue(key, eparms.GetValueDouble(key));
+	if (eparms.Exists(key = "DomainFixedZmax"))ConfigDomainFixedValue(key, eparms.GetValueDouble(key));
+
+	//-Predefined constantes.
+	if (ctes.GetEps() != 0)Log->PrintWarning("Eps value is not used (this correction is deprecated).");
+	H = (float)ctes.GetH();
+	CteB = (float)ctes.GetB();
+	Gamma = (float)ctes.GetGamma();
+	RhopZero = (float)ctes.GetRhop0();
+	CFLnumber = (float)ctes.GetCFLnumber();
+	Dp = ctes.GetDp();
+	Gravity = ToTFloat3(ctes.GetGravity());
+	MassFluid = (float)ctes.GetMassFluid();
+	MassBound = (float)ctes.GetMassBound();
+	//Matthias
+	// Extension domain
+	BordDomain = (float)ctes.GetBordDomain();
+	// Solid
+	K = (float)ctes.GetYoung();
+	Mu = (float)ctes.GetShear();
+	// Pore
+	PoreZero = (float)ctes.GetPoreZero();
+	// Mass
+	LambdaMass = (float)ctes.GetLambdaMass();
+	// Cell division
+	SizeDivision_M = (float)ctes.GetSizeDivision();
+	LocDiv_M = (tdouble3)ctes.GetLocalDivision();
+	VelDivCoef_M = (float)ctes.GetVelocityDivisionCoef();
+	Spread_M = (float)ctes.GetSpreadDivision();
+	// Anisotropy
+	AnisotropyK_M = ToTFloat3(ctes.GetAnisotropyK());
+	AnisotropyG_M = ctes.GetAnisotropyG();
+
+	//-Particle data.
+	CaseNp = parts.Count();
+	CaseNfixed = parts.Count(PT_Fixed);
+	CaseNmoving = parts.Count(PT_Moving);
+	CaseNfloat = parts.Count(PT_Floating);
+	CaseNfluid = parts.Count(PT_Fluid);
+	CaseNbound = CaseNp - CaseNfluid;
+	CaseNpb = CaseNbound - CaseNfloat;
+
+	NpDynamic = ReuseIds = false;
+	TotalNp = CaseNp; IdMax = CaseNp - 1;
+
+	//-Loads and configures MK of particles.
+	MkInfo = new JSphMk();
+	MkInfo->Config(&parts);
+
+	//-Configuration of GaugeSystem.
+	GaugeSystem = new JGaugeSystem(Cpu, Log);
+
+	//-Configuration of WaveGen.
+	if (xml.GetNode("case.execution.special.wavepaddles", false)) {
+		bool useomp = false, usegpu = false;
+#ifdef OMP_USE_WAVEGEN
+		useomp = (omp_get_max_threads()>1);
+#endif
+#ifdef _WITHGPU
+		usegpu = !Cpu;
+#endif
+		WaveGen = new JWaveGen(useomp, usegpu, Log, DirCase, &xml, "case.execution.special.wavepaddles");
+	}
+
+	//-Configuration of AccInput.
+	if (xml.GetNode("case.execution.special.accinputs", false)) {
+		AccInput = new JSphAccInput(Log, DirCase, &xml, "case.execution.special.accinputs");
+	}
+
+	//-Loads and configures MOTION.
+	MotionObjCount = parts.CountBlocks(PT_Moving);
+	if (MotionObjCount) {
+		if (MotionObjCount>CODE_MKRANGEMAX)RunException(met, "The number of mobile objects exceeds the maximum.");
+		//-Prepares memory.
+		MotionObjBegin = new unsigned[MotionObjCount + 1];
+		memset(MotionObjBegin, 0, sizeof(unsigned)*(MotionObjCount + 1));
+		//-Loads configuration.
+		unsigned cmot = 0;
+		for (unsigned c = 0; c<parts.CountBlocks(); c++) {
+			const JSpacePartBlock &block = parts.GetBlock(c);
+			if (block.Type == PT_Moving) {
+				if (cmot >= MotionObjCount)RunException(met, "The number of mobile objects exceeds the expected maximum.");
+				//:printf("block[%2d]=%d -> %d\n",c,block.GetBegin(),block.GetCount());
+				MotionObjBegin[cmot] = block.GetBegin();
+				MotionObjBegin[cmot + 1] = MotionObjBegin[cmot] + block.GetCount();
+				if (WaveGen)WaveGen->ConfigPaddle(block.GetMkType(), cmot, block.GetBegin(), block.GetCount());
+				cmot++;
+			}
+		}
+		if (cmot != MotionObjCount)RunException(met, "The number of mobile objects is invalid.");
+	}
+
+	if (MotionObjCount) {
+		Motion = new JSphMotion();
+		if (int(MotionObjCount)<Motion->Init(&xml, "case.execution.motion", DirCase))RunException(met, "The number of mobile objects is lower than expected.");
+	}
+
+	//-Configuration of damping zones.
+	if (xml.GetNode("case.execution.special.damping", false)) {
+		Damping = new JDamping(Log);
+		Damping->LoadXml(&xml, "case.execution.special.damping");
+	}
+
+	//-Loads floating objects.
+	FtCount = parts.CountBlocks(PT_Floating);
+	if (FtCount) {
+		if (FtCount>CODE_MKRANGEMAX)RunException(met, "The number of floating objects exceeds the maximum.");
+		AllocMemoryFloating(FtCount);
+		unsigned cobj = 0;
+		for (unsigned c = 0; c<parts.CountBlocks() && cobj<FtCount; c++) {
+			const JSpacePartBlock &block = parts.GetBlock(c);
+			if (block.Type == PT_Floating) {
+				const JSpacePartBlock_Floating &fblock = (const JSpacePartBlock_Floating &)block;
+				StFloatingData* fobj = FtObjs + cobj;
+				fobj->mkbound = fblock.GetMkType();
+				fobj->begin = fblock.GetBegin();
+				fobj->count = fblock.GetCount();
+				fobj->mass = (float)fblock.GetMassbody();
+				fobj->massp = fobj->mass / fobj->count;
+				fobj->radius = 0;
+				fobj->center = fblock.GetCenter();
+				fobj->angles = TFloat3(0);
+				fobj->fvel = ToTFloat3(fblock.GetVelini());
+				fobj->fomega = ToTFloat3(fblock.GetOmegaini());
+				fobj->inertiaini = ToTMatrix3f(fblock.GetInertia());
+				cobj++;
+			}
+		}
+	}
+	else UseDEM = false;
+
+	//-Loads DEM data for the objects. (DEM)
+	if (UseDEM) {
+		DemData = new StDemData[DemDataSize];
+		memset(DemData, 0, sizeof(StDemData)*DemDataSize);
+		for (unsigned c = 0; c<parts.CountBlocks(); c++) {
+			const JSpacePartBlock &block = parts.GetBlock(c);
+			if (block.Type != PT_Fluid) {
+				const unsigned cmk = MkInfo->GetMkBlockByMkBound(block.GetMkType());
+				if (cmk >= MkInfo->Size())RunException(met, fun::PrintStr("Error loading DEM objects. Mkbound=%u is unknown.", block.GetMkType()));
+				const unsigned tav = CODE_GetTypeAndValue(MkInfo->Mkblock(cmk)->Code);
+				//:Log->Printf("___> tav[%u]:%u",cmk,tav);
+				if (block.Type == PT_Floating) {
+					const JSpacePartBlock_Floating &fblock = (const JSpacePartBlock_Floating &)block;
+					DemData[tav].mass = (float)fblock.GetMassbody();
+					DemData[tav].massp = (float)(fblock.GetMassbody() / fblock.GetCount());
+				}
+				else DemData[tav].massp = MassBound;
+				if (!block.ExistsSubValue("Young_Modulus", "value"))RunException(met, fun::PrintStr("Object mk=%u - Value of Young_Modulus is invalid.", block.GetMk()));
+				if (!block.ExistsSubValue("PoissonRatio", "value"))RunException(met, fun::PrintStr("Object mk=%u - Value of PoissonRatio is invalid.", block.GetMk()));
+				if (!block.ExistsSubValue("Kfric", "value"))RunException(met, fun::PrintStr("Object mk=%u - Value of Kfric is invalid.", block.GetMk()));
+				if (!block.ExistsSubValue("Restitution_Coefficient", "value"))RunException(met, fun::PrintStr("Object mk=%u - Value of Restitution_Coefficient is invalid.", block.GetMk()));
+				DemData[tav].young = block.GetSubValueFloat("Young_Modulus", "value", true, 0);
+				DemData[tav].poisson = block.GetSubValueFloat("PoissonRatio", "value", true, 0);
+				DemData[tav].tau = (DemData[tav].young ? (1 - DemData[tav].poisson*DemData[tav].poisson) / DemData[tav].young : 0);
+				DemData[tav].kfric = block.GetSubValueFloat("Kfric", "value", true, 0);
+				DemData[tav].restitu = block.GetSubValueFloat("Restitution_Coefficient", "value", true, 0);
+				if (block.ExistsValue("Restitution_Coefficient_User"))DemData[tav].restitu = block.GetValueFloat("Restitution_Coefficient_User");
+			}
+		}
+	}
+
+	NpMinimum = CaseNp - unsigned(PartsOutMax*CaseNfluid);
+	Log->Print("**Basic case configuration is loaded");
 }
 
 //==============================================================================
