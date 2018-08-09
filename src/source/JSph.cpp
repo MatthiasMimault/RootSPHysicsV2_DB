@@ -988,9 +988,21 @@ void JSph::LoadCaseConfig_T() {
 	//Matthias
 	// Extension domain
 	BordDomain = (float)ctes.GetBordDomain();
-	// Solid
-	K = (float)ctes.GetYoung();
-	Mu = (float)ctes.GetShear();
+	// Solid anisotropic
+	const float Ef = (float)ctes.GetYoung1();
+	const float Et = (float)ctes.GetYoung2();
+	const float nf = Et / Ef;
+	const float nuf1 = (float)ctes.GetPoisson11();
+	const float nuf2 = (float)ctes.GetPoisson12();
+	const float Gf = (float)ctes.GetShear();
+	const float alpha1 = Ef * (1 - nuf1) / (nf*(1 - nuf1) - 2.0f*nuf2*nuf2);
+	const float alpha2 = Ef * nf / (2.0f*nf*(1 - nuf1) - 4.0f*nuf2*nuf2);
+	const float alpha3 = Ef * nuf2 / (nf*(1 - nuf1) - 2.0f*nuf2*nuf2);
+	const float alpha4 = Gf;
+	const float alpha5 = Ef / (2.0f*(1 + nuf1));
+	C1 = alpha2 + alpha5; C12 = alpha2 - alpha5; C13 = alpha3;
+	C2 = alpha2 + alpha5; C23 = alpha3; C3 = alpha1;
+	C4 = alpha4; C5 = alpha4; C6 = alpha4;
 	// Pore
 	PoreZero = (float)ctes.GetPoreZero();
 	// Mass
