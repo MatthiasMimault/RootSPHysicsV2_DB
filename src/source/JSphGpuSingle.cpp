@@ -475,22 +475,22 @@ void JSphGpuSingle::Interaction_Forces(TpInter tinter){
 
 
   //-For 2D simulations always overrides the 2nd component (Y axis).
-  //-Para simulaciones 2D anula siempre la 2º componente.
+  //-Para simulaciones 2D anula siempre la 2Âº componente.
   if(Simulate2D)cusph::Resety(Np-Npb,Npb,Aceg);
 
   //-Computes Tau for Laminar+SPS.
   //if(lamsps)cusph::ComputeSpsTau(Np,Npb,SpsSmag,SpsBlin,Velrhopg,SpsGradvelg,SpsTaug);
 
-  if(Deltag)cusph::AddDelta(Np-Npb,Deltag+Npb,Arg+Npb);//-Adds the Delta-SPH correction for the density. | Añade correccion de Delta-SPH a Arg[]. 
+  if(Deltag)cusph::AddDelta(Np-Npb,Deltag+Npb,Arg+Npb);//-Adds the Delta-SPH correction for the density. | AÃ±ade correccion de Delta-SPH a Arg[]. 
   CheckCudaError(met,"Failed while executing kernels of interaction.");
 
   //-Calculates maximum value of ViscDt. 
   if(Np)ViscDtMax=cusph::ReduMaxFloat(Np,0,ViscDtg,CellDivSingle->GetAuxMem(cusph::ReduMaxFloatSize(Np)));
-  TmgStop(Timers,TMG_CfForces);
  
   //-Calculates maximum value of Ace using ViscDtg like auxiliar memory.
   AceMax=ComputeAceMax(ViscDtg); 
   CheckCudaError(met,"Failed in reduction of viscdt."); 
+  TmgStop(Timers,TMG_CfForces);
 }
 
 
@@ -599,7 +599,7 @@ void JSphGpuSingle::RunFloating(double dt,bool predictor){
 
     //-Calculate forces summation (face,fomegaace) starting from floating particles in ftoforcessum[].
     cusph::FtCalcForcesSum(PeriActive!=0,FtCount,Gravity,FtoDatag,FtoCenterg,FtRidpg,Posxyg,Poszg,Aceg,FtoForcesSumg);
-    //-Adds calculated forces around floating objects / Añade fuerzas calculadas sobre floatings.
+    //-Adds calculated forces around floating objects / AÃ±ade fuerzas calculadas sobre floatings.
     cusph::FtCalcForces(FtCount,Gravity,FtoDatag,FtoAnglesg,FtoInertiaini8g,FtoInertiaini1g,FtoForcesSumg,FtoForcesg);
     //-Calculate data to update floatings / Calcula datos para actualizar floatings.
     cusph::FtCalcForcesRes(FtCount,Simulate2D,dt,FtoOmegag,FtoVelg,FtoCenterg,FtoForcesg,FtoForcesResg,FtoCenterResg);
