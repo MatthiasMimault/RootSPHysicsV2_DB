@@ -19,7 +19,6 @@ You should have received a copy of the GNU Lesser General Public License along w
 /// \file JSphSolidGpu_ker_L.cu \brief Implements functions and CUDA kernels to compute operations for solids particles.
 #include <stdio.h>
 #include "JSphSolidGpu_ker_L.h"
-#include "JSphSolidGpu_L.h"
 #include "JSph.h"
 #include "JCellDivGpu_ker.h"
 #include "Types.h"
@@ -1606,7 +1605,7 @@ namespace cuSol {
 				const float amass = float(LambdaMass * (RhopZero / velrhop1[p].w - 1.0f));
 						
 				float4 rvelrhop2 = velrhop2[p];
-				rvelrhop2.w = float(double(rvelrhop2.w) + dt2 * ar[p]+ amass / volu);
+				rvelrhop2.w = float(double(rvelrhop2.w) + dt2 * ar[p]+ amass);
 				//rvelrhop2.w = float(double(rvelrhop2.w));
 				//printf("\n new = %f / %f /%f /%f /%f", rvelrhop2.w, velrhop1[p].x, velrhop1[p].y, velrhop1[p].z ,velrhop1[p].w);
 				float4 rvel1 = velrhop1[p];
@@ -1647,7 +1646,7 @@ namespace cuSol {
 					//printf("Ici = %f/%f/%f/%f/%f/%f", tau2[p].xx, tau2[p].xy, tau2[p].xz, tau2[p].yy, tau2[p].yz, tau2[p].zz);
 
 					//Update mass
-					 massnew[p] = float(double(mass2[p]) + double(amass)*dt2);
+					 massnew[p] = float(double(mass2[p]) + double(amass / volu)*dt2);
 
 
 				}
@@ -3947,7 +3946,7 @@ __global__ void KerPressPoreC_L(
 		 float distance2z = posz[p] - LocDiv_M.z;
 		 Porec_M[p] = PoreZero;
 		//Porec_M[p] = PoreZero / (1 + exp(-(TimeStep-2))) * exp(-(pow(distance2x,2) + pow(distance2.y, 2) + pow(distance2.z, 2)) / Spread_M);
-		//Porec_M[p] = PoreZero / sqrt(2 * Spread_M*PI) * exp(-(pow(distance2x, 2) + pow(distance2y, 2) + pow(distance2z, 2)) / Spread_M);
+	//Porec_M[p] = PoreZero / sqrt(2 * Spread_M*PI) * exp(-(pow(distance2x, 2) + pow(distance2y, 2) + pow(distance2z, 2)) / Spread_M);
 	  //  Porec_M[p] = PoreZero  / sqrt(2*Spread_M*PI) * exp(-(pow(distance2x,2)) / Spread_M);
 	}
 }

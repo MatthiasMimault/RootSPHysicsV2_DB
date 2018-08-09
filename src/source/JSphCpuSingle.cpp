@@ -1311,7 +1311,7 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
   RunGaugeSystem(TimeStep);
   UpdateMaxValues();
   PrintAllocMemory(GetAllocMemoryCpu());
-  SaveData(); // mat 
+  SaveData(); 
   TmcResetValues(Timers);
   TmcStop(Timers,TMC_Init);
   PartNstep=-1; Part++;
@@ -1338,9 +1338,9 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
     if(CaseNmoving)RunMotion(stepdt);
 
 	// Matthias - Cell division
-	RunSizeDivision_M();
-	RunDivisionDisplacement_M();
-	RunCellDivide(true);
+	//RunSizeDivision_M();
+	//RunDivisionDisplacement_M();
+	//RunCellDivide(true);
 
     TimeStep+=stepdt;
 	partoutstop=(Np<NpMinimum || !Np);

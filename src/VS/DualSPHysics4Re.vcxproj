@@ -562,7 +562,6 @@ rem %CudaNvcc% -ccbin "$(VCInstallDir)bin" %gpuhw% -use_fast_math -c %ptxinfo% -
     <ClInclude Include="..\source\JSphMotion.h" />
     <ClInclude Include="..\source\JSphSolidCpu_M.h" />
     <ClInclude Include="..\source\JSphSolidGpu_ker_L.h" />
-    <ClInclude Include="..\source\JSphSolidGpu_L.h" />
     <ClInclude Include="..\source\JSphVisco.h" />
     <ClInclude Include="..\source\JPartsOut.h" />
     <ClInclude Include="..\source\JSphCpuSingle.h" />

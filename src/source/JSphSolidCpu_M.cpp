@@ -735,7 +735,6 @@ void JSphSolidCpu::PreInteractionVars_Forces(TpInter tinter, unsigned np, unsign
 		tfloat3 distance2 = ToTFloat3(Posc[p] - LocDiv_M);
 		//Porec_M[p] = PoreZero / (1 + exp(-(TimeStep-2))) * exp(-(pow(distance2.x,2) + pow(distance2.y, 2) + pow(distance2.z, 2)) / Spread_M);
 		// Porec_M[p] = PoreZero  / sqrt(2*Spread_M*PI) * exp(-(pow(distance2.x,2) + pow(distance2.y, 2) + pow(distance2.z, 2)) / Spread_M);
-		//printf("Porec_M[p] %f", Porec_M[p]);
 		//Porec_M[p] = PoreZero  / sqrt(2*Spread_M*PI) * exp(-(pow(distance2.x,2)) / Spread_M);
 		
 	}
@@ -798,6 +797,7 @@ float JSphSolidCpu::CalcVelMaxSeq(unsigned np, const tfloat4* velrhop)const {
 	for (unsigned p = 0; p<np; p++) {
 		const tfloat4 v = velrhop[p];
 		const float v2 = v.x*v.x + v.y*v.y + v.z*v.z;
+		//printf("velmod : %f \n", v2);
 		velmax = max(velmax, v2);
 	}
 	return(sqrt(velmax));
@@ -5064,7 +5064,8 @@ template<bool shift> void JSphSolidCpu::ComputeVerletVarsSolMass_M(const tfloat4
 		const float volu = float(double(mass1[p]) / double(velrhop1[p].w));
 		const float amass = float(LambdaMass * (RhopZero / velrhop1[p].w - 1.0f));
 		//-Calculate density. | Calcula densidad.
-		const float rhopnew = float(double(velrhop2[p].w) + dt2 * Arc[p] + amass / volu);
+		const float rhopnew = float(double(velrhop2[p].w) + dt2 * Arc[p] + amass);
+		//const float rhopnew = float(double(velrhop2[p].w) + dt2 * Arc[p] + amass / volu);
 		//const float rhopnew = float(double(velrhop2[p].w));
 		if (!WithFloating || CODE_IsFluid(code[p])) {//-Fluid Particles.
 													 //-Calculate displacement and update position. | Calcula desplazamiento y actualiza posicion.
@@ -5095,7 +5096,8 @@ template<bool shift> void JSphSolidCpu::ComputeVerletVarsSolMass_M(const tfloat4
 			taunew[p].yz = float(double(tau2[p].yz) + double(JauTauDot_M[p].yz)*dt2);
 			taunew[p].zz = float(double(tau2[p].zz) + double(JauTauDot_M[p].zz)*dt2);
 			// Update mass
-			massnew[p] = float(double(mass2[p]) + double(amass));
+			massnew[p] = float(double(mass2[p]) + double(amass *volu));
+			//massnew[p] = float(double(mass2[p]) + double(amass));
 		}
 		else {//-Floating Particles.
 			velrhopnew[p] = velrhop1[p];

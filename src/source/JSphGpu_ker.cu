@@ -310,6 +310,7 @@ __global__ void KerComputeVelMod(unsigned n,const float4 *vel,float *velmod)
   if(p<n){
     const float4 r=vel[p];
     velmod[p]=r.x*r.x+r.y*r.y+r.z*r.z;
+	//printf("velmod : %f \n", velmod[p]);
   }
 }
 

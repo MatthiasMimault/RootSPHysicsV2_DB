@@ -250,7 +250,6 @@
     <ClInclude Include="..\source\JSphSolidCpu_M.h">
       <Filter>Source</Filter>
     </ClInclude>
-    <ClInclude Include="..\source\JSphSolidGpu_L.h" />
     <ClInclude Include="Header.h" />
     <ClInclude Include="..\source\JSphSolidGpu_ker_L.h" />
   </ItemGroup>

@@ -18,7 +18,6 @@
 
 /// \file JSphGpuSingle.cpp \brief Implements the class \ref JSphGpuSingle.
 
-#include "JSphSolidGpu_L.h"
 #include "JSphSolidGpu_ker_L.h"
 #include "JSphGpuSingle.h"
 #include "JCellDivGpuSingle.h"
@@ -681,20 +680,20 @@ void JSphGpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
 
   while(TimeStep<TimeMax){
 
-    if(ViscoTime)Visco=ViscoTime->GetVisco(float(TimeStep)); //OK
+    if(ViscoTime)Visco=ViscoTime->GetVisco(float(TimeStep)); 
 
 	
-	//  Control of Step //OK
+	//  Control of Step 
     double stepdt=ComputeStep();
 
-	//RunMotiom : OK
+	//RunMotiom : 
     RunGaugeSystem(TimeStep+stepdt);
     if(PartDtMin>stepdt)PartDtMin=stepdt; if(PartDtMax<stepdt)PartDtMax=stepdt;
     if(CaseNmoving)RunMotion(stepdt);
 
 
-	// No div cellulaire pour l'instant
-     RunCellDivide(true);
+	// No div cellulaire atm
+    // RunCellDivide(true);
 
     TimeStep+=stepdt;
 
@@ -704,7 +703,7 @@ void JSphGpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
         Log->PrintWarning("Particles OUT limit reached...");
         TimeMax=TimeStep;
       }
-      SaveData(); //Change
+      SaveData(); 
       Part++;
       PartNstep=Nstep;
       TimeStepM1=TimeStep;
