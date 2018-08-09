@@ -53,7 +53,7 @@ void __CheckErrorCuda(const char *text,const char *file,const int line){
 
 //==============================================================================
 /// Returns size of gridsize according to parameters.
-/// Devuelve tamaño de gridsize segun parametros.
+/// Devuelve tamaÃ±o de gridsize segun parametros.
 //==============================================================================
 dim3 GetGridSize(unsigned n,unsigned blocksize){
   dim3 sgrid;//=dim3(1,2,3);
@@ -103,7 +103,7 @@ template <unsigned blockSize> __global__ void KerReduMaxFloat(unsigned n,unsigne
 /// Returns the maximum of an array, using resu[] as auxiliar array.
 /// Size of resu[] must be >= a (N/SPHBSIZE+1)+(N/(SPHBSIZE*SPHBSIZE)+SPHBSIZE)
 ///
-/// Devuelve el maximo de un vector, usando resu[] como vector auxiliar. El tamaño
+/// Devuelve el maximo de un vector, usando resu[] como vector auxiliar. El tamaÃ±o
 /// de resu[] debe ser >= a (N/SPHBSIZE+1)+(N/(SPHBSIZE*SPHBSIZE)+SPHBSIZE)
 //==============================================================================
 float ReduMaxFloat(unsigned ndata,unsigned inidata,float* data,float* resu){
@@ -172,7 +172,7 @@ template <unsigned blockSize> __global__ void KerReduMaxFloat_w(unsigned n,unsig
 /// Size of resu[] must be >= a (N/SPHBSIZE+1)+(N/(SPHBSIZE*SPHBSIZE)+SPHBSIZE).
 ///
 /// Devuelve el maximo de la componente w de un vector float4, usando resu[] como 
-/// vector auxiliar. El tamaño de resu[] debe ser >= a (N/SPHBSIZE+1)+(N/(SPHBSIZE*SPHBSIZE)+SPHBSIZE).
+/// vector auxiliar. El tamaÃ±o de resu[] debe ser >= a (N/SPHBSIZE+1)+(N/(SPHBSIZE*SPHBSIZE)+SPHBSIZE).
 //==============================================================================
 float ReduMaxFloat_w(unsigned ndata,unsigned inidata,float4* data,float* resu){
   unsigned n=ndata,ini=inidata;
@@ -932,7 +932,6 @@ template<bool psingle,TpKernel tker,TpFtMode ftmode,bool lamsps,TpDeltaSph tdelt
       }
     }
     //-Stores results.
-	printf("%f/%f/%f/%f/%f/%f \n", shift, arp1, acep1.x, acep1.y, acep1.z, visc);
     if(shift||arp1||acep1.x||acep1.y||acep1.z||visc){
       if(tdelta==DELTA_Dynamic&&deltap1!=FLT_MAX)arp1+=deltap1;
       if(tdelta==DELTA_DynamicExt){
@@ -1440,7 +1439,7 @@ void ComputeSpsTau(unsigned np,unsigned npb,float smag,float blin
 //##############################################################################
 //------------------------------------------------------------------------------
 /// Adds value of delta[] to ar[] provided it is not FLT_MAX.
-/// Añade valor de delta[] a ar[] siempre que no sea FLT_MAX.
+/// AÃ±ade valor de delta[] a ar[] siempre que no sea FLT_MAX.
 //------------------------------------------------------------------------------
 __global__ void KerAddDelta(unsigned n,const float *delta,float *ar)
 {
@@ -1453,7 +1452,7 @@ __global__ void KerAddDelta(unsigned n,const float *delta,float *ar)
 
 //==============================================================================
 /// Adds value of delta[] to ar[] provided it is not FLT_MAX.
-/// Añade valor de delta[] a ar[] siempre que no sea FLT_MAX.
+/// AÃ±ade valor de delta[] a ar[] siempre que no sea FLT_MAX.
 //==============================================================================
 void AddDelta(unsigned n,const float *delta,float *ar){
   if(n){
@@ -2271,7 +2270,7 @@ __global__ void KerFtCalcForces(unsigned ftcount,float3 gravity,const float4 *ft
       omegaace.z=(fomegaace.x*invinert.a31+fomegaace.y*invinert.a32+fomegaace.z*invinert.a33);
       fomegaace=omegaace;
     }
-    //-Add gravity and divide by mass. | Añade gravedad y divide por la masa.
+    //-Add gravity and divide by mass. | AÃ±ade gravedad y divide por la masa.
     face.x=(face.x+fmass*gravity.x)/fmass;
     face.y=(face.y+fmass*gravity.y)/fmass;
     face.z=(face.z+fmass*gravity.z)/fmass;
@@ -2521,7 +2520,7 @@ unsigned PeriodicMakeList(unsigned n,unsigned pini,bool stable,unsigned nmax
   unsigned count=0;
   if(n){
     //-lspg size list initialized to zero.
-    //-Inicializa tamaño de lista lspg a cero.
+    //-Inicializa tamaÃ±o de lista lspg a cero.
     cudaMemset(listp+nmax,0,sizeof(unsigned));
     dim3 sgrid=GetGridSize(n,SPHBSIZE);
     const unsigned smem=(SPHBSIZE*2+1)*sizeof(unsigned); //-Each particle can leave two new periodic over the counter position. | De cada particula pueden salir 2 nuevas periodicas mas la posicion del contador.
