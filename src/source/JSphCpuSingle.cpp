@@ -221,7 +221,7 @@ void JSphCpuSingle::ResizeParticlesSize(unsigned newsize,float oversize,bool upd
 unsigned JSphCpuSingle::PeriodicMakeList(unsigned n,unsigned pini,bool stable,unsigned nmax,tdouble3 perinc,const tdouble3 *pos,const typecode *code,unsigned *listp)const{
   unsigned count=0;
   if(n){
-    //-Initialize size of list lsph to zero. | Inicializa tamaño de lista lspg a cero.
+    //-Initialize size of list lsph to zero. | Inicializa tamaÃ±o de lista lspg a cero.
     listp[nmax]=0;
     for(unsigned p=0;p<n;p++){
       const unsigned p2=p+pini;
@@ -912,7 +912,7 @@ void JSphCpuSingle::Interaction_Forces(TpInter tinter){
  // if (Psingle)JSphSolidCpu::InteractionSimple_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, PsPosc, Velrhopc, Idpc, Codec, Press3Dc, Porec_M, Massc_M, viscdt, Arc, Acec, Deltac, JauTauc2_M, JauGradvelc2_M, JauTauDot_M, JauOmega_M, ShiftPosc, ShiftDetectc);
   //else JSphSolidCpu::Interaction_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, Posc, Velrhopc, Idpc, Codec, Press3Dc, Porec_M, Massc_M, viscdt, Arc, Acec, Deltac, JauTauc2_M, JauGradvelc2_M, JauTauDot_M, JauOmega_M, ShiftPosc, ShiftDetectc);
 
-  //-For 2-D simulations zero the 2nd component. | Para simulaciones 2D anula siempre la 2º componente.
+  //-For 2-D simulations zero the 2nd component. | Para simulaciones 2D anula siempre la 2Âº componente.
   if(Simulate2D){
     const int ini=int(Npb),fin=int(Np),npf=int(Np-Npb);
     #ifdef OMP_USE
@@ -921,7 +921,7 @@ void JSphCpuSingle::Interaction_Forces(TpInter tinter){
     for(int p=ini;p<fin;p++)Acec[p].y=0;
   }
 
-  //-Add Delta-SPH correction to Arg[]. | Añade correccion de Delta-SPH a Arg[].
+  //-Add Delta-SPH correction to Arg[]. | AÃ±ade correccion de Delta-SPH a Arg[].
   if(Deltac){
     const int ini=int(Npb),fin=int(Np),npf=int(Np-Npb);
     #ifdef OMP_USE
@@ -1156,7 +1156,7 @@ void JSphCpuSingle::FtCalcForces(StFtoForces *ftoforces)const{
       omegaace.z=(fomegaace.x*invinert.a31+fomegaace.y*invinert.a32+fomegaace.z*invinert.a33);
       fomegaace=omegaace;
     }
-    //-Add gravity and divide by mass. | Añade gravedad y divide por la masa.
+    //-Add gravity and divide by mass. | AÃ±ade gravedad y divide por la masa.
     face.x=(face.x+fmass*Gravity.x)/fmass;
     face.y=(face.y+fmass*Gravity.y)/fmass;
     face.z=(face.z+fmass*Gravity.z)/fmass;
@@ -1213,7 +1213,7 @@ void JSphCpuSingle::RunFloating(double dt,bool predictor){
     //-Initialises forces of floatings.
     memset(FtoForces,0,sizeof(StFtoForces)*FtCount); 
 
-    //-Adds calculated forces around floating objects. | Añade fuerzas calculadas sobre floatings.
+    //-Adds calculated forces around floating objects. | AÃ±ade fuerzas calculadas sobre floatings.
     FtCalcForces(FtoForces);
     //-Calculate data to update floatings. | Calcula datos para actualizar floatings.
     FtCalcForcesRes(dt,FtoForces,FtoForcesRes);
@@ -1286,32 +1286,61 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
   TmcCreation(Timers,cfg->SvTimers);
   TmcStart(Timers,TMC_Init);
 
-  //-Load parameters and values of input. | Carga de parametros y datos de entrada.
-  //--------------------------------------------------------------------------------
+  //Log->Printf("\n---Runpath : %s---\n", cfg->RunPath.c_str());
+  //Log->Printf("\n---PartBeginDir : %s---\n", cfg->PartBeginDir.c_str());
+  //Log->Printf("\n---CaseName : %s---\n", cfg->CaseName.c_str()); 
 
-  printf("---1---");
-  LoadConfig(cfg);
-  printf("---2---");
-  LoadCaseParticles();
-  printf("---3---");
-  ConfigConstants(Simulate2D);
-  printf("---4---");
-  ConfigDomain();
-  printf("---5---");
-  ConfigRunMode(cfg);
-  printf("---6---");
-  VisuParticleSummary();
-  printf("---7---");
+  Log->Printf("\n---Thibaud's part---\n");
+  GenCaseBis_T gcb;
+  gcb.UseGencase(cfg->RunPath);
+  if (!gcb.getUseGencase()) {
+	  gcb.Bridge(cfg->CaseName);
+	  Log->Printf("\n---Thibaud's part end---\n");
+	  printf("---1---");
+	  LoadConfig_T(cfg);
+	  printf("---2---");
+	  LoadCaseParticles_T();
+	  printf("---3---");
+	  ConfigConstants(Simulate2D);
+	  printf("---4---");
+	  ConfigDomain();
+	  printf("---5---");
+	  ConfigRunMode(cfg);
+	  printf("---6---");
+	  VisuParticleSummary();
+	  printf("---7---");
+	  //-Initialisation of execution variables. | Inicializacion de variables de ejecucion.
+	  //------------------------------------------------------------------------------------
+	  InitRun_T(PartsLoaded);
+  }
+  else {
+	  Log->Printf("\n---Thibaud's part end---\n");
+	  printf("---1---");
+	  LoadConfig(cfg);
+	  printf("---2---");
+	  LoadCaseParticles();
+	  printf("---3---");
+	  ConfigConstants(Simulate2D);
+	  printf("---4---");
+	  ConfigDomain();
+	  printf("---5---");
+	  ConfigRunMode(cfg);
+	  printf("---6---");
+	  VisuParticleSummary();
+	  printf("---7---");
+	  //-Initialisation of execution variables. | Inicializacion de variables de ejecucion.
+	  //------------------------------------------------------------------------------------
+	  InitRun();
+  }
+  
 
 
-  //-Initialisation of execution variables. | Inicializacion de variables de ejecucion.
-  //------------------------------------------------------------------------------------
-
-  InitRun();
+  //-Free memory of PartsLoaded. | Libera memoria de PartsLoaded.
+  delete PartsLoaded; PartsLoaded = NULL;
   RunGaugeSystem(TimeStep);
   UpdateMaxValues();
+  SaveData_M();
   PrintAllocMemory(GetAllocMemoryCpu());
-  SaveData(); 
   TmcResetValues(Timers);
   TmcStop(Timers,TMC_Init);
   PartNstep=-1; Part++;
@@ -1319,7 +1348,6 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
 
   //-Main Loop.
   //------------
- 
   JTimeControl tc("30,60,300,600");//-Shows information at 0.5, 1, 5 y 10 minutes (before first PART).
   bool partoutstop=false;
   TimerSim.Start();
@@ -1329,27 +1357,27 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
 
   while(TimeStep<TimeMax){
     if(ViscoTime)Visco=ViscoTime->GetVisco(float(TimeStep));
-
+	//printf("\nTimeStep : %1.10f", TimeStep);
 	// Control of step - Matthias
 	//double stepdt = ComputeStep_Eul_M();
-    double stepdt=ComputeStep(); 
+    double stepdt=ComputeStep();
 	RunGaugeSystem(TimeStep+stepdt);
     if(PartDtMin>stepdt)PartDtMin=stepdt; if(PartDtMax<stepdt)PartDtMax=stepdt;
     if(CaseNmoving)RunMotion(stepdt);
 
 	// Matthias - Cell division
-	//RunSizeDivision_M();
-	//RunDivisionDisplacement_M();
-	//RunCellDivide(true);
+	RunSizeDivision_M();
+	RunDivisionDisplacement_M();
+	RunCellDivide(true);
 
     TimeStep+=stepdt;
 	partoutstop=(Np<NpMinimum || !Np);
     if(TimeStep>=TimePartNext || partoutstop){
       if(partoutstop){
-        Log->PrintWarning("Particles OUT limit reached...");
+        Log->PrintWarning("Particles OUT limit reached..."); 
         TimeMax=TimeStep;
       }
-      SaveData(); 
+      SaveData_M();
       Part++;
       PartNstep=Nstep;
       TimeStepM1=TimeStep;
@@ -1360,7 +1388,6 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
     Nstep++;
     if(Part<=PartIni+1 && tc.CheckTime())Log->Print(string("  ")+tc.GetInfoFinish((TimeStep-TimeStepIni)/(TimeMax-TimeStepIni)));
     //if(Nstep>=3)break;
-
   }
   TimerSim.Stop(); TimerTot.Stop();
 
