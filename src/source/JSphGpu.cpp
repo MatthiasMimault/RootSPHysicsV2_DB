@@ -572,42 +572,6 @@ unsigned JSphGpu::ParticlesDataDown(unsigned n,unsigned pini,bool code,bool cell
   return(num);
 }
 
-unsigned JSphGpu::ParticlesDataDown_L(unsigned n, unsigned pini, bool code, bool cellorderdecode, bool onlynormal) {
-	unsigned num = n;
-	cudaMemcpy(Idp, Idpg + pini, sizeof(unsigned)*n, cudaMemcpyDeviceToHost);
-	cudaMemcpy(Posxy, Posxyg + pini, sizeof(double2)*n, cudaMemcpyDeviceToHost);
-	cudaMemcpy(Posz, Poszg + pini, sizeof(double)*n, cudaMemcpyDeviceToHost);
-	cudaMemcpy(Velrhop, Velrhopg + pini, sizeof(float4)*n, cudaMemcpyDeviceToHost);
-	cudaMemcpy(Mass, Massc_M + pini, sizeof(float)*n, cudaMemcpyDeviceToHost);
-	if (code || onlynormal)cudaMemcpy(Code, Codeg + pini, sizeof(typecode)*n, cudaMemcpyDeviceToHost);
-	CheckCudaError("ParticlesDataDown", "Failed copying data from GPU.");
-	//-Eliminates abnormal particles (periodic and others). | Elimina particulas no normales (periodicas y otras).
-	if (onlynormal) {
-		unsigned ndel = 0;
-		for (unsigned p = 0; p<n; p++) {
-			const bool normal = CODE_IsNormal(Code[p]);
-			if (ndel && normal) {
-				Idp[p - ndel] = Idp[p];
-				Posxy[p - ndel] = Posxy[p];
-				Posz[p - ndel] = Posz[p];
-				Velrhop[p - ndel] = Velrhop[p];
-				Code[p - ndel] = Code[p];
-				Mass[p - ndel] = Mass[p];
-			}
-			if (!normal)ndel++;
-		}
-		num -= ndel;
-	}
-	//-Converts data to a simple format. | Convierte datos a formato simple.
-	for (unsigned p = 0; p<n; p++) {
-		AuxPos[p] = TDouble3(Posxy[p].x, Posxy[p].y, Posz[p]);
-		AuxVel[p] = TFloat3(Velrhop[p].x, Velrhop[p].y, Velrhop[p].z);
-		AuxRhop[p] = Velrhop[p].w;
-	}
-	//-Reorder components in their original order. | Reordena componentes en su orden original.
-	if (cellorderdecode)DecodeCellOrder(n, AuxPos, AuxVel);
-	return(num);
-}
 
 //==============================================================================
 /// Initialises CUDA device.
