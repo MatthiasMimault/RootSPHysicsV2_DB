@@ -11,6 +11,8 @@ examples/*
 
 ## Ignores other directories.
 __Tools__
+doc/*
+bin/*
 
 ## Ignores temporary files.
 bin/windows/*.iobj
