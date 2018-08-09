@@ -157,6 +157,7 @@ void JSph::InitVars(){
   PoreZero = RateBirth_M = Spread_M = 0; 
   LambdaMass = 0;
   SizeDivision_M = 0;
+  CteB3D = TFloat3(0);
   AnisotropyK_M = TFloat3(0);
   AnisotropyG_M = TSymatrix3f(0);
 
@@ -566,7 +567,7 @@ void JSph::LoadCaseConfig(){
   //-Predefined constantes.
   if(ctes.GetEps()!=0)Log->PrintWarning("Eps value is not used (this correction is deprecated).");
   H=(float)ctes.GetH();
-  CteB=(float)ctes.GetB();
+  //CteB=(float)ctes.GetB();
   Gamma=(float)ctes.GetGamma();
   RhopZero=(float)ctes.GetRhop0();
   CFLnumber=(float)ctes.GetCFLnumber();
@@ -577,9 +578,24 @@ void JSph::LoadCaseConfig(){
   //Matthias
   // Extension domain
   BordDomain = (float)ctes.GetBordDomain();
-  // Solid
-  K = (float)ctes.GetYoung();
-  Mu = (float)ctes.GetShear();
+  // Solid anisotropic
+  const float Ef = (float)ctes.GetYoung1();
+  const float Et = (float)ctes.GetYoung2();
+  const float nf = Et / Ef;
+  const float nuf1 = (float)ctes.GetPoisson11();
+  const float nuf2 = (float)ctes.GetPoisson12();
+  const float Gf = (float)ctes.GetShear();
+   const float alpha1 = Ef * (1 - nuf1) / (nf*(1 - nuf1) - 2.0f*nuf2*nuf2);
+  const float alpha2 = Ef * nf / (2.0f*nf*(1 - nuf1) - 4.0f*nuf2*nuf2);
+  const float alpha3 = Ef * nuf2 / (nf*(1 - nuf1) - 2.0f*nuf2*nuf2);
+  const float alpha4 = Gf;
+  const float alpha5 = Ef / (2.0f*(1 + nuf1));
+   C1 = alpha2 + alpha5; C12 = alpha2 - alpha5; C13 = alpha3;
+  C2 = alpha2 + alpha5; C23 = alpha3; C3 = alpha1;
+  C4 = alpha4; C5 = alpha4; C6 = alpha4;
+  
+  // New B for anisotropy
+  CteB3D = TFloat3((C1 + C12 + C13) / Gamma, (C2 + C12 + C23) / Gamma, (C3 + C13 + C23) / Gamma);
   // Pore
   PoreZero = (float)ctes.GetPoreZero();
   // Mass
@@ -813,7 +829,8 @@ void JSph::ConfigConstants(bool simulate2d){
   //-Computation of constants.
   const double h=H;
   Delta2H=float(h*2*DeltaSph);
-  Cs0=sqrt(double(Gamma)*double(CteB)/double(RhopZero));
+  //Cs0=sqrt(double(Gamma)*double(CteB)/double(RhopZero));
+  Cs0=sqrt(double(Gamma)*double(max(CteB3D.x, max(CteB3D.y, CteB3D.z)))/double(RhopZero));
   if(!DtIni)DtIni=h/Cs0;
   if(!DtMin)DtMin=(h/Cs0)*CoefDtMin;
   Dosh=float(h*2); 
@@ -930,7 +947,8 @@ void JSph::VisuConfig()const{
   Log->Print(fun::VarStr("Dx",Dp));
   Log->Print(fun::VarStr("H",H));
   Log->Print(fun::VarStr("CoefficientH",H/(Dp*sqrt(Simulate2D? 2.f: 3.f))));
-  Log->Print(fun::VarStr("CteB",CteB));
+  //Log->Print(fun::VarStr("CteB",CteB));
+  Log->Print(fun::VarStr("CteB3D",CteB3D));
   Log->Print(fun::VarStr("Gamma",Gamma));
   Log->Print(fun::VarStr("RhopZero",RhopZero));
   Log->Print(fun::VarStr("Cs0",Cs0));
@@ -941,10 +959,15 @@ void JSph::VisuConfig()const{
   if(DtFixed)Log->Print(fun::VarStr("DtFixed",DtFixed->GetFile()));
   Log->Print(fun::VarStr("MassFluid",MassFluid));
   Log->Print(fun::VarStr("MassBound",MassBound));
-  // Solid
+  // Solid - anisotropic
   Log->Print("SolidVariables");
-  Log->Print(fun::VarStr("Young modulus", K));
-  Log->Print(fun::VarStr("Shear modulus", Mu));
+  /*  Log->Print(fun::VarStr("Young modulus", K));
+  Log->Print(fun::VarStr("Shear modulus", Mu));*/
+  Log->Print(fun::VarStr("Young modulus 1", Ef)); 
+  Log->Print(fun::VarStr("Young modulus 2", Et));
+  Log->Print(fun::VarStr("Shear modulus", Gf));
+  Log->Print(fun::VarStr("Poisson modulus 11", nuf1));
+  Log->Print(fun::VarStr("Poisson modulus 12", nuf2));
 
 
   if(TKernel==KERNEL_Wendland){
@@ -979,7 +1002,7 @@ void JSph::VisuConfig()const{
     Log->Print(fun::VarStr("RhopOutMin",RhopOutMin));
     Log->Print(fun::VarStr("RhopOutMax",RhopOutMax));
   }
-  if(CteB==0)RunException(met,"Constant \'b\' cannot be zero.\n\'b\' is zero when fluid height is zero (or fluid particles were not created)");
+  //if(CteB==0)RunException(met,"Constant \'b\' cannot be zero.\n\'b\' is zero when fluid height is zero (or fluid particles were not created)");
 }
 
 //==============================================================================
@@ -1827,7 +1850,7 @@ void JSph::SaveInitialDomainVtk()const{
 
 //==============================================================================
 /// Returns size of VTK file with map cells.
-/// Devuelve tamaño de fichero VTK con las celdas del mapa.
+/// Devuelve tamaÃ±o de fichero VTK con las celdas del mapa.
 //==============================================================================
 unsigned JSph::SaveMapCellsVtkSize()const{
   const tuint3 cells=OrderDecode(Map_Cells);
@@ -1875,7 +1898,7 @@ void JSph::SaveMapCellsVtk(float scell)const{
 
 //==============================================================================
 /// Adds basic information of resume to hinfo & dinfo.
-/// Añade la informacion basica de resumen a hinfo y dinfo.
+/// AÃ±ade la informacion basica de resumen a hinfo y dinfo.
 //==============================================================================
 void JSph::GetResInfo(float tsim,float ttot,const std::string &headplus,const std::string &detplus,std::string &hinfo,std::string &dinfo){
   hinfo=hinfo+"#RunName;RunCode;DateTime;Np;TSimul;TSeg;TTotal;MemCpu;MemGpu;Steps;PartFiles;PartsOut;MaxParticles;MaxCells;Hw;StepAlgo;Kernel;Viscosity;ViscoValue;DeltaSPH;TMax;Nbound;Nfixed;H;RhopOut;PartsRhopOut;PartsVelOut;CellMode"+headplus;
