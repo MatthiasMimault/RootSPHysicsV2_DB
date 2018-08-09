@@ -41,7 +41,6 @@ void JCfgRun::Reset(){
   PrintInfo=false; SvDef=false; DirsDef=0;
   Cpu=false;
   Gpu=false; GpuId=-1; GpuFree=false;
-  Gencase = true;
   Stable=false;
   PosDouble=-1;
   OmpThreads=0;
