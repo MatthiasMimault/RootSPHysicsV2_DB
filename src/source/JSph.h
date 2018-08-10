@@ -372,7 +372,9 @@ protected:
   llong GetAllocMemoryCpu()const;
 
   void LoadConfig(const JCfgRun *cfg);
+  void LoadConfig_T(const JCfgRun *cfg);
   void LoadCaseConfig();
+  void LoadCaseConfig_T();
 
   void VisuDemCoefficients()const;
 

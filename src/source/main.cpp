@@ -119,6 +119,7 @@ bool ShowsVersion(int argc,char** argv){
 //=============================================================================
 //=============================================================================
 int main(int argc, char** argv){
+
   int errcode=1;
   if(ShowsVersion(argc,argv))return(errcode);
   std::string license=getlicense_lgpl(AppInfo.GetShortName(),false);

@@ -24,6 +24,7 @@
 #include "Types.h"
 #include "JSphCpu.h"
 #include "JSphSolidCpu_M.h"
+#include "GencaseBis_T.h"
 #include <string>
 
 class JCellDivCpuSingle;
@@ -43,7 +44,9 @@ protected:
   llong GetAllocMemoryCpu()const;
   void UpdateMaxValues();
   void LoadConfig(JCfgRun *cfg);
+  void LoadConfig_T(JCfgRun *cfg);
   void LoadCaseParticles();
+  void LoadCaseParticles_T();
   void ConfigDomain();
 
   void ResizeParticlesSize(unsigned newsize,float oversize,bool updatedivide);

@@ -569,9 +569,107 @@ void JSphSolidCpu::InitRun() {
 	memset(Divisionc_M, 0, sizeof(bool)*Np);
 	for (unsigned p = 0; p < Np; p++) {
 		Massc_M[p] = MassFluid;
-		MassM1c_M[p] = MassFluid;
+		MassM1c_M[p] = MassFluid;	
 	}
 	  
+
+	if (UseDEM)DemDtForce = DtIni; //(DEM)
+	if (CaseNfloat)InitFloating();
+
+	//-Adjust paramaters to start.
+	PartIni = PartBeginFirst;
+	TimeStepIni = (!PartIni ? 0 : PartBeginTimeStep);
+	//-Adjust motion for the instant of the loaded PART.
+	if (CaseNmoving) {
+		MotionTimeMod = (!PartIni ? PartBeginTimeStep : 0);
+		Motion->ProcesTime(JSphMotion::MOMT_Simple, 0, TimeStepIni + MotionTimeMod);
+	}
+
+	//-Uses Inlet information from PART read.
+	if (PartBeginTimeStep && PartBeginTotalNp) {
+		TotalNp = PartBeginTotalNp;
+		IdMax = unsigned(TotalNp - 1);
+	}
+
+	//-Shows Initialize configuration.
+	if (InitializeInfo.size()) {
+		Log->Print("Initialization configuration:");
+		Log->Print(InitializeInfo);
+		Log->Print(" ");
+	}
+
+	//-Process Special configurations in XML.
+	JXml xml; xml.LoadFile(FileXml);
+
+	//-Configuration of GaugeSystem.
+	GaugeSystem->Config(Simulate2D, Simulate2DPosY, TimeMax, TimePart, Dp, DomPosMin, DomPosMax, Scell, Hdiv, H, MassFluid);
+	if (xml.GetNode("case.execution.special.gauges", false))GaugeSystem->LoadXml(&xml, "case.execution.special.gauges");
+
+	//-Prepares WaveGen configuration.
+	if (WaveGen) {
+		Log->Print("Wave paddles configuration:");
+		WaveGen->Init(GaugeSystem, MkInfo, TimeMax, Gravity);
+		WaveGen->VisuConfig("", " ");
+	}
+
+	//-Prepares Damping configuration.
+	if (Damping) {
+		Damping->Config(CellOrder);
+		Damping->VisuConfig("Damping configuration:", " ");
+	}
+
+	//-Prepares AccInput configuration.
+	if (AccInput) {
+		Log->Print("AccInput configuration:");
+		AccInput->Init(TimeMax);
+		AccInput->VisuConfig("", " ");
+	}
+
+	//-Configuration of SaveDt.
+	if (xml.GetNode("case.execution.special.savedt", false)) {
+		SaveDt = new JSaveDt(Log);
+		SaveDt->Config(&xml, "case.execution.special.savedt", TimeMax, TimePart);
+		SaveDt->VisuConfig("SaveDt configuration:", " ");
+	}
+
+	//-Shows configuration of JGaugeSystem.
+	if (GaugeSystem->GetCount())GaugeSystem->VisuConfig("GaugeSystem configuration:", " ");
+
+	//-Shows configuration of JTimeOut.
+	if (TimeOut->UseSpecialConfig())TimeOut->VisuConfig(Log, "TimeOut configuration:", " ");
+
+	Part = PartIni; Nstep = 0; PartNstep = 0; PartOut = 0;
+	TimeStep = TimeStepIni; TimeStepM1 = TimeStep;
+	if (DtFixed)DtIni = DtFixed->GetDt(TimeStep, DtIni);
+	TimePartNext = TimeOut->GetNextTime(TimeStep);
+}
+
+//==============================================================================
+/// Initialisation of arrays and variables for execution.
+/// Inicializa vectores y variables para la ejecucion.
+//==============================================================================
+void JSphSolidCpu::InitRun_T(JPartsLoad4 *pl) {
+	const char met[] = "InitRun";
+	WithFloating = (CaseNfloat>0);
+	if (TStep == STEP_Verlet) {
+		memcpy(VelrhopM1c, Velrhopc, sizeof(tfloat4)*Np);
+		memset(JauTauM1c2_M, 0, sizeof(tsymatrix3f)*Np);
+		VerletStep = 0;
+	}
+	else if (TStep == STEP_Symplectic)DtPre = DtIni;
+	if (TVisco == VISCO_LaminarSPS)memset(SpsTauc, 0, sizeof(tsymatrix3f)*Np);
+
+	// Matthias
+	//memset(JauTauc_M, 0, sizeof(tmatrix3f)*Np);
+	memset(JauTauc2_M, 0, sizeof(tsymatrix3f)*Np);
+	memset(Divisionc_M, 0, sizeof(bool)*Np);
+	for (unsigned p = 0; p < Np; p++) {
+		Massc_M[p] = pl->GetMass()[p];
+		MassM1c_M[p] = pl->GetMass()[p];
+
+
+	}
+
 
 	if (UseDEM)DemDtForce = DtIni; //(DEM)
 	if (CaseNfloat)InitFloating();
@@ -2084,6 +2182,7 @@ void JSphSolidCpu::ComputeJauTauDot_M(unsigned n, unsigned pini, const tsymatrix
 		const tsymatrix3f omega = JauOmega_M[p];
 		const float traceGradVel = (gradvel.xx + gradvel.yy + gradvel.zz) / 3.0f;
 
+<<<<<<< HEAD
 		const tsymatrix3f E = {
 			C1 * gradvel.xx + C12 * gradvel.yy + C13 * gradvel.zz - (C1 + C12 + C13) * traceGradVel,	
 			C4 * gradvel.xy,	
@@ -2097,6 +2196,22 @@ void JSphSolidCpu::ComputeJauTauDot_M(unsigned n, unsigned pini, const tsymatrix
 		taudot[p].yy = E.yy - 2.0f*tau.xy*omega.xy + 2.0f*tau.yz*omega.yz;	
 		taudot[p].yz = E.yz + (tau.zz - tau.yy)*omega.yz - tau.xz*omega.xy - tau.xy*omega.xz;	
 		taudot[p].zz = E.zz - 2.0f*tau.xz*omega.xz - 2.0f*tau.yz*omega.yz;	
+=======
+		const tsymatrix3f E = {C1 * gradvel.xx + C12 * gradvel.yy + C13 * gradvel.zz - (C1 + C12 + C13) * traceGradVel,
+			C4 * gradvel.xy,
+			C5 * gradvel.xz,
+			C12 * gradvel.xx + C2 * gradvel.yy + C23 * gradvel.zz - (C2 + C12 + C23) * traceGradVel,
+			C6 * gradvel.yz,
+			C13 * gradvel.xx + C23 * gradvel.yy + C3 * gradvel.zz - (C3 + C13 + C23) * traceGradVel };
+		
+ 		taudot[p].xx = E.xx + 2.0f*tau.xy*omega.xy + 2.0f*tau.xz*omega.xz;
+		taudot[p].xy = E.xy + (tau.yy - tau.xx)*omega.xy + tau.xz*omega.yz + tau.yz*omega.xz;
+		taudot[p].xz = E.xz + (tau.zz - tau.xx)*omega.xz - tau.xy*omega.yz + tau.yz*omega.xy;
+		taudot[p].yy = E.yy - 2.0f*tau.xy*omega.xy + 2.0f*tau.yz*omega.yz;
+		taudot[p].yz = E.yz + (tau.zz - tau.yy)*omega.yz - tau.xz*omega.xy - tau.xy*omega.xz;
+		taudot[p].zz = E.zz - 2.0f*tau.xz*omega.xz - 2.0f*tau.yz*omega.yz;
+		
+>>>>>>> master
  		/*const tsymatrix3f e = {
 			2.0f / 3.0f * gradvel.xx - 1.0f / 3.0f * gradvel.yy - 1.0f / 3.0f * gradvel.zz,
 			gradvel.xy,
@@ -5078,11 +5193,18 @@ template<bool shift> void JSphSolidCpu::ComputeVerletVarsSolMass_M(const tfloat4
 	for (int p = pini; p<pfin; p++) {
 		// Calcul mass variation
 		const float volu = float(double(mass1[p]) / double(velrhop1[p].w));
+<<<<<<< HEAD
 		const float amass = float(LambdaMass * (RhopZero / velrhop1[p].w - 1.0f));
 		//-Calculate density. | Calcula densidad.
 		const float rhopnew = float(double(velrhop2[p].w) + dt2 * Arc[p] + amass);
 		//const float rhopnew = float(double(velrhop2[p].w) + dt2 * Arc[p] + amass / volu);
 		//const float rhopnew = float(double(velrhop2[p].w));
+=======
+		const float adens = float(LambdaMass * (RhopZero / velrhop1[p].w - 1.0f));
+
+		//-Calculate density. | Calcula densidad.
+		const float rhopnew = float(double(velrhop2[p].w) + dt2 * (Arc[p] + adens));
+>>>>>>> master
 		if (!WithFloating || CODE_IsFluid(code[p])) {//-Fluid Particles.
 													 //-Calculate displacement and update position. | Calcula desplazamiento y actualiza posicion.
 			double dx = double(velrhop1[p].x)*dt + double(Acec[p].x)*dt205;
@@ -5112,8 +5234,12 @@ template<bool shift> void JSphSolidCpu::ComputeVerletVarsSolMass_M(const tfloat4
 			taunew[p].yz = float(double(tau2[p].yz) + double(JauTauDot_M[p].yz)*dt2);
 			taunew[p].zz = float(double(tau2[p].zz) + double(JauTauDot_M[p].zz)*dt2);
 			// Update mass
+<<<<<<< HEAD
 			massnew[p] = float(double(mass2[p]) + double(amass *volu));
 			//massnew[p] = float(double(mass2[p]) + double(amass));
+=======
+			massnew[p] = float(double(mass2[p]) + dt2 * double(adens*volu));
+>>>>>>> master
 		}
 		else {//-Floating Particles.
 			velrhopnew[p] = velrhop1[p];

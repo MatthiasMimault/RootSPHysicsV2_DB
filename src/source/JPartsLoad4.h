@@ -85,6 +85,7 @@ protected:
   unsigned *Idp;
   tdouble3 *Pos;
   tfloat4 *VelRhop;
+  float *Mass;
 
   void AllocMemory(unsigned count);
   template<typename T> T* SortParticles(const unsigned *vsort,unsigned count,T *v)const;
@@ -97,6 +98,7 @@ public:
   void Reset();
 
   void LoadParticles(const std::string &casedir,const std::string &casename,unsigned partbegin,const std::string &casedirbegin);
+  void LoadParticles_T(const std::string &casedir, const std::string &casename, unsigned partbegin, const std::string &casedirbegin);
   void CheckConfig(ullong casenp,ullong casenfixed,ullong casenmoving,ullong casenfloat,ullong casenfluid,bool perix,bool periy,bool periz)const;
   void CheckConfig(ullong casenp,ullong casenfixed,ullong casenmoving,ullong casenfloat,ullong casenfluid)const;
   void RemoveBoundary();
@@ -115,6 +117,7 @@ public:
   const unsigned* GetIdp(){ return(Idp); }
   const tdouble3* GetPos(){ return(Pos); }
   const tfloat4* GetVelRhop(){ return(VelRhop); }
+  const float* GetMass() { return(Mass); }
 
   tdouble3 GetCasePosMin()const{ return(CasePosMin); }
   tdouble3 GetCasePosMax()const{ return(CasePosMax); }
