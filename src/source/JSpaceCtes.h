@@ -117,8 +117,8 @@ private:
   double BordDomain;
   // Solid - anisotropic
   double Ef, Et, Gf, nuf1, nuf2;
-  //double K;
-  //double Mu;
+  double K;
+  double Mu;
   // Pore
   double PoreZero;
   // Mass
@@ -187,10 +187,7 @@ public:
   double GetPoisson11()const { return nuf1; }
   double GetPoisson12()const { return nuf2; }
   //double GetShear()const { return(Mu); }
-<<<<<<< HEAD
-=======
-  
->>>>>>> master
+
   // Pore Pressure
   double GetPoreZero()const { return(PoreZero); }
   // Mass assimilation
