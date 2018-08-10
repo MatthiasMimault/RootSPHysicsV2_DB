@@ -3,7 +3,7 @@
 <DUALSPHYSICS>  Copyright (c) 2017 by Dr Jose M. Dominguez et al. (see http://dual.sphysics.org/index.php/developers/).
 
 EPHYSLAB Environmental Physics Laboratory, Universidade de Vigo, Ourense, Spain.
-School of Mechanical, Aerospace and Civil Engineering, University of Manchester, Manchester, U.K.
+School of Mechanical, Aerospace and Civil Engineering, University of Manchester, Manchester, U.K..
 
 This file is part of DualSPHysics.
 
@@ -60,7 +60,7 @@ JSphSolidCpu::~JSphSolidCpu() {
 	TmcDestruction(Timers);
 }
 
-//==============================================================================
+//=============================================================================
 /// Initialisation of variables.
 //==============================================================================
 void JSphSolidCpu::InitVars() {
@@ -834,7 +834,7 @@ void JSphSolidCpu::PreInteractionVars_Forces(TpInter tinter, unsigned np, unsign
 		//Porec_M[p] = PoreZero * Posc[p].x * exp(-(pow(Posc[p].x - LocDiv_M.x, 2) + pow(Posc[p].y - LocDiv_M.y, 2) + pow(Posc[p].z - LocDiv_M.z, 2)) / Spread_M);
 		//tfloat3 distance2 = ToTFloat3(Posc[p] - LocDiv_M);
 		//Porec_M[p] = PoreZero / (1 + exp(-(TimeStep-2))) * exp(-(pow(distance2.x,2) + pow(distance2.y, 2) + pow(distance2.z, 2)) / Spread_M);
-		//Porec_M[p] = PoreZero  / sqrt(2*Spread_M*PI) * exp(-(pow(distance2.x,2) + pow(distance2.y, 2) + pow(distance2.z, 2)) / Spread_M);
+		// Porec_M[p] = PoreZero  / sqrt(2*Spread_M*PI) * exp(-(pow(distance2.x,2) + pow(distance2.y, 2) + pow(distance2.z, 2)) / Spread_M);
 		//Porec_M[p] = PoreZero  / sqrt(2*Spread_M*PI) * exp(-(pow(distance2.x,2)) / Spread_M);
 		
 	}
@@ -1821,7 +1821,7 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 										 //-Initialize viscth to calculate viscdt maximo con OpenMP. | Inicializa viscth para calcular visdt maximo con OpenMP.
 	float viscth[OMP_MAXTHREADS*OMP_STRIDE];
 	for (int th = 0; th<OmpThreads; th++)viscth[th*OMP_STRIDE] = 0;
-	//-Initialise execution with OpenMP. | Inicia ejecucion con OpenMP.
+	//-Initialise execution with OpenMP. | Inicia ejecucion con OpenMP..
 	const int pfin = int(pinit + n);
 #ifdef OMP_USE
 #pragma omp parallel for schedule (guided)
@@ -1839,7 +1839,7 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 
 		//-Obtain data of particle p1 in case of floating objects. | Obtiene datos de particula p1 en caso de existir floatings.
 		bool ftp1 = false;     //-Indicate if it is floating. | Indica si es floating.
-		float ftmassp1 = 1.f;  //-Contains floating particle mass or 1.0f if it is fluid. | Contiene masa de particula floating o 1.0f si es fluid.
+		float ftmassp1 = 1.f;  //-Contains floating particle mass or 1.0f if it is fluid. | Contiene masa de particula floating o 1.0f si es fluid..
 		if (USE_FLOATING) {
 			ftp1 = CODE_IsFloating(code[p1]);
 			if (ftp1)ftmassp1 = FtObjs[CODE_GetTypeValue(code[p1])].massp;
@@ -1888,6 +1888,7 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 						bool ftp2 = false;    //-Indicate if it is floating | Indica si es floating.
 						bool compute = true;  //-Deactivate when using DEM and if it is of type float-float or float-bound | Se desactiva cuando se usa DEM y es float-float o float-bound.
 						if (USE_FLOATING) {
+						
 							ftp2 = CODE_IsFloating(code[p2]);
 							if (ftp2)massp2 = FtObjs[CODE_GetTypeValue(code[p2])].massp;
 #ifdef DELTA_HEAVYFLOATING
@@ -1915,13 +1916,13 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 								-(taup1.yz + tau[p2].yz) / (rhopp1*velrhop[p2].w),
 								(pressp1 + porep1 - taup1.zz + press[p2] + pore[p2] - tau[p2].zz) / (rhopp1*velrhop[p2].w) + (tker == KERNEL_Cubic ? GetKernelCubicTensil(rr2, rhopp1, pressp1, velrhop[p2].w, press[p2]) : 0)
 							};
-							/*const tsymatrix3f prs = {
-								(pressp1 + porep1 - taup1.xx + press[p2] + pore[p2] - tau[p2].xx) / (rhopp1*velrhop[p2].w) + (tker == KERNEL_Cubic ? GetKernelCubicTensil(rr2, rhopp1, pressp1, velrhop[p2].w, press[p2]) : 0),
-								-(taup1.xy + tau[p2].xy) / (rhopp1*velrhop[p2].w),
-								-(taup1.xz + tau[p2].xz) / (rhopp1*velrhop[p2].w),
-								(pressp1 + porep1 - taup1.yy + press[p2] + pore[p2] - tau[p2].yy) / (rhopp1*velrhop[p2].w) + (tker == KERNEL_Cubic ? GetKernelCubicTensil(rr2, rhopp1, pressp1, velrhop[p2].w, press[p2]) : 0),
-								-(taup1.yz + tau[p2].yz) / (rhopp1*velrhop[p2].w),
-								(pressp1 + porep1 - taup1.zz + press[p2] + pore[p2] - tau[p2].zz) / (rhopp1*velrhop[p2].w) + (tker == KERNEL_Cubic ? GetKernelCubicTensil(rr2, rhopp1, pressp1, velrhop[p2].w, press[p2]) : 0)
+							/*const tsymatrix3f prs = {	
+								(pressp1 + porep1 - taup1.xx + press[p2] + pore[p2] - tau[p2].xx) / (rhopp1*velrhop[p2].w) + (tker == KERNEL_Cubic ? GetKernelCubicTensil(rr2, rhopp1, pressp1, velrhop[p2].w, press[p2]) : 0),	
+								-(taup1.xy + tau[p2].xy) / (rhopp1*velrhop[p2].w),	
+								-(taup1.xz + tau[p2].xz) / (rhopp1*velrhop[p2].w),	
+								(pressp1 + porep1 - taup1.yy + press[p2] + pore[p2] - tau[p2].yy) / (rhopp1*velrhop[p2].w) + (tker == KERNEL_Cubic ? GetKernelCubicTensil(rr2, rhopp1, pressp1, velrhop[p2].w, press[p2]) : 0),	
+								-(taup1.yz + tau[p2].yz) / (rhopp1*velrhop[p2].w),	
+								(pressp1 + porep1 - taup1.zz + press[p2] + pore[p2] - tau[p2].zz) / (rhopp1*velrhop[p2].w) + (tker == KERNEL_Cubic ? GetKernelCubicTensil(rr2, rhopp1, pressp1, velrhop[p2].w, press[p2]) : 0)	
 							};*/
 							const tsymatrix3f p_vpm3 = {
 								-prs.xx*massp2*ftmassp1, -prs.xy*massp2*ftmassp1, -prs.xz*massp2*ftmassp1,
@@ -1957,7 +1958,7 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 							shiftdetectp1 -= massrhop * (drx*frx + dry * fry + drz * frz);
 						}
 
-						//===== Viscosity ===== 
+						//===== Viscosity ======
 						if (compute) {
 							const float dot = drx * dvx + dry * dvy + drz * dvz;
 							const float dot_rr2 = dot / (rr2 + Eta2);
@@ -1993,7 +1994,7 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 				}
 			}
 		}
-		//-Sum results together. | Almacena resultados.
+		//-Sum results together.
 		if (shift || arp1 || acep1.x || acep1.y || acep1.z || visc) {
 			if (tdelta == DELTA_Dynamic && deltap1 != FLT_MAX)arp1 += deltap1;
 			if (tdelta == DELTA_DynamicExt)delta[p1] = (delta[p1] == FLT_MAX || deltap1 == FLT_MAX ? FLT_MAX : delta[p1] + deltap1);
@@ -2006,8 +2007,7 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 				shiftpos[p1] = (shiftposp1.x == FLT_MAX ? TFloat3(FLT_MAX, 0, 0) : shiftpos[p1] + shiftposp1);
 				if (shiftdetect)shiftdetect[p1] += shiftdetectp1;
 			}
-
-			// Gradvel and rotation tensor
+			// Gradvel and rotation tensor .
 			gradvel[p1].xx += gradvelp1.xx;
 			gradvel[p1].xy += gradvelp1.xy;
 			gradvel[p1].xz += gradvelp1.xz;
@@ -2021,6 +2021,7 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 			omega[p1].yy += omegap1.yy;
 			omega[p1].yz += omegap1.yz;
 			omega[p1].zz += omegap1.zz;
+
 		}
 	}
 
@@ -2181,6 +2182,21 @@ void JSphSolidCpu::ComputeJauTauDot_M(unsigned n, unsigned pini, const tsymatrix
 		const tsymatrix3f omega = JauOmega_M[p];
 		const float traceGradVel = (gradvel.xx + gradvel.yy + gradvel.zz) / 3.0f;
 
+<<<<<<< HEAD
+		const tsymatrix3f E = {
+			C1 * gradvel.xx + C12 * gradvel.yy + C13 * gradvel.zz - (C1 + C12 + C13) * traceGradVel,	
+			C4 * gradvel.xy,	
+			C5 * gradvel.xz,	
+			C12 * gradvel.xx + C2 * gradvel.yy + C23 * gradvel.zz - (C2 + C12 + C23) * traceGradVel,	
+			C6 * gradvel.yz,	
+			C13 * gradvel.xx + C23 * gradvel.yy + C3 * gradvel.zz - (C3 + C13 + C23) * traceGradVel };	
+ 		taudot[p].xx = E.xx + 2.0f*tau.xy*omega.xy + 2.0f*tau.xz*omega.xz;	
+		taudot[p].xy = E.xy + (tau.yy - tau.xx)*omega.xy + tau.xz*omega.yz + tau.yz*omega.xz;	
+		taudot[p].xz = E.xz + (tau.zz - tau.xx)*omega.xz - tau.xy*omega.yz + tau.yz*omega.xy;	
+		taudot[p].yy = E.yy - 2.0f*tau.xy*omega.xy + 2.0f*tau.yz*omega.yz;	
+		taudot[p].yz = E.yz + (tau.zz - tau.yy)*omega.yz - tau.xz*omega.xy - tau.xy*omega.xz;	
+		taudot[p].zz = E.zz - 2.0f*tau.xz*omega.xz - 2.0f*tau.yz*omega.yz;	
+=======
 		const tsymatrix3f E = {C1 * gradvel.xx + C12 * gradvel.yy + C13 * gradvel.zz - (C1 + C12 + C13) * traceGradVel,
 			C4 * gradvel.xy,
 			C5 * gradvel.xz,
@@ -2195,6 +2211,7 @@ void JSphSolidCpu::ComputeJauTauDot_M(unsigned n, unsigned pini, const tsymatrix
 		taudot[p].yz = E.yz + (tau.zz - tau.yy)*omega.yz - tau.xz*omega.xy - tau.xy*omega.xz;
 		taudot[p].zz = E.zz - 2.0f*tau.xz*omega.xz - 2.0f*tau.yz*omega.yz;
 		
+>>>>>>> master
  		/*const tsymatrix3f e = {
 			2.0f / 3.0f * gradvel.xx - 1.0f / 3.0f * gradvel.yy - 1.0f / 3.0f * gradvel.zz,
 			gradvel.xy,
@@ -2420,7 +2437,7 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 		//if (lamsps)ComputeSpsTau(npf, npb, velrhop, spsgradvel, spstau);
 
 		// Compute Sdot
-		ComputeJauTauDot_M(npf, npb, jaugradvel, jautau, jautaudot, jauomega);
+	    ComputeJauTauDot_M(npf, npb, jaugradvel, jautau, jautaudot, jauomega);
 	}
 	if (npbok) {
 		//-Interaction Bound-Fluid.
@@ -5176,21 +5193,31 @@ template<bool shift> void JSphSolidCpu::ComputeVerletVarsSolMass_M(const tfloat4
 	for (int p = pini; p<pfin; p++) {
 		// Calcul mass variation
 		const float volu = float(double(mass1[p]) / double(velrhop1[p].w));
+<<<<<<< HEAD
+		const float amass = float(LambdaMass * (RhopZero / velrhop1[p].w - 1.0f));
+		//-Calculate density. | Calcula densidad.
+		const float rhopnew = float(double(velrhop2[p].w) + dt2 * Arc[p] + amass);
+		//const float rhopnew = float(double(velrhop2[p].w) + dt2 * Arc[p] + amass / volu);
+		//const float rhopnew = float(double(velrhop2[p].w));
+=======
 		const float adens = float(LambdaMass * (RhopZero / velrhop1[p].w - 1.0f));
 
 		//-Calculate density. | Calcula densidad.
 		const float rhopnew = float(double(velrhop2[p].w) + dt2 * (Arc[p] + adens));
+>>>>>>> master
 		if (!WithFloating || CODE_IsFluid(code[p])) {//-Fluid Particles.
 													 //-Calculate displacement and update position. | Calcula desplazamiento y actualiza posicion.
 			double dx = double(velrhop1[p].x)*dt + double(Acec[p].x)*dt205;
 			double dy = double(velrhop1[p].y)*dt + double(Acec[p].y)*dt205;
 			double dz = double(velrhop1[p].z)*dt + double(Acec[p].z)*dt205;
+
 			if (shift) {
 				dx += double(ShiftPosc[p].x);
 				dy += double(ShiftPosc[p].y);
 				dz += double(ShiftPosc[p].z);
 			}
 			bool outrhop = (rhopnew<RhopOutMin || rhopnew>RhopOutMax);
+		//	printf("rvell ,race = %f,%f,%f,%f,%f,%f", velrhop1[p].x, velrhop1[p].y, velrhop1[p].z, Acec[p].x, Acec[p].y, Acec[p].z);
 			UpdatePos(pos[p], dx, dy, dz, outrhop, p, pos, dcell, code);
 
 			//-Update velocity & density. | Actualiza velocidad y densidad.
@@ -5206,9 +5233,13 @@ template<bool shift> void JSphSolidCpu::ComputeVerletVarsSolMass_M(const tfloat4
 			taunew[p].yy = float(double(tau2[p].yy) + double(JauTauDot_M[p].yy)*dt2);
 			taunew[p].yz = float(double(tau2[p].yz) + double(JauTauDot_M[p].yz)*dt2);
 			taunew[p].zz = float(double(tau2[p].zz) + double(JauTauDot_M[p].zz)*dt2);
-
 			// Update mass
+<<<<<<< HEAD
+			massnew[p] = float(double(mass2[p]) + double(amass *volu));
+			//massnew[p] = float(double(mass2[p]) + double(amass));
+=======
 			massnew[p] = float(double(mass2[p]) + dt2 * double(adens*volu));
+>>>>>>> master
 		}
 		else {//-Floating Particles.
 			velrhopnew[p] = velrhop1[p];
@@ -5414,8 +5445,7 @@ void JSphSolidCpu::ComputeVerlet(double dt) {
 	}
 	LocDiv_M = LocDiv_M + VelDiv_M * dt;
 	// Update of LocDiv
-
-	//-New values are calculated en VelrhopM1c. | Los nuevos valores se calculan en VelrhopM1c.
+	//-New values are calculated en VelrhopM1c.
 	swap(Velrhopc, VelrhopM1c);     //-Swap Velrhopc & VelrhopM1c. | Intercambia Velrhopc y VelrhopM1c.
 	swap(JauTauc2_M, JauTauM1c2_M);     //-Swap Velrhopc & VelrhopM1c. | Intercambia Velrhopc y VelrhopM1c.
 	swap(Massc_M, MassM1c_M);     //-Swap Velrhopc & VelrhopM1c. | Intercambia Velrhopc y VelrhopM1c.
@@ -5783,7 +5813,7 @@ void JSphSolidCpu::RunDamping(double dt, unsigned np, unsigned npb, const tdoubl
 	else Damping->ComputeDamping(TimeStep, dt, np - npb, npb, pos, NULL, velrhop);
 }
 
-//==============================================================================
+//============================================================================== 
 /// Adjust variables of floating body particles.
 /// Ajusta variables de particulas floating body.
 //==============================================================================
@@ -5805,7 +5835,7 @@ void JSphSolidCpu::InitFloating() {
 	}
 }
 
-//==============================================================================
+//============================================================================== 
 /// Show active timers.
 /// Muestra los temporizadores activos.
 //==============================================================================
@@ -5816,7 +5846,7 @@ void JSphSolidCpu::ShowTimers(bool onlyfile) {
 	else for (unsigned c = 0; c<TimerGetCount(); c++)if (TimerIsActive(c))Log->Print(TimerToText(c), mode);
 }
 
-//==============================================================================
+//============================================================================== 
 /// Return string with names and values of active timers.
 /// Devuelve string con nombres y valores de los timers activos.
 //==============================================================================

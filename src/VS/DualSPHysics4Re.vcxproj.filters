@@ -250,9 +250,14 @@
     <ClInclude Include="..\source\JSphSolidCpu_M.h">
       <Filter>Source</Filter>
     </ClInclude>
+<<<<<<< HEAD
+    <ClInclude Include="Header.h" />
+    <ClInclude Include="..\source\JSphSolidGpu_ker_L.h" />
+=======
     <ClInclude Include="..\source\GenCaseBis_T.h">
       <Filter>Source</Filter>
     </ClInclude>
+>>>>>>> master
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\source\JCfgRun.cpp">
@@ -470,6 +475,9 @@
       <Filter>Cuda</Filter>
     </CudaCompile>
     <CudaCompile Include="..\source\FunctionsMath_ker.cu">
+      <Filter>Cuda</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\source\JSphSolidGpu_ker_L.cu">
       <Filter>Cuda</Filter>
     </CudaCompile>
   </ItemGroup>

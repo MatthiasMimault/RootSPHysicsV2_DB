@@ -91,6 +91,7 @@ protected:
   tdouble2 *Posxy;
   double *Posz;
   tfloat4 *Velrhop;
+  float *Mass;
 
   //-Auxiliary variables for the conversion (size=ParticlesSize).
   //-Variables auxiliares para conversion (size=ParticlesSize).
@@ -120,6 +121,7 @@ protected:
   //-Variables for compute step: VERLET.
   float4 *VelrhopM1g;  ///<Verlet: in order to keep previous values. | Verlet: para guardar valores anteriores.
   int VerletStep;
+  float *MassM1c_M;
 
   //-Variables for compute step: SYMPLECTIC.
   double2 *PosxyPreg;  ///<Sympletic: in order to keep previous values. | Sympletic: para guardar valores en predictor.
@@ -168,6 +170,25 @@ protected:
   //-Variables for Laminar+SPS viscosity.  
   tsymatrix3f *SpsTaug;       ///<SPS sub-particle stress tensor.
   tsymatrix3f *SpsGradvelg;   ///<Velocity gradients.
+
+							  // Matthias - Pore pressure
+  bool *Divisionc_M;
+  float *Porec_M;
+  float *Massc_M; // Mass, Delta mass
+				  //float TimeGoing;
+
+
+							  // Matthias - Solid
+							  //tmatrix3f *JauTauc_M;
+  tsymatrix3f *JauTauc2_M;
+  tsymatrix3f *JauTauM1c2_M;
+  //tmatrix3f *JauGradvelc_M;
+  tsymatrix3f *JauGradvelc2_M;
+  tsymatrix3f *JauTauDot_M;
+  tsymatrix3f *JauOmega_M;
+  float *Pressg;
+  float3 *Press3Dc;
+
   
   TimersGpu Timers;  ///<Declares an array with timers for CPU (type structure \ref StSphTimerGpu).
 
@@ -261,7 +282,6 @@ public:
   void DgSaveCsvParticlesGpu(std::string filename,int numfile,unsigned pini,unsigned pfin,std::string head,const float3 *posg=NULL,const unsigned *idpg=NULL,const float3 *velg=NULL,const float *rhopg=NULL,const float *arg=NULL,const float3 *aceg=NULL,const float3 *vcorrg=NULL);
   void DgSaveCsvParticlesGpu2(std::string filename,int numfile,unsigned pini,unsigned pfin,std::string head,const float3 *posg=NULL,const unsigned *idpg=NULL,const float3 *velg=NULL,const float *rhopg=NULL,const float4 *pospres=NULL,const float4 *velrhop=NULL);
   void DgSaveCsvParticles2(std::string filename,int numfile,unsigned pini,unsigned pfin,std::string head,const tfloat3 *pos=NULL,const unsigned *idp=NULL,const tfloat3 *vel=NULL,const float *rhop=NULL,const tfloat4 *pospres=NULL,const tfloat4 *velrhop=NULL);
-
 };
 
 #endif

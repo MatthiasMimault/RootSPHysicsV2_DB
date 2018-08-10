@@ -285,7 +285,7 @@ void JSphCpuSingle::ResizeParticlesSize(unsigned newsize,float oversize,bool upd
 unsigned JSphCpuSingle::PeriodicMakeList(unsigned n,unsigned pini,bool stable,unsigned nmax,tdouble3 perinc,const tdouble3 *pos,const typecode *code,unsigned *listp)const{
   unsigned count=0;
   if(n){
-    //-Initialize size of list lsph to zero. | Inicializa tamaño de lista lspg a cero.
+    //-Initialize size of list lsph to zero. | Inicializa tamaÃ±o de lista lspg a cero.
     listp[nmax]=0;
     for(unsigned p=0;p<n;p++){
       const unsigned p2=p+pini;
@@ -959,10 +959,11 @@ void JSphCpuSingle::GetInteractionCells(unsigned rcell
 }
 
 //==============================================================================
-/// Interaction to calculate forces.
+/// Interaction to calculate forces..
 /// Interaccion para el calculo de fuerzas.
 //==============================================================================
 void JSphCpuSingle::Interaction_Forces(TpInter tinter){
+
   const char met[]="Interaction_Forces";
   PreInteraction_Forces(tinter);
   TmcStart(Timers,TMC_CfForces);
@@ -973,13 +974,21 @@ void JSphCpuSingle::Interaction_Forces(TpInter tinter){
   //if (Psingle)JSphSolidCpu::InteractionSimple_Forces(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, PsPosc, Velrhopc, Idpc, Codec, Pressc, viscdt, Arc, Acec, Deltac, SpsTauc, SpsGradvelc, ShiftPosc, ShiftDetectc);
   //else JSphSolidCpu::Interaction_Forces(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, Posc, Velrhopc, Idpc, Codec, Pressc, viscdt, Arc, Acec, Deltac, SpsTauc, SpsGradvelc, ShiftPosc, ShiftDetectc);
   // Matthias
+<<<<<<< HEAD
+ //if (Psingle)JSphSolidCpu::InteractionSimple_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, PsPosc, Velrhopc, Idpc, Codec, Pressc, Porec_M, Massc_M, viscdt, Arc, Acec, Deltac, JauTauc2_M, JauGradvelc2_M, JauTauDot_M, JauOmega_M, ShiftPosc, ShiftDetectc);
+ //else JSphSolidCpu::Interaction_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, Posc, Velrhopc, Idpc, Codec, Pressc, Porec_M, Massc_M, viscdt, Arc, Acec, Deltac, JauTauc2_M, JauGradvelc2_M, JauTauDot_M, JauOmega_M, ShiftPosc, ShiftDetectc);
+ 
+ // if (Psingle)JSphSolidCpu::InteractionSimple_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, PsPosc, Velrhopc, Idpc, Codec, Press3Dc, Porec_M, Massc_M, viscdt, Arc, Acec, Deltac, JauTauc2_M, JauGradvelc2_M, JauTauDot_M, JauOmega_M, ShiftPosc, ShiftDetectc);
+  //else JSphSolidCpu::Interaction_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, Posc, Velrhopc, Idpc, Codec, Press3Dc, Porec_M, Massc_M, viscdt, Arc, Acec, Deltac, JauTauc2_M, JauGradvelc2_M, JauTauDot_M, JauOmega_M, ShiftPosc, ShiftDetectc);
+if (Psingle)JSphSolidCpu::InteractionSimple_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, PsPosc, Velrhopc, Idpc, Codec, Press3Dc, Porec_M, Massc_M, viscdt, Arc, Acec, Deltac, JauTauc2_M, JauGradvelc2_M, JauTauDot_M, JauOmega_M, ShiftPosc, ShiftDetectc);	
+=======
   //if (Psingle)JSphSolidCpu::InteractionSimple_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, PsPosc, Velrhopc, Idpc, Codec, Pressc, Porec_M, Massc_M, viscdt, Arc, Acec, Deltac, JauTauc2_M, JauGradvelc2_M, JauTauDot_M, JauOmega_M, ShiftPosc, ShiftDetectc);
   //else JSphSolidCpu::Interaction_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, Posc, Velrhopc, Idpc, Codec, Pressc, Porec_M, Massc_M, viscdt, Arc, Acec, Deltac, JauTauc2_M, JauGradvelc2_M, JauTauDot_M, JauOmega_M, ShiftPosc, ShiftDetectc);
 
   if (Psingle)JSphSolidCpu::InteractionSimple_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, PsPosc, Velrhopc, Idpc, Codec, Press3Dc, Porec_M, Massc_M, viscdt, Arc, Acec, Deltac, JauTauc2_M, JauGradvelc2_M, JauTauDot_M, JauOmega_M, ShiftPosc, ShiftDetectc);
+>>>>>>> master
   else JSphSolidCpu::Interaction_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, Posc, Velrhopc, Idpc, Codec, Press3Dc, Porec_M, Massc_M, viscdt, Arc, Acec, Deltac, JauTauc2_M, JauGradvelc2_M, JauTauDot_M, JauOmega_M, ShiftPosc, ShiftDetectc);
-
-  //-For 2-D simulations zero the 2nd component. | Para simulaciones 2D anula siempre la 2º componente.
+  //-For 2-D simulations zero the 2nd component. | Para simulaciones 2D anula siempre la 2Âº componente.
   if(Simulate2D){
     const int ini=int(Npb),fin=int(Np),npf=int(Np-Npb);
     #ifdef OMP_USE
@@ -988,7 +997,7 @@ void JSphCpuSingle::Interaction_Forces(TpInter tinter){
     for(int p=ini;p<fin;p++)Acec[p].y=0;
   }
 
-  //-Add Delta-SPH correction to Arg[]. | Añade correccion de Delta-SPH a Arg[].
+  //-Add Delta-SPH correction to Arg[]. | AÃ±ade correccion de Delta-SPH a Arg[].
   if(Deltac){
     const int ini=int(Npb),fin=int(Np),npf=int(Np-Npb);
     #ifdef OMP_USE
@@ -996,13 +1005,12 @@ void JSphCpuSingle::Interaction_Forces(TpInter tinter){
     #endif
     for(int p=ini;p<fin;p++)if(Deltac[p]!=FLT_MAX)Arc[p]+=Deltac[p];
   }
-
+ 
   //-Calculates maximum value of ViscDt.
   ViscDtMax=viscdt;
   //-Calculates maximum value of Ace.
   if(PeriActive!=0)AceMax=ComputeAceMaxOmp<true> (Np-Npb,Acec+Npb,Codec+Npb);
   else             AceMax=ComputeAceMaxOmp<false>(Np-Npb,Acec+Npb,Codec+Npb);
-
   TmcStop(Timers,TMC_CfForces);
 }
 
@@ -1081,6 +1089,7 @@ template<bool checkcodenormal> double JSphCpuSingle::ComputeAceMaxOmp(unsigned n
 /// calculadas en la interaccion usando Verlet.
 //==============================================================================
 double JSphCpuSingle::ComputeStep_Ver() {
+
 	Interaction_Forces(INTER_Forces);    //-Interaction.
 	const double dt = DtVariable(true);    //-Calculate new dt.
 	DemDtForce = dt;                       //(DEM)
@@ -1223,7 +1232,7 @@ void JSphCpuSingle::FtCalcForces(StFtoForces *ftoforces)const{
       omegaace.z=(fomegaace.x*invinert.a31+fomegaace.y*invinert.a32+fomegaace.z*invinert.a33);
       fomegaace=omegaace;
     }
-    //-Add gravity and divide by mass. | Añade gravedad y divide por la masa.
+    //-Add gravity and divide by mass. | AÃ±ade gravedad y divide por la masa.
     face.x=(face.x+fmass*Gravity.x)/fmass;
     face.y=(face.y+fmass*Gravity.y)/fmass;
     face.z=(face.z+fmass*Gravity.z)/fmass;
@@ -1280,7 +1289,7 @@ void JSphCpuSingle::RunFloating(double dt,bool predictor){
     //-Initialises forces of floatings.
     memset(FtoForces,0,sizeof(StFtoForces)*FtCount); 
 
-    //-Adds calculated forces around floating objects. | Añade fuerzas calculadas sobre floatings.
+    //-Adds calculated forces around floating objects. | AÃ±ade fuerzas calculadas sobre floatings.
     FtCalcForces(FtoForces);
     //-Calculate data to update floatings. | Calcula datos para actualizar floatings.
     FtCalcForcesRes(dt,FtoForces,FtoForcesRes);
@@ -1348,13 +1357,16 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
   if(!cfg||!log)return;
   AppName=appname; Log=log;
 
-  //-Configure timers.
+  //-Configure timers. 
   //-------------------
   TmcCreation(Timers,cfg->SvTimers);
   TmcStart(Timers,TMC_Init);
 
+<<<<<<< HEAD
+=======
   //-Load parameters and values of input. | Carga de parametros y datos de entrada.
   //--------------------------------------------------------------------------------
+>>>>>>> master
   //Log->Printf("\n---Runpath : %s---\n", cfg->RunPath.c_str());
   //Log->Printf("\n---PartBeginDir : %s---\n", cfg->PartBeginDir.c_str());
   //Log->Printf("\n---CaseName : %s---\n", cfg->CaseName.c_str()); 
@@ -1413,6 +1425,7 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
   TmcResetValues(Timers);
   TmcStop(Timers,TMC_Init);
   PartNstep=-1; Part++;
+
 
   //-Main Loop.
   //------------
@@ -1547,7 +1560,7 @@ void JSphCpuSingle::SaveData_M() {
 		unsigned npnormal = GetParticlesData_M(Np, 0, true, PeriActive != 0, idp, pos, vel, rhop, pore, press, mass, tau, NULL);
 		if (npnormal != npsave)RunException("SaveData", "The number of particles is invalid.");
 	}
-	//-Gather additional information. | Reune informacion adicional.
+	//-Gather additional information. | Reune informacion adicional..
 	StInfoPartPlus infoplus;
 	memset(&infoplus, 0, sizeof(StInfoPartPlus));
 	if (SvData&SDAT_Info) {

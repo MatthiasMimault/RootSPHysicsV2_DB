@@ -116,8 +116,8 @@ bool ShowsVersion(int argc,char** argv){
   return(ret);
 }
 
-//==============================================================================
-//==============================================================================
+//=============================================================================
+//=============================================================================
 int main(int argc, char** argv){
 
   int errcode=1;
@@ -128,7 +128,6 @@ int main(int argc, char** argv){
   std::string appnamesub;
   for(unsigned c=0;c<=unsigned(appname.size());c++)appnamesub=appnamesub+"=";
   printf("\n%s\n%s\n",appname.c_str(),appnamesub.c_str());
-
   JCfgRun cfg;
   JLog2 log;
   try{

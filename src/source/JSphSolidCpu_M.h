@@ -179,7 +179,7 @@ protected:
 
 	void ConfigRunMode(const JCfgRun *cfg, std::string preinfo = "");
 	void ConfigCellDiv(JCellDivCpu* celldiv) { CellDiv = celldiv; }
-	void InitFloating();
+	void InitFloating(); 
 	void InitRun();
 	void InitRun_T(JPartsLoad4 *pl);
 
@@ -385,8 +385,8 @@ protected:
 	void RunMotion(double stepdt);
 	void RunDamping(double dt, unsigned np, unsigned npb, const tdouble3 *pos, const typecode *code, tfloat4 *velrhop)const;
 
-	void ShowTimers(bool onlyfile = false);
-	void GetTimersInfo(std::string &hinfo, std::string &dinfo)const;
+	void ShowTimers(bool onlyfile = false); 
+	void GetTimersInfo(std::string &hinfo, std::string &dinfo)const; 
 	unsigned TimerGetCount()const { return(TmcGetCount()); }
 	bool TimerIsActive(unsigned ct)const { return(TmcIsActive(Timers, (CsTypeTimerCPU)ct)); }
 	float TimerGetValue(unsigned ct)const { return(TmcGetValue(Timers, (CsTypeTimerCPU)ct)); }

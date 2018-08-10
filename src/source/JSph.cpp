@@ -697,9 +697,15 @@ void JSph::LoadCaseConfig(){
   const float alpha3 = Ef * nuf2 / (nf*(1 - nuf1) - 2.0f*nuf2*nuf2);
   const float alpha4 = Gf;
   const float alpha5 = Ef / (2.0f*(1 + nuf1));
+<<<<<<< HEAD
+   C1 = alpha2 + alpha5; C12 = alpha2 - alpha5; C13 = alpha3;
+  C2 = alpha2 + alpha5; C23 = alpha3; C3 = alpha1;
+  C4 = alpha4; C5 = alpha4; C6 = alpha4;
+=======
    C1 = alpha1; C12 = alpha3; C13 = alpha3;
   C2 = alpha2 + alpha5; C23 = alpha2 - alpha5; C3 = alpha2 + alpha5;
   C4 = alpha5; C5 = alpha4; C6 = alpha4;
+>>>>>>> master
   
   // New B for anisotropy
   CteB3D = TFloat3((C1 + C12 + C13) / Gamma, (C2 + C12 + C23) / Gamma, (C3 + C13 + C23) / Gamma);
@@ -1992,10 +1998,73 @@ void JSph::SavePartData(unsigned npok, unsigned nout, const unsigned *idp, const
 	PartsOut->Clear();
 }
 
+
 //==============================================================================
-/// Stores files of particle data.
-/// Graba los ficheros de datos de particulas.
+/// Generates data output files.
+/// Genera los ficheros de salida de datos.
 //==============================================================================
+void JSph::SaveData(unsigned npok,const unsigned *idp,const tdouble3 *pos,const tfloat3 *vel,const float *rhop
+  ,unsigned ndom,const tdouble3 *vdom,const StInfoPartPlus *infoplus)
+{
+  const char met[]="SaveData";
+  string suffixpartx=fun::PrintStr("_%04d",Part);
+
+  //-Counts new excluded particles.
+  //-Contabiliza nuevas particulas excluidas.
+  const unsigned noutpos=PartsOut->GetOutPosCount(),noutrhop=PartsOut->GetOutRhopCount(),noutmove=PartsOut->GetOutMoveCount();
+  const unsigned nout=noutpos+noutrhop+noutmove;
+  if(nout!=PartsOut->GetCount())RunException(met,"Excluded particles with unknown reason.");
+  AddOutCount(noutpos,noutrhop,noutmove);
+
+  //-Stores data files of particles.
+  SavePartData(npok,nout,idp,pos,vel,rhop,ndom,vdom,infoplus);
+
+  //-Reinitialises limits of dt. | Reinicia limites de dt.
+  PartDtMin=DBL_MAX; PartDtMax=-DBL_MAX;
+
+  //-Computation of time.
+  if(Part>PartIni||Nstep){
+    TimerPart.Stop();
+    double tpart=TimerPart.GetElapsedTimeD()/1000;
+    double tseg=tpart/(TimeStep-TimeStepM1);
+    TimerSim.Stop();
+    double tcalc=TimerSim.GetElapsedTimeD()/1000;
+    double tleft=(tcalc/(TimeStep-TimeStepIni))*(TimeMax-TimeStep);
+    Log->Printf("Part%s  %12.6f  %12d  %7d  %9.2f  %14s",suffixpartx.c_str(),TimeStep,(Nstep+1),Nstep-PartNstep,tseg,fun::GetDateTimeAfter(int(tleft)).c_str());
+  }
+  else Log->Printf("Part%s        %u particles successfully stored",suffixpartx.c_str(),npok);   
+  
+  //-Shows info of the excluded particles.
+  if(nout){
+    PartOut+=nout;
+    Log->Printf("  Particles out: %u  (total: %u)",nout,PartOut);
+  }
+
+  //-Cheks number of excluded particles.
+  if(nout){
+    //-Cheks number of excluded particles in one PART.
+    if(nout>=float(infoplus->npf)*(float(PartsOutWrn)/100.f)){
+      Log->PrintfWarning("More than %d%% of current fluid particles were excluded in one PART (t:%g, nstep:%u)",PartsOutWrn,TimeStep,Nstep);
+      if(PartsOutWrn==1)PartsOutWrn=2;
+      else if(PartsOutWrn==2)PartsOutWrn=5;
+      else if(PartsOutWrn==5)PartsOutWrn=10;
+      else PartsOutWrn+=10;
+    }
+    //-Cheks number of total excluded particles.
+    const unsigned noutt=GetOutPosCount()+GetOutRhopCount()+GetOutMoveCount();
+    if(PartsOutTotWrn<100 && noutt>=float(TotalNp)*(float(PartsOutTotWrn)/100.f)){
+      Log->PrintfWarning("More than %d%% of particles were excluded (t:%g, nstep:%u)",PartsOutTotWrn,TimeStep,Nstep);
+      PartsOutTotWrn+=10;
+    }
+  }  
+
+  if(SvDomainVtk)SaveDomainVtk(ndom,vdom);
+  if(SaveDt)SaveDt->SaveData();
+  if(GaugeSystem)GaugeSystem->SaveResults(Part);
+}
+
+
+
 void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, const tdouble3 *pos, const tfloat3 *vel
 	, const float *rhop, const float *pore, const tfloat3 *press, const float *mass, const tsymatrix3f *tau
 	, unsigned ndom, const tdouble3 *vdom, const StInfoPartPlus *infoplus) {
@@ -2106,76 +2175,7 @@ void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, con
 	PartsOut->Clear();
 }
 
-//==============================================================================
-/// Generates data output files.
-/// Genera los ficheros de salida de datos.
-//==============================================================================
-void JSph::SaveData(unsigned npok,const unsigned *idp,const tdouble3 *pos,const tfloat3 *vel,const float *rhop
-  ,unsigned ndom,const tdouble3 *vdom,const StInfoPartPlus *infoplus)
-{
-  const char met[]="SaveData";
-  string suffixpartx=fun::PrintStr("_%04d",Part);
 
-  //-Counts new excluded particles.
-  //-Contabiliza nuevas particulas excluidas.
-  const unsigned noutpos=PartsOut->GetOutPosCount(),noutrhop=PartsOut->GetOutRhopCount(),noutmove=PartsOut->GetOutMoveCount();
-  const unsigned nout=noutpos+noutrhop+noutmove;
-  if(nout!=PartsOut->GetCount())RunException(met,"Excluded particles with unknown reason.");
-  AddOutCount(noutpos,noutrhop,noutmove);
-
-  //-Stores data files of particles.
-  SavePartData(npok,nout,idp,pos,vel,rhop,ndom,vdom,infoplus);
-
-  //-Reinitialises limits of dt. | Reinicia limites de dt.
-  PartDtMin=DBL_MAX; PartDtMax=-DBL_MAX;
-
-  //-Computation of time.
-  if(Part>PartIni||Nstep){
-    TimerPart.Stop();
-    double tpart=TimerPart.GetElapsedTimeD()/1000;
-    double tseg=tpart/(TimeStep-TimeStepM1);
-    TimerSim.Stop();
-    double tcalc=TimerSim.GetElapsedTimeD()/1000;
-    double tleft=(tcalc/(TimeStep-TimeStepIni))*(TimeMax-TimeStep);
-    Log->Printf("Part%s  %12.6f  %12d  %7d  %9.2f  %14s",suffixpartx.c_str(),TimeStep,(Nstep+1),Nstep-PartNstep,tseg,fun::GetDateTimeAfter(int(tleft)).c_str());
-  }
-  else Log->Printf("Part%s        %u particles successfully stored",suffixpartx.c_str(),npok);   
-  
-  //-Shows info of the excluded particles.
-  if(nout){
-    PartOut+=nout;
-    Log->Printf("  Particles out: %u  (total: %u)",nout,PartOut);
-  }
-
-  //-Cheks number of excluded particles.
-  if(nout){
-    //-Cheks number of excluded particles in one PART.
-    if(nout>=float(infoplus->npf)*(float(PartsOutWrn)/100.f)){
-      Log->PrintfWarning("More than %d%% of current fluid particles were excluded in one PART (t:%g, nstep:%u)",PartsOutWrn,TimeStep,Nstep);
-      if(PartsOutWrn==1)PartsOutWrn=2;
-      else if(PartsOutWrn==2)PartsOutWrn=5;
-      else if(PartsOutWrn==5)PartsOutWrn=10;
-      else PartsOutWrn+=10;
-    }
-    //-Cheks number of total excluded particles.
-    const unsigned noutt=GetOutPosCount()+GetOutRhopCount()+GetOutMoveCount();
-    if(PartsOutTotWrn<100 && noutt>=float(TotalNp)*(float(PartsOutTotWrn)/100.f)){
-      Log->PrintfWarning("More than %d%% of particles were excluded (t:%g, nstep:%u)",PartsOutTotWrn,TimeStep,Nstep);
-      PartsOutTotWrn+=10;
-    }
-  }  
-
-  if(SvDomainVtk)SaveDomainVtk(ndom,vdom);
-  if(SaveDt)SaveDt->SaveData();
-  if(GaugeSystem)GaugeSystem->SaveResults(Part);
-}
-
-
-
-//==============================================================================
-/// Generates data output files.
-/// Genera los ficheros de salida de datos.
-//==============================================================================
 void JSph::SaveData_M(unsigned npok, const unsigned *idp, const tdouble3 *pos, const tfloat3 *vel, const float *rhop, const float *pore
 	, const tfloat3 *press, const float *mass, const tsymatrix3f *tau, unsigned ndom, const tdouble3 *vdom, const StInfoPartPlus *infoplus)
 {
@@ -2199,7 +2199,7 @@ void JSph::SaveData_M(unsigned npok, const unsigned *idp, const tdouble3 *pos, c
 
 	//-Calculo de tiempo.
 	//-Computation of time.
-	if (Part>PartIni || Nstep){
+	if (Part>PartIni || Nstep) {
 		TimerPart.Stop();
 		double tpart = TimerPart.GetElapsedTimeD() / 1000;
 		double tseg = tpart / (TimeStep - TimeStepM1);
@@ -2213,7 +2213,7 @@ void JSph::SaveData_M(unsigned npok, const unsigned *idp, const tdouble3 *pos, c
 
 	//-Muestra info de particulas excluidas
 	//-Shows info of the excluded particles
-	if (nout){
+	if (nout) {
 		PartOut += nout;
 		Log->Printf("  Particles out: %u  (total: %u)", nout, PartOut);
 	}
@@ -2222,6 +2222,7 @@ void JSph::SaveData_M(unsigned npok, const unsigned *idp, const tdouble3 *pos, c
 	if (SaveDt)SaveDt->SaveData();
 	if (GaugeSystem)GaugeSystem->SaveResults(Part);
 }
+
 
 //==============================================================================
 /// Generates VTK file with domain of the particles.

@@ -178,6 +178,7 @@ public:
   double GetEps()const{ return(Eps); }
   // Extension Domain
   double GetBordDomain()const { return BordDomain; }
+
   // Solid - anisotropic
   //double GetYoung()const { return(K); }
   double GetYoung1()const { return(Ef); }
@@ -186,7 +187,10 @@ public:
   double GetPoisson11()const { return nuf1; }
   double GetPoisson12()const { return nuf2; }
   //double GetShear()const { return(Mu); }
+<<<<<<< HEAD
+=======
   
+>>>>>>> master
   // Pore Pressure
   double GetPoreZero()const { return(PoreZero); }
   // Mass assimilation
@@ -232,6 +236,7 @@ public:
   void SetShear(double v) { Gf = v; };
   void SetPoisson11(double v) { nuf1 = v; };
   void SetPoisson12(double v) { nuf2 = v; };
+
   // Pore Pressure
   void SetPoreZero(double v) { PoreZero = v; };
   // Mass assimilation
