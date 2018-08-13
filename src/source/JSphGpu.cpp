@@ -506,7 +506,20 @@ void JSphGpu::ConstantDataUp(){
   ctes.domposminx=DomPosMin.x; ctes.domposminy=DomPosMin.y; ctes.domposminz=DomPosMin.z;
   cusph::CteInteractionUp(&ctes);
   cuSol::CteInteractionUp(&ctes);
-  CheckCudaError("ConstantDataUp","Failed copying constants to GPU.");
+  // LUCAS
+  CAnisotropy ctes2;
+  memset(&ctes2, 0, sizeof(CAnisotropy));
+  ctes2.C1 = C1;
+  ctes2.C12 = C12;
+  ctes2.C13 = C13;
+  ctes2.C2 = C2;
+  ctes2.C23 = C23;
+  ctes2.C3 = C3;
+  ctes2.C4 = C4;
+  ctes2.C5 = C5;
+  ctes2.C6 = C6;
+  cuSol::CteInteractionUpSol(&ctes2);
+  CheckCudaError("ConstantDataUp base ans Sol","Failed copying constants to GPU.");
 }
 
 //==============================================================================

@@ -39,6 +39,7 @@ You should have received a copy of the GNU Lesser General Public License along w
 #include <thrust/device_vector.h>
 #include <thrust/sort.h>
 __constant__ StCteInteraction CTE;
+__constant__ CAnisotropy CTESol;
 
 namespace cuSol {
 
@@ -48,6 +49,13 @@ namespace cuSol {
 	//==============================================================================
 	void CteInteractionUp(const StCteInteraction *cte) {
 		cudaMemcpyToSymbol(CTE, cte, sizeof(StCteInteraction));
+	}
+
+	//==============================================================================
+	/// Stores constants Lucas in GPU
+	//==============================================================================
+	void CteInteractionUpSol(const CAnisotropy *cte) {
+		cudaMemcpyToSymbol(CTESol, cte, sizeof(CAnisotropy));
 	}
 
 
@@ -2096,8 +2104,9 @@ __global__ void KerComputeJauTauDot(unsigned n, unsigned pini,tsymatrix3f *taudo
 		const tsymatrix3f tau = JauTauc2_M[p];
 		const tsymatrix3f gradvel = JauGradvelc2_M[p];
 		const tsymatrix3f omega = JauOmega_M[p];
+		const float traceGradVel = (gradvel.xx + gradvel.yy + gradvel.zz) / 3.0f;
 
-		const tsymatrix3f E = {
+		/*const tsymatrix3f E = {
 			2.0f / 3.0f * gradvel.xx - 1.0f / 3.0f * gradvel.yy - 1.0f / 3.0f * gradvel.zz,
 			gradvel.xy,
 			gradvel.xz,
@@ -2110,7 +2119,21 @@ __global__ void KerComputeJauTauDot(unsigned n, unsigned pini,tsymatrix3f *taudo
 		taudot[p].xz = 2.0f*AnisotropyG_M.xz*Mu*E.xz + (tau.zz - tau.xx)*omega.xz - tau.xy*omega.yz + tau.yz*omega.xy;
 		taudot[p].yy = 2.0f*AnisotropyG_M.yy*Mu*E.yy - 2.0f*tau.xy*omega.xy + 2.0f*tau.yz*omega.yz;
 		taudot[p].yz = 2.0f*AnisotropyG_M.yz*Mu*E.yz + (tau.zz - tau.yy)*omega.yz - tau.xz*omega.xy - tau.xy*omega.xz;
-		taudot[p].zz = 2.0f*AnisotropyG_M.zz*Mu*E.zz - 2.0f*tau.xz*omega.xz - 2.0f*tau.yz*omega.yz;
+		taudot[p].zz = 2.0f*AnisotropyG_M.zz*Mu*E.zz - 2.0f*tau.xz*omega.xz - 2.0f*tau.yz*omega.yz;*/
+		const tsymatrix3f E = {
+			CTESol.C1 * gradvel.xx + CTESol.C12 * gradvel.yy + CTESol.C13 * gradvel.zz - (CTESol.C1 + CTESol.C12 + CTESol.C13) * traceGradVel,
+			CTESol.C4 * gradvel.xy,
+			CTESol.C5 * gradvel.xz,
+			CTESol.C12 * gradvel.xx + CTESol.C2 * gradvel.yy + CTESol.C23 * gradvel.zz - (CTESol.C2 + CTESol.C12 + CTESol.C23) * traceGradVel,
+			CTESol.C6 * gradvel.yz,
+			CTESol.C13 * gradvel.xx + CTESol.C23 * gradvel.yy + CTESol.C3 * gradvel.zz - (CTESol.C3 + CTESol.C13 + CTESol.C23) * traceGradVel };
+
+		taudot[p].xx = E.xx + 2.0f*tau.xy*omega.xy + 2.0f*tau.xz*omega.xz;
+		taudot[p].xy = E.xy + (tau.yy - tau.xx)*omega.xy + tau.xz*omega.yz + tau.yz*omega.xz;
+		taudot[p].xz = E.xz + (tau.zz - tau.xx)*omega.xz - tau.xy*omega.yz + tau.yz*omega.xy;
+		taudot[p].yy = E.yy - 2.0f*tau.xy*omega.xy + 2.0f*tau.yz*omega.yz;
+		taudot[p].yz = E.yz + (tau.zz - tau.yy)*omega.yz - tau.xz*omega.xy - tau.xy*omega.xz;
+		taudot[p].zz = E.zz - 2.0f*tau.xz*omega.xz - 2.0f*tau.yz*omega.yz;
 
 	}
 }
@@ -3941,9 +3964,9 @@ __global__ void KerPressPoreC_L(
 		 Press3Dc[p].y = Anisotropy.y * (CteB * (pow(rhop_r0, Gamma) - 1.0f));
 		 Press3Dc[p].z = Anisotropy.z * (CteB * (pow(rhop_r0, Gamma) - 1.0f));
 
-		 float distance2x = posxy[p].x - LocDiv_M.x;
-		 float distance2y = posxy[p].y - LocDiv_M.y;
-		 float distance2z = posz[p] - LocDiv_M.z;
+		// float distance2x = posxy[p].x - LocDiv_M.x;
+		// float distance2y = posxy[p].y - LocDiv_M.y;
+		// float distance2z = posz[p] - LocDiv_M.z;
 		 Porec_M[p] = PoreZero;
 		//Porec_M[p] = PoreZero / (1 + exp(-(TimeStep-2))) * exp(-(pow(distance2x,2) + pow(distance2.y, 2) + pow(distance2.z, 2)) / Spread_M);
 	//Porec_M[p] = PoreZero / sqrt(2 * Spread_M*PI) * exp(-(pow(distance2x, 2) + pow(distance2y, 2) + pow(distance2z, 2)) / Spread_M);

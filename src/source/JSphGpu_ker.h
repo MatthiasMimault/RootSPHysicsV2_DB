@@ -62,6 +62,18 @@ typedef struct{
   float cubic_a1,cubic_a2,cubic_aa,cubic_a24,cubic_c1,cubic_d1,cubic_c2,cubic_odwdeltap;
 }StCteInteraction; 
 
+typedef struct {
+	float C1;
+	float C2;
+	float C3;
+	float C12;
+	float C13;
+	float C23;
+	float C4;
+	float C5;
+	float C6;
+}CAnisotropy;
+
 /// Structure to collect kernel information.
 typedef struct{
   int forcesbound_rg;

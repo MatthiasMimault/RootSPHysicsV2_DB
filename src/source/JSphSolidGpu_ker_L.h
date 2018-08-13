@@ -31,6 +31,7 @@ You should have received a copy of the GNU Lesser General Public License along w
 
 namespace cuSol {
 	void CteInteractionUp(const StCteInteraction *cte);
+	void CteInteractionUpSol(const CAnisotropy *cte);
 	void ComputeStepVerlet_L(bool floating, bool shift, unsigned np, unsigned npb
 		, const float4 *velrhop1, const float4 *velrhop2
 		, const float *ar, const float3 *ace, const float3 *shiftpos

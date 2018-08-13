@@ -17,7 +17,7 @@
 */
 
 /// \file JSphGpuSingle.cpp \brief Implements the class \ref JSphGpuSingle.
-
+#include "JSph.h"
 #include "JSphSolidGpu_ker_L.h"
 #include "JSphGpuSingle.h"
 #include "JCellDivGpuSingle.h"
