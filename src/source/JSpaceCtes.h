@@ -117,8 +117,8 @@ private:
   double BordDomain;
   // Solid - anisotropic
   double Ef, Et, Gf, nuf1, nuf2;
-  double K;
-  double Mu;
+  //double K;
+  //double Mu;
   // Pore
   double PoreZero;
   // Mass

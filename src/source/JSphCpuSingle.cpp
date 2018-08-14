@@ -1383,8 +1383,8 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
 	  //-Initialisation of execution variables. | Inicializacion de variables de ejecucion.
 	  //------------------------------------------------------------------------------------
 	  InitRun_T(PartsLoaded);
-  //-Free memory of PartsLoaded. | Libera memoria de PartsLoaded.
-  delete PartsLoaded; PartsLoaded = NULL;
+	  //-Free memory of PartsLoaded. | Libera memoria de PartsLoaded.
+	  delete PartsLoaded; PartsLoaded = NULL;
   }
   else {
 	  Log->Printf("\n---Thibaud's part end---\n");
