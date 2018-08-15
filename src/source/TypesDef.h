@@ -238,6 +238,7 @@ inline tdouble3 operator *(const tdouble3& a, const double& b){ return(TDouble3(
 inline tdouble3 operator /(const tdouble3& a, const double& b){ return(TDouble3(a.x/b,a.y/b,a.z/b)); }
 inline tdouble3 MinValues(const tdouble3& a, const tdouble3& b){ return(TDouble3((a.x<=b.x? a.x: b.x),(a.y<=b.y? a.y: b.y),(a.z<=b.z? a.z: b.z))); }
 inline tdouble3 MaxValues(const tdouble3& a, const tdouble3& b){ return(TDouble3((a.x>=b.x? a.x: b.x),(a.y>=b.y? a.y: b.y),(a.z>=b.z? a.z: b.z))); }
+inline double Norme2(tdouble3 d) { return (d.x*d.x + d.y*d.y + d.z*d.z); }
 
 ///Converts \ref tuint3 to \ref tint3.
 inline tint3 ToTInt3(const tuint3& v){ return(TInt3(int(v.x),int(v.y),int(v.z))); }
@@ -406,6 +407,27 @@ inline tsymatrix3f operator +(const tsymatrix3f& a, const tsymatrix3f& b) { retu
 inline tsymatrix3f operator -(const tsymatrix3f& a, const tsymatrix3f& b) { return(TSymatrix3f(a.xx-b.xx, a.xy-b.xy, a.xz - b.xz, a.yy - b.yy, a.yz - b.yz, a.zz - b.zz)); }
 inline tsymatrix3f abs_M(tsymatrix3f v) { return TSymatrix3f(abs_M(v.xx), abs_M(v.xy), abs_M(v.xz), abs_M(v.yy), abs_M(v.yz), abs_M(v.zz) ); }
 inline float max_M(tsymatrix3f v) {  return max_M(max_M(max_M(v.xx, v.xy), v.xz), max_M(max_M(v.yy, v.yz), v.zz)); }
+
+
+
+///Elip3Vect - Thibaud
+typedef struct {
+	tdouble3 u, v, w;
+}tvect3;
+
+///Elip3Vect operations - Thibaud
+inline tvect3 TVect3(double d) { tvect3 e = { TDouble3(d), TDouble3(d), TDouble3(d) }; return (e); }
+inline tvect3 TVect3(tdouble3 u, tdouble3 v, tdouble3 w) { tvect3 e = { u, v, w }; return (e); }
+inline tvect3 TVect3(double u1, double u2, double u3, double v1, double v2, double v3, double w1, double w2, double w3) { tvect3 e = { TDouble3(u1, u2, u3), TDouble3(v1, v2, v3), TDouble3(w1, w2, w3) }; return (e); }
+inline tvect3 operator *(const tvect3& a, const float& b) { return(TVect3(a.u.x * b, a.u.y * b, a.u.z * b, a.v.x * b, a.v.y * b, a.v.z * b, a.w.x * b, a.w.y * b, a.w.z * b)); }
+inline tvect3 operator *(const float&a, const tvect3&  b) { return(TVect3(a * b.u.x, a * b.u.y, a * b.u.z, a * b.v.x, a * b.v.y, a * b.v.z, a * b.w.x, a * b.w.y, a * b.w.z)); }
+inline tdouble3 getMainAxis(tvect3 e) {
+	double normeu = Norme2(e.u); 
+	double normev = Norme2(e.v); 
+	double normew = Norme2(e.w);
+	return (normeu > normev ? (normeu > normew ? e.u : e.w) : (normev > normew ? e.v : e.w));
+}
+
 
 
 //##############################################################################

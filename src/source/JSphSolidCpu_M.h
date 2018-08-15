@@ -129,6 +129,9 @@ protected:
 
 	TimersCpu Timers;
 
+	// Thibaud - particles representation
+	tvect3 *Ellipc_T;
+
 
 	void InitVars();
 
@@ -152,8 +155,10 @@ protected:
 	tdouble3*    SaveArrayCpu(unsigned np, const tdouble3    *datasrc)const { return(TSaveArrayCpu<tdouble3>(np, datasrc)); }
 	tsymatrix3f* SaveArrayCpu(unsigned np, const tsymatrix3f *datasrc)const { return(TSaveArrayCpu<tsymatrix3f>(np, datasrc)); }
 	// Matthias
-	tmatrix3f*   SaveArrayCpu(unsigned np, const tmatrix3f *datasrc)const { return(TSaveArrayCpu<tmatrix3f>(np, datasrc)); }
-	bool*		 SaveArrayCpu(unsigned np, const bool      *datasrc)const { return(TSaveArrayCpu<bool>(np, datasrc)); }
+	tmatrix3f*   SaveArrayCpu(unsigned np, const tmatrix3f   *datasrc)const { return(TSaveArrayCpu<tmatrix3f>(np, datasrc)); }
+	bool*		 SaveArrayCpu(unsigned np, const bool        *datasrc)const { return(TSaveArrayCpu<bool>(np, datasrc)); }
+	// Thibaud
+	tvect3*      SaveArrayCpu(unsigned np, const tvect3      *datasrc)const { return(TSaveArrayCpu<tvect3>(np, datasrc)); }
 
 	template<class T> void TRestoreArrayCpu(unsigned np, T *data, T *datanew)const;
 	void RestoreArrayCpu(unsigned np, word        *data, word        *datanew)const { TRestoreArrayCpu<word>(np, data, datanew); }
@@ -164,9 +169,11 @@ protected:
 	void RestoreArrayCpu(unsigned np, double      *data, double      *datanew)const { TRestoreArrayCpu<double>(np, data, datanew); }
 	void RestoreArrayCpu(unsigned np, tdouble3    *data, tdouble3    *datanew)const { TRestoreArrayCpu<tdouble3>(np, data, datanew); }
 	void RestoreArrayCpu(unsigned np, tsymatrix3f *data, tsymatrix3f *datanew)const { TRestoreArrayCpu<tsymatrix3f>(np, data, datanew); }
-	void RestoreArrayCpu(unsigned np, tmatrix3f *data, tmatrix3f *datanew)const { TRestoreArrayCpu<tmatrix3f>(np, data, datanew); }
+	void RestoreArrayCpu(unsigned np, tmatrix3f   *data, tmatrix3f   *datanew)const { TRestoreArrayCpu<tmatrix3f>(np, data, datanew); }
 	// Matthias
-	void RestoreArrayCpu(unsigned np, bool *data, bool*datanew)const { TRestoreArrayCpu<bool>(np, data, datanew); }
+	void RestoreArrayCpu(unsigned np, bool        *data, bool        *datanew)const { TRestoreArrayCpu<bool>(np, data, datanew); }
+	// Thibaud
+	void RestoreArrayCpu(unsigned np, tvect3      *data, tvect3      *datanew)const { TRestoreArrayCpu<tvect3>(np, data, datanew); }
 
 	llong GetAllocMemoryCpu()const;
 	void PrintAllocMemory(llong mcpu)const;
@@ -174,7 +181,7 @@ protected:
 	unsigned GetParticlesData(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
 		, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, typecode *code);
 	unsigned GetParticlesData_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
-		, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, tfloat3 *press, float* mass, tsymatrix3f *tau, typecode *code);
+		, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, tfloat3 *press, float* mass, tsymatrix3f *tau, typecode *code, tvect3 *ellip);
 	void ConfigOmp(const JCfgRun *cfg);
 
 	void ConfigRunMode(const JCfgRun *cfg, std::string preinfo = "");
