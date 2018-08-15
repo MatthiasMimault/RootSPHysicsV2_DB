@@ -114,11 +114,11 @@ namespace cuSol {
 
 	__global__ void KerPressPoreC_L(
 		unsigned n, const float4 *velrhop, const float RhopZero, float  *Pressg
-		, tfloat3 Anisotropy, float CteB, float Gamma, float3 *Press3Dc
+		, tfloat3 CteB3D, float CteB, float Gamma, float3 *Press3Dc
 		, double2 *posxy, double *posz, tdouble3 LocDiv_M, float PoreZero, float Spread_M, float *Porec_M);
 
 	void PressPoreC_L(unsigned np, const float4 *velrhop, const float RhopZero, float  *Pressg
-		, tfloat3 Anisotropy, float CteB, float Gamma, float3 *Press3Dc
+		, tfloat3 CteB3D, float CteB, float Gamma, float3 *Press3Dc
 		, double2 *posxy, double *posz, tdouble3 LocDiv_M, float PoreZero, float Spread_M, float *Porec_M);
 
 	__global__ void KerComputeVelrhopBound(unsigned n, const float4* velrhopold, double armul, float4* velrhopnew, const float* Arg, float RhopZero);

@@ -5181,7 +5181,8 @@ template<bool shift> void JSphSolidCpu::ComputeVerletVarsSolMass_M(const tfloat4
 		const float adens = float(LambdaMass * (RhopZero / velrhop1[p].w - 1.0f));
 		//-Calculate density. | Calcula densidad.
 		const float rhopnew = float(double(velrhop2[p].w) + dt2 * (Arc[p] + adens));
-		if (!WithFloating || CODE_IsFluid(code[p])) {//-Fluid Particles.
+		//printf("\n new = %f / %f /%f /%f /%f", rhopnew, dt2, Arc[p], adens, velrhop1[p].w);
+		if (!WithFloating || CODE_IsFluid(code[p])) {//-Fluid Particles..
 													 //-Calculate displacement and update position. | Calcula desplazamiento y actualiza posicion.
 			double dx = double(velrhop1[p].x)*dt + double(Acec[p].x)*dt205;
 			double dy = double(velrhop1[p].y)*dt + double(Acec[p].y)*dt205;
@@ -5195,7 +5196,6 @@ template<bool shift> void JSphSolidCpu::ComputeVerletVarsSolMass_M(const tfloat4
 			bool outrhop = (rhopnew<RhopOutMin || rhopnew>RhopOutMax);
 		//	printf("rvell ,race = %f,%f,%f,%f,%f,%f", velrhop1[p].x, velrhop1[p].y, velrhop1[p].z, Acec[p].x, Acec[p].y, Acec[p].z);
 			UpdatePos(pos[p], dx, dy, dz, outrhop, p, pos, dcell, code);
-
 			//-Update velocity & density. | Actualiza velocidad y densidad.
 			velrhopnew[p].x = float(double(velrhop2[p].x) + double(Acec[p].x)*dt2);
 			velrhopnew[p].y = float(double(velrhop2[p].y) + double(Acec[p].y)*dt2);

@@ -1008,12 +1008,12 @@ void JSphGpu::PreInteractionVars_Forces(TpInter tinter,unsigned np,unsigned npb)
   if(SpsGradvelg)cudaMemset(SpsGradvelg+npb,0,sizeof(tsymatrix3f)*npf);  //SpsGradvelg[]=(0,0,0,0,0,0)..
 
   cudaMemset(JauGradvelc2_M, 0, sizeof(tsymatrix3f)*np);  //JauGradvelc[]=(0,0,0,0,0,0).													
-  cudaMemset(JauTauDot_M, 0, sizeof(tsymatrix3f)*np);  //JauGradvelc[]=(0,0,0,0,0,0).													
+  cudaMemset(JauTauDot_M, 0, sizeof(tsymatrix3f)*np);  //JauGradvelc[]=(0,0,0,0,0,0)..													
   cudaMemset(JauOmega_M, 0, sizeof(tsymatrix3f)*np);  //JauGradvelc[]=(0,0,0,0,0,0)..
   //-Apply the extra forces to the correct particle sets.
   if(AccInput)AddAccInput();
   const int n = int(np);
-  cuSol::PressPoreC_L(n, Velrhopg, RhopZero, Pressg, AnisotropyK_M, CteB, Gamma, Press3Dc, Posxyg, Poszg, LocDiv_M,PoreZero,Spread_M,Porec_M);
+  cuSol::PressPoreC_L(n, Velrhopg, RhopZero, Pressg, CteB3D, CteB, Gamma, Press3Dc, Posxyg, Poszg, LocDiv_M,PoreZero,Spread_M,Porec_M);
   }
 
 

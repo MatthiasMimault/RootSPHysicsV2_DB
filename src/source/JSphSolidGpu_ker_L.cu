@@ -1105,7 +1105,7 @@ namespace cuSol {
 
 				//-Density derivative.
 				const float dvx = velp1.x - velrhop2.x, dvy = velp1.y - velrhop2.y, dvz = velp1.z - velrhop2.z;
-				if (compute)arp1 += (USE_FLOATING ? ftmassp2 : massp2)*(dvx*frx + dvy * fry + dvz * frz);
+				if (compute)arp1 += massp2*(dvx*frx + dvy * fry + dvz * frz);
 
 				const float cbar = CTE.cs0;
 				//-Density derivative (DeltaSPH Molteni).
@@ -1137,7 +1137,7 @@ namespace cuSol {
 						if (dot < 0) {
 							const float amubar = CTE.h*dot_rr2;  //amubar=CTE.h*dot/(rr2+CTE.eta2);
 							const float robar = (rhopp1 + velrhop2.w)*0.5f;
-							const float pi_visc = (-visco * cbar*amubar / robar)*(USE_FLOATING ? ftmassp2 * ftmassp1 : massp2);
+							const float pi_visc = (-visco * cbar*amubar / robar)*(massp2*ftmassp1);
 							acep1.x -= pi_visc * frx; acep1.y -= pi_visc * fry; acep1.z -= pi_visc * frz;
 						}
 					}
@@ -1610,12 +1610,12 @@ namespace cuSol {
 			else { //-Particles: Floating & Fluid.
 				   //-Updates density.
 				const float volu = float(double(mass1[p]) / double(velrhop1[p].w));
-				const float amass = float(LambdaMass * (RhopZero / velrhop1[p].w - 1.0f));
+				const float adens = float(LambdaMass * (RhopZero / velrhop1[p].w - 1.0f));
 						
 				float4 rvelrhop2 = velrhop2[p];
-				rvelrhop2.w = float(double(rvelrhop2.w) + dt2 * ar[p]+ amass);
+				rvelrhop2.w = float(double(rvelrhop2.w) + dt2 * (ar[p] + adens));
+				//printf("\n new = %f / %f /%f /%f /%f", rvelrhop2.w,dt2, ar[p], adens, velrhop1[p].w);
 				//rvelrhop2.w = float(double(rvelrhop2.w));
-				//printf("\n new = %f / %f /%f /%f /%f", rvelrhop2.w, velrhop1[p].x, velrhop1[p].y, velrhop1[p].z ,velrhop1[p].w);
 				float4 rvel1 = velrhop1[p];
 				if (!floating || CODE_IsFluid(code[p])) { //-Particles: Fluid.
 														  //-Checks rhop limits.
@@ -1651,10 +1651,9 @@ namespace cuSol {
 					taunew[p].yy = float(double(tau2[p].yy) + double(JauTauDot_M[p].yy)*dt2);
 					taunew[p].yz = float(double(tau2[p].yz) + double(JauTauDot_M[p].yz)*dt2);
 					taunew[p].zz = float(double(tau2[p].zz) + double(JauTauDot_M[p].zz)*dt2);
-					//printf("Ici = %f/%f/%f/%f/%f/%f", tau2[p].xx, tau2[p].xy, tau2[p].xz, tau2[p].yy, tau2[p].yz, tau2[p].zz);
 
 					//Update mass
-					 massnew[p] = float(double(mass2[p]) + double(amass / volu)*dt2);
+					massnew[p] = float(double(mass2[p]) + dt2 * double(adens*volu));
 
 
 				}
@@ -1710,15 +1709,8 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 
 		//-Obtains data of particle p1 in case there are floating bodies.
 		//-Obtiene datos de particula p1 en caso de existir floatings.
-		bool ftp1;       //-Indicates if it is floating. | Indica si es floating.
-		float ftmassp1;  //-Contains floating particle mass or 1.0f if it is fluid. | Contiene masa de particula floating o 1.0f si es fluid.
-		if (USE_FLOATING) {
-			const typecode cod = code[p1];
-			ftp1 = CODE_IsFloating(cod);
-			ftmassp1 = (ftp1 ? ftomassp[CODE_GetTypeValue(cod)] : 1.f);
-			if (ftp1 && (tdelta == DELTA_Dynamic || tdelta == DELTA_DynamicExt))deltap1 = FLT_MAX;
-			if (ftp1 && shift)shiftposp1.x = FLT_MAX; //-Shifting is not calculated for floating bodies. | Para floatings no se calcula shifting.
-		}
+		bool ftp1 = false;       //-Indicates if it is floating. | Indica si es floating.
+		float ftmassp1 = 1.f;  //-Contains floating particle mass or 1.0f if it is fluid. | Contiene masa de particula floating o 1.0f si es fluid.
 
 		//-Obtains basic data of particle p1.
 		double3 posdp1;
@@ -1796,8 +1788,9 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 		omega[p1].yy += omegap1.yy;
 		omega[p1].yz += omegap1.yz;
 		omega[p1].zz += omegap1.zz;
-		}
+
 	}
+}
 
 
 //==============================================================================
@@ -2222,7 +2215,7 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 		//-Interaction Boundary-Fluid.
 	if (npbok) {
 		dim3 sgridb = cuSol::GetGridSize(npbok, bsbound);
-		//cuSol::KerInteractionForcesBound<psingle, tker, ftmode> << <sgridb, bsbound >> > (npbok, hdiv, nc, begincell, cellzero, dcell, ftomassp, posxy, posz, pospress, velrhop, code, idp, viscdt, ar);
+		cuSol::KerInteractionForcesBound<psingle, tker, ftmode> << <sgridb, bsbound >> > (npbok, hdiv, nc, begincell, cellzero, dcell, ftomassp, posxy, posz, pospress, velrhop, code, idp, viscdt, ar);
 	}
 }
 
@@ -2298,20 +2291,31 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 	const int3 cellzero = make_int3(cellmin.x, cellmin.y, cellmin.z);
 	const int hdiv = (cellmode == CELLMODE_H ? 2 : 1);
 
-	if (npf) {
-		dim3 sgridf = cuSol::GetGridSize(npf, bsfluid);
+	//if (npf) {
+		//dim3 sgridf = cuSol::GetGridSize(npf, bsfluid);
 		//-Interaction Fluid-Fluid.
-		cuSol::KerInteractionForcesSolMass <psingle, tker, ftmode, lamsps, tdelta, shift> << <sgridf, bsfluid >> > (npf, npb, hdiv, nc, cellfluid, 0, viscof, begincell, cellzero,dcell, JauTau, JauGradvel, JauOmega, ftomassp, (const float2*)tau, (float2*)gradvel,posxy, posz, pospress, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, tshifting, shiftpos,shiftdetect);
+		//cuSol::KerInteractionForcesSolMass <psingle, tker, ftmode, lamsps, tdelta, shift> << <sgridf, bsfluid >> > (npf, npb, hdiv, nc, cellfluid, 0, viscof, begincell, cellzero,dcell, JauTau, JauGradvel, JauOmega, ftomassp, (const float2*)tau, (float2*)gradvel,posxy, posz, pospress, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, tshifting, shiftpos,shiftdetect);
 		//-Interaction Fluid-Bound.
-		cuSol::KerInteractionForcesSolMass <psingle, tker, ftmode, lamsps, tdelta, shift> << <sgridf, bsfluid >> > (npf, npb, hdiv, nc, 0, viscob, 0, begincell, cellzero, dcell, JauTau, JauGradvel, JauOmega, ftomassp, (const float2*)tau, (float2*)gradvel, posxy, posz, pospress, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);
-	}
+		//cuSol::KerInteractionForcesSolMass <psingle, tker, ftmode, lamsps, tdelta, shift> << <sgridf, bsfluid >> > (npf, npb, hdiv, nc, 0, viscob, 0, begincell, cellzero, dcell, JauTau, JauGradvel, JauOmega, ftomassp, (const float2*)tau, (float2*)gradvel, posxy, posz, pospress, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);
+	//}
 		//-Computes tau for Laminar+SPS.
 		//if (lamsps)ComputeSpsTau(npf, npb, velrhop, spsgradvel, spstau);
-
 		// Compute Sdot
-	    ComputeJauTauDot(npf, npb,taudot,JauTau, JauGradvel, JauOmega ,AnisotropyG_M, Mu);
+	   // ComputeJauTauDot(npf, npb,taudot,JauTau, JauGradvel, JauOmega ,AnisotropyG_M, Mu);
 	
 		//-Interaction Boundary-Fluid.
+	//if (npbok) {
+		//dim3 sgridb = cuSol::GetGridSize(npbok, bsbound);
+		//cuSol::KerInteractionForcesBound<psingle, tker, ftmode> << <sgridb, bsbound >> > (npbok, hdiv, nc, begincell, cellzero, dcell, ftomassp, posxy, posz, pospress, velrhop, code, idp, viscdt, ar);
+	//}
+	if (npf) {
+		dim3 sgridf = cuSol::GetGridSize(npf, bsfluid);
+		cuSol::KerInteractionForcesSolMass <psingle, tker, ftmode, lamsps, tdelta, shift> << <sgridf, bsfluid >> > (npf, npb, hdiv, nc, cellfluid, viscob, viscof, begincell, cellzero, dcell, JauTau, JauGradvel, JauOmega, ftomassp, (const float2*)tau, (float2*)gradvel, posxy, posz, pospress, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);
+	}
+	// Compute Sdot
+	ComputeJauTauDot(npf, npb, taudot, JauTau, JauGradvel, JauOmega, AnisotropyG_M, Mu);
+
+	//-Interaction Boundary-Fluid.
 	if (npbok) {
 		dim3 sgridb = cuSol::GetGridSize(npbok, bsbound);
 		cuSol::KerInteractionForcesBound<psingle, tker, ftmode> << <sgridb, bsbound >> > (npbok, hdiv, nc, begincell, cellzero, dcell, ftomassp, posxy, posz, pospress, velrhop, code, idp, viscdt, ar);
@@ -3952,7 +3956,7 @@ void InteractionSimple_Forces(TpKernel TKernel, bool WithFloating, bool TShiftin
 //------------------------------------------------------------------------------
 __global__ void KerPressPoreC_L(
 	unsigned n,const float4 *velrhop,const float RhopZero,float  *Pressg
-	,tfloat3 Anisotropy,float CteB , float Gamma,float3 *Press3Dc
+	,tfloat3 CteB3D,float CteB , float Gamma,float3 *Press3Dc
 	,double2 *posxy,double *posz,tdouble3 LocDiv_M,float PoreZero,float Spread_M, float *Porec_M)
 {
 	unsigned p = blockIdx.y*gridDim.x*blockDim.x + blockIdx.x*blockDim.x + threadIdx.x; //-Number of particle.
@@ -3960,9 +3964,9 @@ __global__ void KerPressPoreC_L(
 		
 		const float rhop = velrhop[p].w, rhop_r0 = rhop / RhopZero;
 		 Pressg[p] = CteB * (pow(rhop_r0, Gamma) - 1.0f);
-		 Press3Dc[p].x = Anisotropy.x * (CteB * (pow(rhop_r0, Gamma) - 1.0f));
-		 Press3Dc[p].y = Anisotropy.y * (CteB * (pow(rhop_r0, Gamma) - 1.0f));
-		 Press3Dc[p].z = Anisotropy.z * (CteB * (pow(rhop_r0, Gamma) - 1.0f));
+		 Press3Dc[p].x = CteB3D.x *  (pow(rhop_r0, Gamma) - 1.0f);
+		 Press3Dc[p].y = CteB3D.y *  (pow(rhop_r0, Gamma) - 1.0f);
+		 Press3Dc[p].z = CteB3D.z *  (pow(rhop_r0, Gamma) - 1.0f);
 
 		// float distance2x = posxy[p].x - LocDiv_M.x;
 		// float distance2y = posxy[p].y - LocDiv_M.y;
@@ -3978,12 +3982,12 @@ __global__ void KerPressPoreC_L(
 /// Calculations for Press + porec //Lucas
 //==============================================================================
 void PressPoreC_L(unsigned np, const float4 *velrhop, const float RhopZero, float  *Pressg
-, tfloat3 Anisotropy, float CteB, float Gamma, float3 *Press3Dc
+, tfloat3 CteB3D, float CteB, float Gamma, float3 *Press3Dc
 , double2 *posxy, double *posz, tdouble3 LocDiv_M, float PoreZero, float Spread_M,float *Porec_M)
 {
 	if (np) {
 		dim3 sgrid = cuSol::GetGridSize(np, SPHBSIZE);
-		KerPressPoreC_L << <sgrid, SPHBSIZE >> > (np, velrhop, RhopZero, Pressg, Anisotropy, CteB, Gamma, Press3Dc, posxy, posz, LocDiv_M,PoreZero, Spread_M,Porec_M);
+		KerPressPoreC_L << <sgrid, SPHBSIZE >> > (np, velrhop, RhopZero, Pressg, CteB3D, CteB, Gamma, Press3Dc, posxy, posz, LocDiv_M,PoreZero, Spread_M,Porec_M);
 
 	}
 }

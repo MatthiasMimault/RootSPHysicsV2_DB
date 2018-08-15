@@ -462,11 +462,11 @@ void JSphGpuSingle::Interaction_Forces(TpInter tinter){
     bsbound=BlockSizes.forcesbound=BsAuto->GetKernel(1)->GetOptimumBs();
   }
   
- //-Interaction Fluid-Fluid/Bound & Bound-Fluid..
+ //-Interaction Fluid-Fluid/Bound & Bound-Fluid.
  //cusph::Interaction_Forces(Psingle,TKernel,WithFloating,UseDEM,lamsps,TDeltaSph,CellMode,Visco*ViscoBoundFactor,Visco,bsbound,bsfluid,Np,Npb,NpbOk,CellDivSingle->GetNcells(),CellDivSingle->GetBeginCell(),CellDivSingle->GetCellDomainMin(),Dcellg,Posxyg,Poszg,PsPospressg,Velrhopg,Codeg,Idpg,FtoMasspg,SpsTaug,SpsGradvelg,ViscDtg,Arg,Aceg,Deltag,TShifting,ShiftPosg,ShiftDetectg,Simulate2D,NULL,NULL);
 
-  //-Interaction Lucas Sol .
- cuSol::Interaction_Forces_M(TKernel, WithFloating, TShifting, TVisco, TDeltaSph, UseDEM, CellMode, Visco*ViscoBoundFactor, Visco, bsbound, bsfluid, Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellg, Posxyg, Poszg, PsPospressg, Velrhopg, Idpg, Codeg, JauTauc2_M, JauGradvelc2_M, JauOmega_M, JauTauc2_M, JauGradvelc2_M, JauTauDot_M, JauOmega_M, ViscDtg, Arg, Aceg, Deltag, ShiftPosg, ShiftDetectg, Simulate2D, NULL, NULL, Pressg, Porec_M, Massc_M, AnisotropyG_M, Mu, FtoMasspg);
+  //-Interaction Lucas Sol 
+ cuSol::Interaction_Forces_M(TKernel, WithFloating, TShifting, TVisco, TDeltaSph, UseDEM, CellMode, Visco*ViscoBoundFactor, Visco, bsbound, bsfluid, Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellg, Posxyg, Poszg, PsPospressg, Velrhopg, Idpg, Codeg, JauTauc2_M, JauGradvelc2_M, JauOmega_M, JauTauc2_M, JauGradvelc2_M, JauTauDot_M, JauOmega_M, ViscDtg, Arg, Aceg, Deltag, ShiftPosg, ShiftDetectg, Simulate2D, NULL, NULL, Press3Dc, Porec_M, Massc_M, AnisotropyG_M, Mu, FtoMasspg);
 
   //-Interaction DEM Floating-Bound & Floating-Floating.//(DEM) ..
   if(UseDEM)cusph::Interaction_ForcesDem(Psingle,CellMode,BlockSizes.forcesdem,CaseNfloat,CellDivSingle->GetNcells(),CellDivSingle->GetBeginCell(),CellDivSingle->GetCellDomainMin(),Dcellg,FtRidpg,DemDatag,float(DemDtForce),Posxyg,Poszg,PsPospressg,Velrhopg,Codeg,Idpg,ViscDtg,Aceg,NULL);
@@ -520,7 +520,7 @@ double JSphGpuSingle::ComputeStep_Ver(){
   DemDtForce=dt;                       //(DEM)
   if(TShifting)RunShifting(dt);        //-Shifting.
   ComputeVerlet(dt);                   //-Update particles using Verlet. 
-  if(CaseNfloat)RunFloating(dt,false); //-Control of floating bodies.
+  if(CaseNfloat)RunFloating(dt,false); //-Control of floating bodies..
   PosInteraction_Forces();             //-Free memory used for interaction.
   if(Damping)RunDamping(dt,Np,Npb,Posxyg,Poszg,Codeg,Velrhopg); //-Aplies Damping.
  
