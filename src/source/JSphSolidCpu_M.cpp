@@ -1695,9 +1695,9 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 								(pressp1.x + porep1 - taup1.xx + press[p2].x + pore[p2] - tau[p2].xx) / (rhopp1*velrhop[p2].w) + (tker == KERNEL_Cubic ? GetKernelCubicTensil(rr2, rhopp1, pressp1.x, velrhop[p2].w, press[p2].x) : 0),
 								-(taup1.xy + tau[p2].xy) / (rhopp1*velrhop[p2].w),
 								-(taup1.xz + tau[p2].xz) / (rhopp1*velrhop[p2].w),
-								(pressp1.y - taup1.yy + press[p2].y - tau[p2].yy) / (rhopp1*velrhop[p2].w) + (tker == KERNEL_Cubic ? GetKernelCubicTensil(rr2, rhopp1, pressp1.y, velrhop[p2].w, press[p2].y) : 0),
+								(pressp1.y + porep1 - taup1.yy + press[p2].y + pore[p2] - tau[p2].yy) / (rhopp1*velrhop[p2].w) + (tker == KERNEL_Cubic ? GetKernelCubicTensil(rr2, rhopp1, pressp1.y, velrhop[p2].w, press[p2].y) : 0),
 								-(taup1.yz + tau[p2].yz) / (rhopp1*velrhop[p2].w),
-								(pressp1.z - taup1.zz + press[p2].z - tau[p2].zz) / (rhopp1*velrhop[p2].w) + (tker == KERNEL_Cubic ? GetKernelCubicTensil(rr2, rhopp1, pressp1.z, velrhop[p2].w, press[p2].z) : 0)
+								(pressp1.z + porep1 - taup1.zz + press[p2].z + pore[p2] - tau[p2].zz) / (rhopp1*velrhop[p2].w) + (tker == KERNEL_Cubic ? GetKernelCubicTensil(rr2, rhopp1, pressp1.z, velrhop[p2].w, press[p2].z) : 0)
 							};
 							const tsymatrix3f p_vpm3 = {
 								-prs.xx*massp2*ftmassp1, -prs.xy*massp2*ftmassp1, -prs.xz*massp2*ftmassp1,
@@ -2182,37 +2182,21 @@ void JSphSolidCpu::ComputeJauTauDot_M(unsigned n, unsigned pini, const tsymatrix
 		const tsymatrix3f omega = JauOmega_M[p];
 		const float traceGradVel = (gradvel.xx + gradvel.yy + gradvel.zz) / 3.0f;
 
-<<<<<<< HEAD
 		const tsymatrix3f E = {
-			C1 * gradvel.xx + C12 * gradvel.yy + C13 * gradvel.zz - (C1 + C12 + C13) * traceGradVel,	
-			C4 * gradvel.xy,	
-			C5 * gradvel.xz,	
-			C12 * gradvel.xx + C2 * gradvel.yy + C23 * gradvel.zz - (C2 + C12 + C23) * traceGradVel,	
-			C6 * gradvel.yz,	
-			C13 * gradvel.xx + C23 * gradvel.yy + C3 * gradvel.zz - (C3 + C13 + C23) * traceGradVel };	
- 		taudot[p].xx = E.xx + 2.0f*tau.xy*omega.xy + 2.0f*tau.xz*omega.xz;	
-		taudot[p].xy = E.xy + (tau.yy - tau.xx)*omega.xy + tau.xz*omega.yz + tau.yz*omega.xz;	
-		taudot[p].xz = E.xz + (tau.zz - tau.xx)*omega.xz - tau.xy*omega.yz + tau.yz*omega.xy;	
-		taudot[p].yy = E.yy - 2.0f*tau.xy*omega.xy + 2.0f*tau.yz*omega.yz;	
-		taudot[p].yz = E.yz + (tau.zz - tau.yy)*omega.yz - tau.xz*omega.xy - tau.xy*omega.xz;	
-		taudot[p].zz = E.zz - 2.0f*tau.xz*omega.xz - 2.0f*tau.yz*omega.yz;	
-=======
-		const tsymatrix3f E = {C1 * gradvel.xx + C12 * gradvel.yy + C13 * gradvel.zz - (C1 + C12 + C13) * traceGradVel,
+			(C1 - K) * gradvel.xx + (C12 - K) * gradvel.yy + (C13 - K) * gradvel.zz,
 			C4 * gradvel.xy,
 			C5 * gradvel.xz,
-			C12 * gradvel.xx + C2 * gradvel.yy + C23 * gradvel.zz - (C2 + C12 + C23) * traceGradVel,
+			(C12 - K) * gradvel.xx + (C2 - K) * gradvel.yy + (C23 - K) * gradvel.zz,
 			C6 * gradvel.yz,
-			C13 * gradvel.xx + C23 * gradvel.yy + C3 * gradvel.zz - (C3 + C13 + C23) * traceGradVel };
-		
- 		taudot[p].xx = E.xx + 2.0f*tau.xy*omega.xy + 2.0f*tau.xz*omega.xz;
+			(C13 - K) * gradvel.xx + (C23 - K) * gradvel.yy + (C3 - K) * gradvel.zz };
+		taudot[p].xx = E.xx + 2.0f*tau.xy*omega.xy + 2.0f*tau.xz*omega.xz;
 		taudot[p].xy = E.xy + (tau.yy - tau.xx)*omega.xy + tau.xz*omega.yz + tau.yz*omega.xz;
 		taudot[p].xz = E.xz + (tau.zz - tau.xx)*omega.xz - tau.xy*omega.yz + tau.yz*omega.xy;
 		taudot[p].yy = E.yy - 2.0f*tau.xy*omega.xy + 2.0f*tau.yz*omega.yz;
 		taudot[p].yz = E.yz + (tau.zz - tau.yy)*omega.yz - tau.xz*omega.xy - tau.xy*omega.xz;
 		taudot[p].zz = E.zz - 2.0f*tau.xz*omega.xz - 2.0f*tau.yz*omega.yz;
-		
->>>>>>> master
- 		/*const tsymatrix3f e = {
+
+		/*const tsymatrix3f e = {
 			2.0f / 3.0f * gradvel.xx - 1.0f / 3.0f * gradvel.yy - 1.0f / 3.0f * gradvel.zz,
 			gradvel.xy,
 			gradvel.xz,
@@ -5193,18 +5177,11 @@ template<bool shift> void JSphSolidCpu::ComputeVerletVarsSolMass_M(const tfloat4
 	for (int p = pini; p<pfin; p++) {
 		// Calcul mass variation
 		const float volu = float(double(mass1[p]) / double(velrhop1[p].w));
-<<<<<<< HEAD
-		const float amass = float(LambdaMass * (RhopZero / velrhop1[p].w - 1.0f));
-		//-Calculate density. | Calcula densidad.
-		const float rhopnew = float(double(velrhop2[p].w) + dt2 * Arc[p] + amass);
-		//const float rhopnew = float(double(velrhop2[p].w) + dt2 * Arc[p] + amass / volu);
-		//const float rhopnew = float(double(velrhop2[p].w));
-=======
 		const float adens = float(LambdaMass * (RhopZero / velrhop1[p].w - 1.0f));
 
 		//-Calculate density. | Calcula densidad.
 		const float rhopnew = float(double(velrhop2[p].w) + dt2 * (Arc[p] + adens));
->>>>>>> master
+
 		if (!WithFloating || CODE_IsFluid(code[p])) {//-Fluid Particles.
 													 //-Calculate displacement and update position. | Calcula desplazamiento y actualiza posicion.
 			double dx = double(velrhop1[p].x)*dt + double(Acec[p].x)*dt205;
@@ -5234,12 +5211,7 @@ template<bool shift> void JSphSolidCpu::ComputeVerletVarsSolMass_M(const tfloat4
 			taunew[p].yz = float(double(tau2[p].yz) + double(JauTauDot_M[p].yz)*dt2);
 			taunew[p].zz = float(double(tau2[p].zz) + double(JauTauDot_M[p].zz)*dt2);
 			// Update mass
-<<<<<<< HEAD
-			massnew[p] = float(double(mass2[p]) + double(amass *volu));
-			//massnew[p] = float(double(mass2[p]) + double(amass));
-=======
 			massnew[p] = float(double(mass2[p]) + dt2 * double(adens*volu));
->>>>>>> master
 		}
 		else {//-Floating Particles.
 			velrhopnew[p] = velrhop1[p];
