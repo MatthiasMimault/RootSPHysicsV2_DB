@@ -518,6 +518,7 @@ void JSphGpu::ConstantDataUp(){
   ctes2.C4 = C4;
   ctes2.C5 = C5;
   ctes2.C6 = C6;
+  ctes2.K = K;
   cuSol::CteInteractionUpSol(&ctes2);
   CheckCudaError("ConstantDataUp base ans Sol","Failed copying constants to GPU.");
 }

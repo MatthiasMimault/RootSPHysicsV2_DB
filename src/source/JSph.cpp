@@ -688,11 +688,11 @@ void JSph::LoadCaseConfig(){
   // Solid anisotropic
   const float Ef = (float)ctes.GetYoung1();
   const float Et = (float)ctes.GetYoung2();
-  const float nf = Et / Ef;
+  const float nf = Et/Ef;
   const float nuf1 = (float)ctes.GetPoisson11();
   const float nuf2 = (float)ctes.GetPoisson12();
   const float Gf = (float)ctes.GetShear();
-   const float alpha1 = Ef * (1 - nuf1) / (nf*(1 - nuf1) - 2.0f*nuf2*nuf2);
+  const float alpha1 = Ef * (1 - nuf1) / (nf*(1 - nuf1) - 2.0f*nuf2*nuf2);
   const float alpha2 = Ef * nf / (2.0f*nf*(1 - nuf1) - 4.0f*nuf2*nuf2);
   const float alpha3 = Ef * nuf2 / (nf*(1 - nuf1) - 2.0f*nuf2*nuf2);
   const float alpha4 = Gf;
@@ -703,6 +703,8 @@ void JSph::LoadCaseConfig(){
   
   // New B for anisotropy
   CteB3D = TFloat3((C1 + C12 + C13) / Gamma, (C2 + C12 + C23) / Gamma, (C3 + C13 + C23) / Gamma);
+  K = min(min(min(C1, C12), min(C13, C2)), min(C3, C23)) / 3.0f;
+  CteB = K / Gamma;
   // Pore
   PoreZero = (float)ctes.GetPoreZero();
   // Mass
@@ -1004,6 +1006,8 @@ void JSph::LoadCaseConfig_T() {
 	C2 = alpha2 + alpha5; C23 = alpha2 - alpha5; C3 = alpha2 + alpha5;
 	C4 = alpha5; C5 = alpha4; C6 = alpha4;
 	// Pore
+	K = min(min(min(C1, C12), min(C13, C2)), min(C3, C23)) / 3.0f;
+	CteB = K / Gamma;
 	PoreZero = (float)ctes.GetPoreZero();
 	// Mass
 	LambdaMass = (float)ctes.GetLambdaMass();
@@ -1236,8 +1240,14 @@ void JSph::ConfigConstants(bool simulate2d){
   //-Computation of constants.
   const double h=H;
   Delta2H=float(h*2*DeltaSph);
-  //Cs0=sqrt(double(Gamma)*double(CteB)/double(RhopZero));
-  Cs0=sqrt(double(Gamma)*double(max(CteB3D.x, max(CteB3D.y, CteB3D.z)))/double(RhopZero));
+  // Cs0 version originale
+  // Cs0=sqrt(double(Gamma)*double(CteB)/double(RhopZero));
+
+  // New B for anisotropy
+  // Cs0 with max(Cij)
+  const float CteB2 = max(max(max(C1, C12), max(C13, C2)), max(C3, C23)) / (3.0f * Gamma);
+  Cs0 = sqrt(double(Gamma)*double(CteB2) / double(RhopZero));
+  //Cs0=sqrt(double(Gamma)*double(max(CteB3D.x, max(CteB3D.y, CteB3D.z)))/double(RhopZero));
   if(!DtIni)DtIni=h/Cs0;
   if(!DtMin)DtMin=(h/Cs0)*CoefDtMin;
   Dosh=float(h*2); 

@@ -72,6 +72,7 @@ typedef struct {
 	float C4;
 	float C5;
 	float C6;
+	float K;
 }CAnisotropy;
 
 /// Structure to collect kernel information.

@@ -2113,13 +2113,15 @@ __global__ void KerComputeJauTauDot(unsigned n, unsigned pini,tsymatrix3f *taudo
 		taudot[p].yy = 2.0f*AnisotropyG_M.yy*Mu*E.yy - 2.0f*tau.xy*omega.xy + 2.0f*tau.yz*omega.yz;
 		taudot[p].yz = 2.0f*AnisotropyG_M.yz*Mu*E.yz + (tau.zz - tau.yy)*omega.yz - tau.xz*omega.xy - tau.xy*omega.xz;
 		taudot[p].zz = 2.0f*AnisotropyG_M.zz*Mu*E.zz - 2.0f*tau.xz*omega.xz - 2.0f*tau.yz*omega.yz;*/
+	
+
 		const tsymatrix3f E = {
-			CTESol.C1 * gradvel.xx + CTESol.C12 * gradvel.yy + CTESol.C13 * gradvel.zz - (CTESol.C1 + CTESol.C12 + CTESol.C13) * traceGradVel,
+			(CTESol.C1 - CTESol.K) * gradvel.xx + (CTESol.C12 - CTESol.K) * gradvel.yy + (CTESol.C13 - CTESol.K) * gradvel.zz,
 			CTESol.C4 * gradvel.xy,
 			CTESol.C5 * gradvel.xz,
-			CTESol.C12 * gradvel.xx + CTESol.C2 * gradvel.yy + CTESol.C23 * gradvel.zz - (CTESol.C2 + CTESol.C12 + CTESol.C23) * traceGradVel,
+			(CTESol.C12 - CTESol.K) * gradvel.xx + (CTESol.C2 - CTESol.K) * gradvel.yy + (CTESol.C23 - CTESol.K) * gradvel.zz,
 			CTESol.C6 * gradvel.yz,
-			CTESol.C13 * gradvel.xx + CTESol.C23 * gradvel.yy + CTESol.C3 * gradvel.zz - (CTESol.C3 + CTESol.C13 + CTESol.C23) * traceGradVel };
+			(CTESol.C13 - CTESol.K) * gradvel.xx + (CTESol.C23 - CTESol.K) * gradvel.yy + (CTESol.C3 - CTESol.K) * gradvel.zz };
 
 		taudot[p].xx = E.xx + 2.0f*tau.xy*omega.xy + 2.0f*tau.xz*omega.xz;
 		taudot[p].xy = E.xy + (tau.yy - tau.xx)*omega.xy + tau.xz*omega.yz + tau.yz*omega.xz;
