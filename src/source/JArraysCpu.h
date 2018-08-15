@@ -86,7 +86,7 @@ public:
 class JArraysCpu : protected JObject
 {
 public:
-  typedef enum{ SIZE_1B=1,SIZE_2B=2,SIZE_4B=4,SIZE_8B=8,SIZE_12B=12,SIZE_16B=16,SIZE_24B=24,SIZE_32B=32,SIZE_36B = 36, SIZE_72B = 72 }TpArraySize;  //-Tipos de arrays.
+  typedef enum{ SIZE_1B=1,SIZE_2B=2,SIZE_4B=4,SIZE_8B=8,SIZE_12B=12,SIZE_16B=16,SIZE_24B=24,SIZE_32B=32,SIZE_36B=36,SIZE_72B=72 }TpArraySize;  //-Tipos de arrays.
 
 protected:
   JArraysCpuSize *Arrays1b;
@@ -100,7 +100,7 @@ protected:
   JArraysCpuSize *Arrays36b;
   JArraysCpuSize *Arrays72b;
   
-  JArraysCpuSize* GetArrays(TpArraySize tsize)const{ return(tsize == SIZE_36B ? Arrays36b : (tsize==SIZE_32B? Arrays32b: (tsize==SIZE_24B? Arrays24b: (tsize==SIZE_16B? Arrays16b: (tsize==SIZE_12B? Arrays12b: (tsize==SIZE_8B? Arrays8b: (tsize==SIZE_4B? Arrays4b: (tsize==SIZE_2B? Arrays2b: Arrays1b)))))))); }
+  JArraysCpuSize* GetArrays(TpArraySize tsize)const{ return(tsize == SIZE_72B ? Arrays72b : (tsize == SIZE_36B ? Arrays36b : (tsize==SIZE_32B? Arrays32b: (tsize==SIZE_24B? Arrays24b: (tsize==SIZE_16B? Arrays16b: (tsize==SIZE_12B? Arrays12b: (tsize==SIZE_8B? Arrays8b: (tsize==SIZE_4B? Arrays4b: (tsize==SIZE_2B? Arrays2b: Arrays1b))))))))); }
 
 public:
   JArraysCpu();
@@ -128,10 +128,9 @@ public:
   tdouble3*    ReserveDouble3(){    return((tdouble3*)Arrays24b->Reserve());    }
   tsymatrix3f* ReserveSymatrix3f(){ return((tsymatrix3f*)Arrays24b->Reserve()); }
   //Matthias
-  tmatrix3f*   ReserveMatrix3f_M(){ return((tmatrix3f*)Arrays36b->Reserve()); }
+  tmatrix3f*   ReserveMatrix3f_M(){ return((tmatrix3f*)Arrays36b->Reserve());   }
   bool*        ReserveBool(){		return((bool*)Arrays1b->Reserve()); }
-  //Thibaud
-  tvect3*      ReserveTVect3_T(){   return((tvect3*)Arrays72b->Reserve()); }
+  
 
 #ifdef CODE_SIZE4
   typecode*    ReserveTypeCode(){   return(ReserveUint());                      }
@@ -153,8 +152,6 @@ public:
   void Free(tsymatrix3f *pointer){ Arrays24b->Free(pointer); }
   // Matthias
   void Free(tmatrix3f   *pointer){ Arrays36b->Free(pointer); }
-  // Thibaud
-  void Free(tvect3      *pointer){ Arrays36b->Free(pointer); }
 };
 #endif
 

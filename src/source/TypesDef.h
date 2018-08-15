@@ -354,7 +354,13 @@ inline bool operator !=(const tmatrix3d& a, const tmatrix3d& b){ return(a.a11!=b
 
 ///Converts \ref matrix3d to \ref matrix3f.
 inline tmatrix3f ToTMatrix3f(const tmatrix3d& v){ return(TMatrix3f(float(v.a11),float(v.a12),float(v.a13),float(v.a21),float(v.a22),float(v.a23),float(v.a31),float(v.a32),float(v.a33))); }
-
+/// Thibaud
+inline tdouble3 getMainAxis(tmatrix3d e) {
+	double normeu = Norme2(TDouble3(e.a11, e.a12, e.a13));
+	double normev = Norme2(TDouble3(e.a21, e.a22, e.a23));
+	double normew = Norme2(TDouble3(e.a31, e.a32, e.a33));
+	return (normeu > normev ? (normeu > normew ? TDouble3(e.a11, e.a12, e.a13) : TDouble3(e.a31, e.a32, e.a33)) : (normev > normew ? TDouble3(e.a21, e.a22, e.a23) : TDouble3(e.a31, e.a32, e.a33)));
+}
 
 ///Matrix of 4x4 values of type float.
 typedef struct{
@@ -410,23 +416,7 @@ inline float max_M(tsymatrix3f v) {  return max_M(max_M(max_M(v.xx, v.xy), v.xz)
 
 
 
-///Elip3Vect - Thibaud
-typedef struct {
-	tdouble3 u, v, w;
-}tvect3;
 
-///Elip3Vect operations - Thibaud
-inline tvect3 TVect3(double d) { tvect3 e = { TDouble3(d), TDouble3(d), TDouble3(d) }; return (e); }
-inline tvect3 TVect3(tdouble3 u, tdouble3 v, tdouble3 w) { tvect3 e = { u, v, w }; return (e); }
-inline tvect3 TVect3(double u1, double u2, double u3, double v1, double v2, double v3, double w1, double w2, double w3) { tvect3 e = { TDouble3(u1, u2, u3), TDouble3(v1, v2, v3), TDouble3(w1, w2, w3) }; return (e); }
-inline tvect3 operator *(const tvect3& a, const float& b) { return(TVect3(a.u.x * b, a.u.y * b, a.u.z * b, a.v.x * b, a.v.y * b, a.v.z * b, a.w.x * b, a.w.y * b, a.w.z * b)); }
-inline tvect3 operator *(const float&a, const tvect3&  b) { return(TVect3(a * b.u.x, a * b.u.y, a * b.u.z, a * b.v.x, a * b.v.y, a * b.v.z, a * b.w.x, a * b.w.y, a * b.w.z)); }
-inline tdouble3 getMainAxis(tvect3 e) {
-	double normeu = Norme2(e.u); 
-	double normev = Norme2(e.v); 
-	double normew = Norme2(e.w);
-	return (normeu > normev ? (normeu > normew ? e.u : e.w) : (normev > normew ? e.v : e.w));
-}
 
 
 
