@@ -131,6 +131,7 @@ protected:
 
 	// Thibaud - particles representation
 	tmatrix3f *Ellipc_T;
+	float *Test;
 
 
 	void InitVars();

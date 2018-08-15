@@ -2083,7 +2083,7 @@ void JSph::SaveData(unsigned npok,const unsigned *idp,const tdouble3 *pos,const 
 
 
 void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, const tdouble3 *pos, const tfloat3 *vel
-	, const float *rhop, const float *pore, const tfloat3 *press, const float *mass, const tsymatrix3f *tau
+	, const float *rhop, const float *pore, const tfloat3 *press, const float *mass, const tsymatrix3f *tau, const tmatrix3f *ellip
 	, unsigned ndom, const tdouble3 *vdom, const StInfoPartPlus *infoplus) {
 	//-Stores particle data and/or information in bi4 format.
 	//-Graba datos de particulas y/o informacion en formato bi4.
@@ -2194,7 +2194,7 @@ void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, con
 
 
 void JSph::SaveData_M(unsigned npok, const unsigned *idp, const tdouble3 *pos, const tfloat3 *vel, const float *rhop, const float *pore
-	, const tfloat3 *press, const float *mass, const tsymatrix3f *tau, unsigned ndom, const tdouble3 *vdom, const StInfoPartPlus *infoplus)
+	, const tfloat3 *press, const float *mass, const tsymatrix3f *tau, const tmatrix3f *ellip, unsigned ndom, const tdouble3 *vdom, const StInfoPartPlus *infoplus)
 {
 	const char met[] = "SaveData";
 	string suffixpartx = fun::PrintStr("_%04d", Part);
@@ -2207,7 +2207,7 @@ void JSph::SaveData_M(unsigned npok, const unsigned *idp, const tdouble3 *pos, c
 
 	//-Graba ficheros con datos de particulas.
 	//-Stores data files of particles.
-	SavePartData_M(npok, nout, idp, pos, vel, rhop, pore, press, mass, tau, ndom, vdom, infoplus);
+	SavePartData_M(npok, nout, idp, pos, vel, rhop, pore, press, mass, tau, ellip, ndom, vdom, infoplus);
 	//SavePartData(npok, nout, idp, pos, vel, rhop, ndom, vdom, infoplus);
 
 	//-Reinicia limites de dt.

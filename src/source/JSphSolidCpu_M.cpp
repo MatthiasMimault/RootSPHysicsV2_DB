@@ -95,6 +95,7 @@ void JSphSolidCpu::InitVars() {
 	//Voluc_M = NULL;
 	// Thibaud
 	Ellipc_T = NULL;
+	Test = NULL;
 
 	RidpMove = NULL;
 	FtRidp = NULL;
@@ -200,6 +201,7 @@ void JSphSolidCpu::AllocCpuMemoryParticles(unsigned np, float over) {
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_12B, 1); // Press3D
 	// Thibaud
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_36B, 3); // Ellip
+	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_4B, 1); // Test
 
 	//-Shows the allocated memory.
 	MemCpuParticles = ArraysCpu->GetAllocMemoryCpu();
@@ -232,6 +234,7 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	tsymatrix3f *jautaum12 = SaveArrayCpu(Np, JauTauM1c2_M);
 	// Thibaud
 	tmatrix3f      *ellip = SaveArrayCpu(Np, Ellipc_T);
+	float *test = SaveArrayCpu(Np, Test);
 
 	//-Frees pointers.
 	ArraysCpu->Free(Idpc);
@@ -254,6 +257,7 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	ArraysCpu->Free(JauTauM1c2_M);
 	//Thibaud
 	ArraysCpu->Free(Ellipc_T);
+	ArraysCpu->Free(Test);
 
 	//-Resizes CPU memory allocation.
 	const double mbparticle = (double(MemCpuParticles) / (1024 * 1024)) / CpuParticlesSize; //-MB por particula.
@@ -280,6 +284,7 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	JauTauc2_M = ArraysCpu->ReserveSymatrix3f();
 	// Thibaud
 	Ellipc_T = ArraysCpu->ReserveMatrix3f_M();
+	Test = ArraysCpu->ReserveFloat();
 	if (velrhopm1) JauTauM1c2_M = ArraysCpu->ReserveSymatrix3f();
 
 	//-Restore data in CPU memory.
@@ -303,6 +308,7 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	RestoreArrayCpu(Np, jautaum12, JauTauM1c2_M);
 	// Thibaud
 	RestoreArrayCpu(Np, ellip, Ellipc_T);
+	RestoreArrayCpu(Np, test, Test);
 
 	//-Updates values.
 	CpuParticlesSize = npnew;
@@ -359,6 +365,7 @@ void JSphSolidCpu::ReserveBasicArraysCpu() {
 	JauTauc2_M = ArraysCpu->ReserveSymatrix3f();
 	// Thibaud
 	Ellipc_T = ArraysCpu->ReserveMatrix3f_M();
+	Test = ArraysCpu->ReserveFloat();
 }
 
 //==============================================================================
@@ -487,7 +494,7 @@ unsigned JSphSolidCpu::GetParticlesData_M(unsigned n, unsigned pini, bool cellor
 	//if (press)memcpy(press, Press3Dc + pini, sizeof(tfloat3)*n); // Not used, but Pressure seems to be recorded anyway, as well for tau
 	if (mass)memcpy(mass, Massc_M + pini, sizeof(float)*n);
 	if (tau)memcpy(tau, JauTauc2_M + pini, sizeof(tsymatrix3f)*n);
-	if (ellip)memcpy(ellip, Ellipc_T + pini, sizeof(tmatrix3f)*n);
+	//if (ellip)memcpy(ellip, Ellipc_T + pini, sizeof(tmatrix3f)*n);
 
 	//-Eliminate non-normal particles (periodic & others). | Elimina particulas no normales (periodicas y otras).
 	if (onlynormal) {
@@ -587,12 +594,13 @@ void JSphSolidCpu::InitRun() {
 		Massc_M[p] = MassFluid;
 		MassM1c_M[p] = MassFluid;	
 	}
-
 	// Thibaud
+	//memset(Test, 0, sizeof(float)*Np);
 	//initialisation : sphere
+	//memset(Ellipc_T, 0, sizeof(tmatrix3f)*Np);
 	for (unsigned p = 0; p < Np; p++) {
 		//vect 1
-		Ellipc_T[p].a11 = Dp/2;
+		Ellipc_T[p].a11 = Dp / 2;
 		Ellipc_T[p].a12 = 0.0;
 		Ellipc_T[p].a13 = 0.0;
 		//vect 2
