@@ -145,9 +145,13 @@ void JSphGpuSingle::LoadCaseParticles(){
 
   //-Computes the current limits of the simulation.
   //-Calcula limites reales de la simulacion.
-  if(PartsLoaded->MapSizeLoaded())PartsLoaded->GetMapSize(MapRealPosMin,MapRealPosMax);
+  if (PartsLoaded->MapSizeLoaded())
+  {
+	  PartsLoaded->GetMapSize(MapRealPosMin, MapRealPosMax);
+  }
   else{
-    PartsLoaded->CalculeLimits(double(H)*BORDER_MAP,Dp/2.,PeriX,PeriY,PeriZ,MapRealPosMin,MapRealPosMax);
+	  //printf(" \n %f / %f / %d /%d /%d /%d /%d /%d /%d \n  ", double(H), Dp / 2., MapRealPosMin.x, MapRealPosMin.y, MapRealPosMin.z, MapRealPosMax.x, MapRealPosMax.y, MapRealPosMax.z);
+    PartsLoaded->CalculeLimits(double(H)*BORDER_MAP+BordDomain,Dp/2.,PeriX,PeriY,PeriZ,MapRealPosMin,MapRealPosMax);
     ResizeMapLimits();
   }
   if(PartBegin){
@@ -210,7 +214,7 @@ void JSphGpuSingle::ConfigDomain(){
   MkInfo->ComputeMkDomains(Np,AuxPos,Code);
 
   //-Frees memory of PartsLoaded.
-  delete PartsLoaded; PartsLoaded=NULL;
+  //delete PartsLoaded; PartsLoaded=NULL;
   //-Applies configuration of CellOrder.
   ConfigCellOrder(CellOrder,Np,AuxPos,Velrhop);
 
@@ -453,7 +457,6 @@ void JSphGpuSingle::Interaction_Forces(TpInter tinter){
   const bool lamsps=(TVisco==VISCO_LaminarSPS);
   unsigned bsfluid=BlockSizes.forcesfluid;
   unsigned bsbound=BlockSizes.forcesbound;
-
   if(BsAuto && !(Nstep%BsAuto->GetStepsInterval())){ //-Every certain number of steps. | Cada cierto numero de pasos.
     cusph::Interaction_Forces(Psingle,TKernel,WithFloating,UseDEM,lamsps,TDeltaSph,CellMode,Visco*ViscoBoundFactor,Visco,bsbound,bsfluid,Np,Npb,NpbOk,CellDivSingle->GetNcells(),CellDivSingle->GetBeginCell(),CellDivSingle->GetCellDomainMin(),Dcellg,Posxyg,Poszg,PsPospressg,Velrhopg,Codeg,Idpg,FtoMasspg,SpsTaug,SpsGradvelg,ViscDtg,Arg,Aceg,Deltag,TShifting,ShiftPosg,ShiftDetectg,Simulate2D,NULL,BsAuto);
     PreInteractionVars_Forces(tinter,Np,Npb);
@@ -684,7 +687,7 @@ void JSphGpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
 
 
 	// No div cellulaire atm
-    // RunCellDivide(true);
+     RunCellDivide(true);
 
     TimeStep+=stepdt;
 

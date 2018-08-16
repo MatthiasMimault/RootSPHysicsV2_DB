@@ -129,6 +129,7 @@ void JSphCpuSingle::LoadCaseParticles(){
 	  PartsLoaded->GetMapSize(MapRealPosMin, MapRealPosMax);
   }
   else{
+	  //printf(" \n %f / %f / %d /%d /%d /%d /%d /%d /%d \n  ", double(H), Dp / 2., MapRealPosMin.x, MapRealPosMin.y, MapRealPosMin.z, MapRealPosMax.x, MapRealPosMax.y, MapRealPosMax.z);
     PartsLoaded->CalculeLimits(double(H)*BORDER_MAP+BordDomain,Dp/2.,PeriX,PeriY,PeriZ,MapRealPosMin,MapRealPosMax);
     ResizeMapLimits();
   }
@@ -544,7 +545,6 @@ void JSphCpuSingle::RunCellDivide(bool updateperiodic){
 
   //-Manages excluded particles fixed, moving and floating before aborting the execution.
   if(CellDivSingle->GetNpbOut())AbortBoundOut();
-
   //-Collect position of floating particles. | Recupera posiciones de floatings.
   if(CaseNfloat)CalcRidp(PeriActive!=0,Np-Npb,Npb,CaseNpb,CaseNpb+CaseNfloat,Codec,Idpc,FtRidp);
   TmcStop(Timers,TMC_NlSortData);
@@ -967,7 +967,6 @@ void JSphCpuSingle::Interaction_Forces(TpInter tinter){
   const char met[]="Interaction_Forces";
   PreInteraction_Forces(tinter);
   TmcStart(Timers,TMC_CfForces);
-
   //-Interaction of Fluid-Fluid/Bound & Bound-Fluid (forces and DEM). | Interaccion Fluid-Fluid/Bound & Bound-Fluid (forces and DEM).
   float viscdt=0;
 
@@ -1443,7 +1442,7 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
 	// Matthias - Cell division
 	//RunSizeDivision_M();
 	//RunDivisionDisplacement_M();
-	//RunCellDivide(true);
+	RunCellDivide(true);
 
     TimeStep+=stepdt;
 	partoutstop=(Np<NpMinimum || !Np);

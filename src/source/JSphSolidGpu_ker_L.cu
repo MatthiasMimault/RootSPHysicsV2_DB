@@ -469,7 +469,7 @@ namespace cuSol {
 		else {
 			double2 pxy = posxy[p1];
 			posdp1 = make_double3(pxy.x, pxy.y, posz[p1]);
-			pressp1 = (CTE.cteb*(powf(rhopp1*CTE.ovrhopzero, CTE.gamma) - 1.0f));
+			pressp1 = (CTE.cteb*(powf(CTE.ovrhopzero, CTE.gamma) - 1.0f));
 		}
 	}
 
@@ -2209,7 +2209,8 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 
 	if (npf) {
 		dim3 sgridf = cuSol::GetGridSize(npf, bsfluid);
-		cuSol::KerInteractionForcesSolMass <psingle, tker, ftmode, lamsps, tdelta, shift> << <sgridf, bsfluid >> > (npf, npb, hdiv, nc, cellfluid, viscob, viscof, begincell, cellzero, dcell, JauTau, JauGradvel, JauOmega, ftomassp, (const float2*)tau, (float2*)gradvel, posxy, posz, pospress, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);
+		cuSol::KerInteractionForcesSolMass <psingle, tker, ftmode, lamsps, tdelta, shift> << <sgridf, bsfluid >> > (npf, npb, hdiv, nc, cellfluid, 0, viscof, begincell, cellzero, dcell, JauTau, JauGradvel, JauOmega, ftomassp, (const float2*)tau, (float2*)gradvel, posxy, posz, pospress, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);
+		cuSol::KerInteractionForcesSolMass <psingle, tker, ftmode, lamsps, tdelta, shift> << <sgridf, bsfluid >> > (npf, npb, hdiv, nc, 0, viscob, 0, begincell, cellzero, dcell, JauTau, JauGradvel, JauOmega, ftomassp, (const float2*)tau, (float2*)gradvel, posxy, posz, pospress, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);
 	}
 		// Compute Sdot
 	ComputeJauTauDot(npf, npb, taudot, JauTau, JauGradvel, JauOmega, AnisotropyG_M, Mu);

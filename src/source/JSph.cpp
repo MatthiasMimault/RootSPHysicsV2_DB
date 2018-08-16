@@ -1241,7 +1241,7 @@ void JSph::ConfigConstants(bool simulate2d){
   const double h=H;
   Delta2H=float(h*2*DeltaSph);
   // Cs0 version originale
-  // Cs0=sqrt(double(Gamma)*double(CteB)/double(RhopZero));
+   //Cs0=sqrt(double(Gamma)*double(CteB)/double(RhopZero));
 
   // New B for anisotropy
   // Cs0 with max(Cij)

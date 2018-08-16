@@ -67,6 +67,7 @@ protected:
 
   void SaveData();
   void FinishRun(bool stop);
+  void JSphGpuSingle::LoadConfig_T(JCfgRun *cfg);
 
 public:
   JSphGpuSingle();
