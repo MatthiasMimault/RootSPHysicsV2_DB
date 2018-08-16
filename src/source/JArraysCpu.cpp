@@ -72,15 +72,16 @@ void* JArraysCpuSize::AllocPointer(unsigned size)const{
   void* pointer=NULL;
   try{
     switch(ElementSize){
-      case 1:   pointer=new char[size];      break;
-      case 2:   pointer=new word[size];      break;
-      case 4:   pointer=new int[size];       break;
-      case 8:   pointer=new double[size];    break;
-      case 12:  pointer=new int[size*3];     break;
-      case 16:  pointer=new int[size*4];     break;
-      case 24:  pointer=new double[size*3];  break;
-	  case 32:  pointer = new double[size * 4];  break;
-	  case 36:  pointer = new double[size * 4];  break;
+      case 1:   pointer=new char[size];        break;
+      case 2:   pointer=new word[size];        break;
+      case 4:   pointer=new int[size];         break;
+      case 8:   pointer=new double[size];      break;
+      case 12:  pointer=new int[size*3];       break;
+      case 16:  pointer=new int[size*4];       break;
+      case 24:  pointer=new double[size*3];    break;
+	  case 32:  pointer=new double[size * 4];  break;
+	  case 36:  pointer=new double[size * 4];  break;
+	  case 72:  pointer=new double[size * 12]; break;
     }
   }
   catch(const std::bad_alloc){
@@ -103,8 +104,9 @@ void JArraysCpuSize::FreePointer(void* pointer)const{
     case 12:  delete[] ((int*)pointer);     pointer=NULL;   break;
     case 16:  delete[] ((int*)pointer);     pointer=NULL;   break;
     case 24:  delete[] ((double*)pointer);  pointer=NULL;   break;
-	case 32:  delete[]((double*)pointer);  pointer = NULL;   break;
-	case 36:  delete[]((double*)pointer);  pointer = NULL;   break;
+	case 32:  delete[] ((double*)pointer);  pointer=NULL;   break;
+	case 36:  delete[] ((double*)pointer);  pointer=NULL;   break;
+	case 72:  delete[] ((double*)pointer);  pointer=NULL;   break;
   }
   if(pointer)RunException("FreePointer","The elementsize value is invalid.");
 }
@@ -205,6 +207,7 @@ JArraysCpu::JArraysCpu(){
   Arrays24b=new JArraysCpuSize(24);
   Arrays32b = new JArraysCpuSize(32);
   Arrays36b = new JArraysCpuSize(36);
+  Arrays72b = new JArraysCpuSize(72);
 }
 
 //==============================================================================
@@ -221,6 +224,7 @@ JArraysCpu::~JArraysCpu(){
   delete Arrays24b;
   delete Arrays32b;
   delete Arrays36b;
+  delete Arrays72b;
 }
  
 //==============================================================================
@@ -236,6 +240,7 @@ void JArraysCpu::Reset(){
   Arrays24b->Reset();
   Arrays32b->Reset();
   Arrays36b->Reset();
+  Arrays72b->Reset();
 }
  
 //==============================================================================
@@ -250,8 +255,9 @@ llong JArraysCpu::GetAllocMemoryCpu()const{
   m+=Arrays12b->GetAllocMemoryCpu();
   m+=Arrays16b->GetAllocMemoryCpu();
   m+=Arrays24b->GetAllocMemoryCpu();
-  m += Arrays32b->GetAllocMemoryCpu();
-  m += Arrays36b->GetAllocMemoryCpu();
+  m+=Arrays32b->GetAllocMemoryCpu();
+  m+=Arrays36b->GetAllocMemoryCpu();
+  m+=Arrays72b->GetAllocMemoryCpu();
   return(m);
 }
 
@@ -272,6 +278,7 @@ void JArraysCpu::SetArraySize(unsigned size){
   Arrays24b->SetArraySize(0);
   Arrays32b->SetArraySize(0);
   Arrays36b->SetArraySize(0);
+  Arrays72b->SetArraySize(0);
   //-Allocates memory.
   Arrays1b->SetArraySize(size); 
   Arrays2b->SetArraySize(size); 
@@ -282,6 +289,7 @@ void JArraysCpu::SetArraySize(unsigned size){
   Arrays24b->SetArraySize(size);
   Arrays32b->SetArraySize(size);
   Arrays36b->SetArraySize(size);
+  Arrays72b->SetArraySize(size);
 }
 
 

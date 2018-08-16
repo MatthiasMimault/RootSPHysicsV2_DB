@@ -130,8 +130,7 @@ protected:
 	TimersCpu Timers;
 
 	// Thibaud - particles representation
-	tmatrix3f *Ellipc_T;
-	float *Test;
+	tvect3d *Ellipc_T;
 
 
 	void InitVars();
@@ -158,6 +157,9 @@ protected:
 	// Matthias
 	tmatrix3f*   SaveArrayCpu(unsigned np, const tmatrix3f   *datasrc)const { return(TSaveArrayCpu<tmatrix3f>(np, datasrc)); }
 	bool*		 SaveArrayCpu(unsigned np, const bool        *datasrc)const { return(TSaveArrayCpu<bool>(np, datasrc)); }
+	// Thibaud
+	tfloat3*     SaveArrayCpu(unsigned np, const tfloat3     *datasrc)const { return(TSaveArrayCpu<tfloat3>(np, datasrc)); }
+	tvect3d*     SaveArrayCpu(unsigned np, const tvect3d     *datasrc)const { return(TSaveArrayCpu<tvect3d>(np, datasrc)); }
 
 	template<class T> void TRestoreArrayCpu(unsigned np, T *data, T *datanew)const;
 	void RestoreArrayCpu(unsigned np, word        *data, word        *datanew)const { TRestoreArrayCpu<word>(np, data, datanew); }
@@ -171,6 +173,9 @@ protected:
 	void RestoreArrayCpu(unsigned np, tmatrix3f   *data, tmatrix3f   *datanew)const { TRestoreArrayCpu<tmatrix3f>(np, data, datanew); }
 	// Matthias
 	void RestoreArrayCpu(unsigned np, bool        *data, bool        *datanew)const { TRestoreArrayCpu<bool>(np, data, datanew); }
+	// Thibaud
+	void RestoreArrayCpu(unsigned np, tfloat3     *data, tfloat3     *datanew)const { TRestoreArrayCpu<tfloat3>(np, data, datanew); }
+	void RestoreArrayCpu(unsigned np, tvect3d     *data, tvect3d     *datanew)const { TRestoreArrayCpu<tvect3d>(np, data, datanew); }
 
 	llong GetAllocMemoryCpu()const;
 	void PrintAllocMemory(llong mcpu)const;
@@ -178,7 +183,7 @@ protected:
 	unsigned GetParticlesData(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
 		, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, typecode *code);
 	unsigned GetParticlesData_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
-		, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, tfloat3 *press, float* mass, tsymatrix3f *tau, typecode *code, tmatrix3f *ellip);
+		, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, tfloat3 *press, float* mass, tsymatrix3f *tau, typecode *code, tvect3d *ellip);
 	void ConfigOmp(const JCfgRun *cfg);
 
 	void ConfigRunMode(const JCfgRun *cfg, std::string preinfo = "");

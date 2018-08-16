@@ -415,7 +415,18 @@ inline tsymatrix3f abs_M(tsymatrix3f v) { return TSymatrix3f(abs_M(v.xx), abs_M(
 inline float max_M(tsymatrix3f v) {  return max_M(max_M(max_M(v.xx, v.xy), v.xz), max_M(max_M(v.yy, v.yz), v.zz)); }
 
 
+typedef struct {
+	tdouble3 u, v, w;
+}tvect3d;
 
+inline tvect3d TVect3d() { return {TDouble3(0), TDouble3(0), TDouble3(0)}; };
+inline tvect3d TVect3d(tdouble3 u, tdouble3 v, tdouble3 w) { return { u, v, w }; };
+inline tdouble3 MainAxis(tvect3d e) { 
+	double normeu = Norme2(e.u);
+	double normev = Norme2(e.v);
+	double normew = Norme2(e.w);
+	return (norme);
+}
 
 
 

@@ -1404,6 +1404,7 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
 	  //-Initialisation of execution variables. | Inicializacion de variables de ejecucion.
 	  //-----------------------------------------------------------------------------------
 	  InitRun();
+
   }
   
 
@@ -1437,9 +1438,9 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
     if(CaseNmoving)RunMotion(stepdt);
 
 	// Matthias - Cell division
-	/*RunSizeDivision_M();
+	RunSizeDivision_M();
 	RunDivisionDisplacement_M();
-	RunCellDivide(true);*/
+	RunCellDivide(true);
 
     TimeStep+=stepdt;
 	partoutstop=(Np<NpMinimum || !Np);
@@ -1535,8 +1536,7 @@ void JSphCpuSingle::SaveData_M() {
 	float *volu = NULL;
 	tfloat3 *press = NULL;
 	tsymatrix3f *tau = NULL;
-	tmatrix3f *ellip = NULL;
-	float *test = NULL;
+	tvect3d *ellip = NULL;
 
 	if (save) {
 		//-Assign memory and collect particle values. | Asigna memoria y recupera datos de las particulas.
@@ -1549,8 +1549,7 @@ void JSphCpuSingle::SaveData_M() {
 		volu = ArraysCpu->ReserveFloat();
 		press = ArraysCpu->ReserveFloat3();
 		tau = ArraysCpu->ReserveSymatrix3f();
-		ellip = ArraysCpu->ReserveMatrix3f_M();
-		test = ArraysCpu->ReserveFloat();
+		ellip = ArraysCpu->ReserveTVect3_T();
 
 		unsigned npnormal = GetParticlesData_M(Np, 0, true, PeriActive != 0, idp, pos, vel, rhop, pore, press, mass, tau, NULL, ellip);
 		if (npnormal != npsave)RunException("SaveData", "The number of particles is invalid.");
@@ -1573,7 +1572,7 @@ void JSphCpuSingle::SaveData_M() {
 
 	//-Stores particle data. | Graba datos de particulas.
 	const tdouble3 vdom[2] = { OrderDecode(CellDivSingle->GetDomainLimits(true)),OrderDecode(CellDivSingle->GetDomainLimits(false)) };
-	JSph::SaveData_M(npsave, idp, pos, vel, rhop, pore, press, mass, tau, ellip, 1, vdom, &infoplus);
+	JSph::SaveData_M(npsave, idp, pos, vel, rhop, pore, press, mass, tau, 1, vdom, &infoplus);
 	//JSph::SaveData(npsave, idp, pos, vel, rhop, 1, vdom, &infoplus);
 	//-Free auxiliary memory for particle data. | Libera memoria auxiliar para datos de particulas.
 	ArraysCpu->Free(idp);
@@ -1586,7 +1585,6 @@ void JSphCpuSingle::SaveData_M() {
 	ArraysCpu->Free(press);
 	ArraysCpu->Free(tau);
 	ArraysCpu->Free(ellip);
-	ArraysCpu->Free(test);
 	TmcStop(Timers, TMC_SuSavePart);
 }
 
