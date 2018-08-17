@@ -983,7 +983,7 @@ void JSph::LoadCaseConfig_T() {
 	//-Predefined constantes.
 	if (ctes.GetEps() != 0)Log->PrintWarning("Eps value is not used (this correction is deprecated).");
 	H = (float)ctes.GetH();
-	CteB = (float)ctes.GetB();
+	//CteB = (float)ctes.GetB();
 	Gamma = (float)ctes.GetGamma();
 	RhopZero = (float)ctes.GetRhop0();
 	CFLnumber = (float)ctes.GetCFLnumber();

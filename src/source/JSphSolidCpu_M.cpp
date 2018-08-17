@@ -827,7 +827,7 @@ void JSphSolidCpu::PreInteractionVars_Forces(TpInter tinter, unsigned np, unsign
 		const float rhop = Velrhopc[p].w, rhop_r0 = rhop / RhopZero;
 		Pressc[p] = CteB * (pow(rhop_r0, Gamma) - 1.0f);
 		//Press3Dc[p] = AnisotropyK_M * TFloat3(CteB * (pow(rhop_r0, Gamma) - 1.0f));
-		Press3Dc[p] = CteB3D * (pow(rhop_r0, Gamma) - 1.0f);
+		// Press3Dc[p] = CteB3D * (pow(rhop_r0, Gamma) - 1.0f);
 		// Matthias
 		Porec_M[p] = PoreZero;
 		//Porec_M[p] = PoreZero * pow(1 - Massc_M[p] / MassFluid, 3);
