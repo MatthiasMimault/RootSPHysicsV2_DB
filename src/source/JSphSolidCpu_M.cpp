@@ -1916,14 +1916,6 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 								-(taup1.yz + tau[p2].yz) / (rhopp1*velrhop[p2].w),
 								(pressp1 + porep1 - taup1.zz + press[p2] + pore[p2] - tau[p2].zz) / (rhopp1*velrhop[p2].w) + (tker == KERNEL_Cubic ? GetKernelCubicTensil(rr2, rhopp1, pressp1, velrhop[p2].w, press[p2]) : 0)
 							};
-							/*const tsymatrix3f prs = {	
-								(pressp1 + porep1 - taup1.xx + press[p2] + pore[p2] - tau[p2].xx) / (rhopp1*velrhop[p2].w) + (tker == KERNEL_Cubic ? GetKernelCubicTensil(rr2, rhopp1, pressp1, velrhop[p2].w, press[p2]) : 0),	
-								-(taup1.xy + tau[p2].xy) / (rhopp1*velrhop[p2].w),	
-								-(taup1.xz + tau[p2].xz) / (rhopp1*velrhop[p2].w),	
-								(pressp1 + porep1 - taup1.yy + press[p2] + pore[p2] - tau[p2].yy) / (rhopp1*velrhop[p2].w) + (tker == KERNEL_Cubic ? GetKernelCubicTensil(rr2, rhopp1, pressp1, velrhop[p2].w, press[p2]) : 0),	
-								-(taup1.yz + tau[p2].yz) / (rhopp1*velrhop[p2].w),	
-								(pressp1 + porep1 - taup1.zz + press[p2] + pore[p2] - tau[p2].zz) / (rhopp1*velrhop[p2].w) + (tker == KERNEL_Cubic ? GetKernelCubicTensil(rr2, rhopp1, pressp1, velrhop[p2].w, press[p2]) : 0)	
-							};*/
 							const tsymatrix3f p_vpm3 = {
 								-prs.xx*massp2*ftmassp1, -prs.xy*massp2*ftmassp1, -prs.xz*massp2*ftmassp1,
 								-prs.yy*massp2*ftmassp1, -prs.yz*massp2*ftmassp1, -prs.zz*massp2*ftmassp1
@@ -2180,8 +2172,6 @@ void JSphSolidCpu::ComputeJauTauDot_M(unsigned n, unsigned pini, const tsymatrix
 		const tsymatrix3f tau = JauTauc2_M[p];
 		const tsymatrix3f gradvel = JauGradvelc2_M[p];
 		const tsymatrix3f omega = JauOmega_M[p];
-		const float traceGradVel = (gradvel.xx + gradvel.yy + gradvel.zz) / 3.0f;
-
 		const tsymatrix3f E = {
 			(C1 - K) * gradvel.xx + (C12 - K) * gradvel.yy + (C13 - K) * gradvel.zz,
 			C4 * gradvel.xy,
@@ -2189,40 +2179,13 @@ void JSphSolidCpu::ComputeJauTauDot_M(unsigned n, unsigned pini, const tsymatrix
 			(C12 - K) * gradvel.xx + (C2 - K) * gradvel.yy + (C23 - K) * gradvel.zz,
 			C6 * gradvel.yz,
 			(C13 - K) * gradvel.xx + (C23 - K) * gradvel.yy + (C3 - K) * gradvel.zz };
+
 		taudot[p].xx = E.xx + 2.0f*tau.xy*omega.xy + 2.0f*tau.xz*omega.xz;
 		taudot[p].xy = E.xy + (tau.yy - tau.xx)*omega.xy + tau.xz*omega.yz + tau.yz*omega.xz;
 		taudot[p].xz = E.xz + (tau.zz - tau.xx)*omega.xz - tau.xy*omega.yz + tau.yz*omega.xy;
 		taudot[p].yy = E.yy - 2.0f*tau.xy*omega.xy + 2.0f*tau.yz*omega.yz;
 		taudot[p].yz = E.yz + (tau.zz - tau.yy)*omega.yz - tau.xz*omega.xy - tau.xy*omega.xz;
 		taudot[p].zz = E.zz - 2.0f*tau.xz*omega.xz - 2.0f*tau.yz*omega.yz;
-
-		/*const tsymatrix3f E = {
-			C1 * gradvel.xx + C12 * gradvel.yy + C13 * gradvel.zz - (C1 + C12 + C13) * traceGradVel,	
-			C4 * gradvel.xy,	
-			C5 * gradvel.xz,	
-			C12 * gradvel.xx + C2 * gradvel.yy + C23 * gradvel.zz - (C2 + C12 + C23) * traceGradVel,	
-			C6 * gradvel.yz,	
-			C13 * gradvel.xx + C23 * gradvel.yy + C3 * gradvel.zz - (C3 + C13 + C23) * traceGradVel };	
- 		taudot[p].xx = E.xx + 2.0f*tau.xy*omega.xy + 2.0f*tau.xz*omega.xz;	
-		taudot[p].xy = E.xy + (tau.yy - tau.xx)*omega.xy + tau.xz*omega.yz + tau.yz*omega.xz;	
-		taudot[p].xz = E.xz + (tau.zz - tau.xx)*omega.xz - tau.xy*omega.yz + tau.yz*omega.xy;	
-		taudot[p].yy = E.yy - 2.0f*tau.xy*omega.xy + 2.0f*tau.yz*omega.yz;	
-		taudot[p].yz = E.yz + (tau.zz - tau.yy)*omega.yz - tau.xz*omega.xy - tau.xy*omega.xz;	
-		taudot[p].zz = E.zz - 2.0f*tau.xz*omega.xz - 2.0f*tau.yz*omega.yz;	
- 		const tsymatrix3f e = {
-			2.0f / 3.0f * gradvel.xx - 1.0f / 3.0f * gradvel.yy - 1.0f / 3.0f * gradvel.zz,
-			gradvel.xy,
-			gradvel.xz,
-			2.0f / 3.0f * gradvel.yy - 1.0f / 3.0f * gradvel.xx - 1.0f / 3.0f * gradvel.zz,
-			gradvel.yz,
-			2.0f / 3.0f * gradvel.zz - 1.0f / 3.0f * gradvel.xx - 1.0f / 3.0f * gradvel.yy };
-
-		taudot[p].xx = 2.0f*AnisotropyG_M.xx*Mu*E.xx + 2.0f*tau.xy*omega.xy + 2.0f*tau.xz*omega.xz;
-		taudot[p].xy = 2.0f*AnisotropyG_M.xy*Mu*E.xy + (tau.yy - tau.xx)*omega.xy + tau.xz*omega.yz + tau.yz*omega.xz;
-		taudot[p].xz = 2.0f*AnisotropyG_M.xz*Mu*E.xz + (tau.zz - tau.xx)*omega.xz - tau.xy*omega.yz + tau.yz*omega.xy;
-		taudot[p].yy = 2.0f*AnisotropyG_M.yy*Mu*E.yy - 2.0f*tau.xy*omega.xy + 2.0f*tau.yz*omega.yz;
-		taudot[p].yz = 2.0f*AnisotropyG_M.yz*Mu*E.yz + (tau.zz - tau.yy)*omega.yz - tau.xz*omega.xy - tau.xy*omega.xz;
-		taudot[p].zz = 2.0f*AnisotropyG_M.zz*Mu*E.zz - 2.0f*tau.xz*omega.xz - 2.0f*tau.yz*omega.yz;*/
 	}
 }
 
