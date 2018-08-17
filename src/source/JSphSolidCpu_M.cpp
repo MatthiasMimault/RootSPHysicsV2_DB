@@ -5187,9 +5187,7 @@ template<bool shift> void JSphSolidCpu::ComputeVerletVarsSolMass_M(const tfloat4
 			taunew[p].yz = float(double(tau2[p].yz) + double(JauTauDot_M[p].yz)*dt2);
 			taunew[p].zz = float(double(tau2[p].zz) + double(JauTauDot_M[p].zz)*dt2);
 			// Update mass
-
 			massnew[p] = float(double(mass2[p]) + dt2 * double(adens*volu));
-
 		}
 		else {//-Floating Particles.
 			velrhopnew[p] = velrhop1[p];

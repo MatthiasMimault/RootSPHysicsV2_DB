@@ -226,7 +226,6 @@ void JSpaceCtes::ReadXmlRun_T(JXml *sxml, TiXmlElement* node) {
 	SetDp(sxml->ReadElementDouble(node, "dp", "value"));
 	SetH(sxml->ReadElementDouble(node, "h", "value"));
 	SetB(sxml->ReadElementDouble(node, "b", "value"));
-	SetMassFluid(sxml->ReadElementDouble(node, "massfluid", "value"));
 }
 
 //==============================================================================

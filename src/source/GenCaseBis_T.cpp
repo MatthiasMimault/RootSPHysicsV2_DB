@@ -20,8 +20,8 @@ GenCaseBis_T::~GenCaseBis_T()
 {
 }
 
-void GenCaseBis_T::UseGencase() {
-	string directoryXml = "Def.xml";
+void GenCaseBis_T::UseGencase(std::string runPath) {
+	string directoryXml = runPath + "/Def.xml";
 	JXml xml; xml.LoadFile(directoryXml);
 
 	int i;
@@ -49,7 +49,6 @@ void GenCaseBis_T::Bridge(std::string caseName) {
 	tfloat3 *vel;
 	double *vol;
 	float *mp;
-	float averageMP;
 	float *rhop;
 	float rhop0;
 	double rMax = 0;
@@ -77,7 +76,7 @@ void GenCaseBis_T::Bridge(std::string caseName) {
 	{
 		vel[i] = TFloat3(0,0,0);
 	}
-	computeMassP(np, vol, mp, rhop, rhop0, &averageMP);
+	computeMassP(np, vol, mp, rhop, rhop0);
 
 	/*for (int i = 0; i < np; i++)
 	{
@@ -101,7 +100,7 @@ void GenCaseBis_T::Bridge(std::string caseName) {
 	if (test) jpd->SaveFileCase(caseName);
 	else jpd->SaveFileCase(caseName + "0.xml");
 	// add particles informations on Xml file
-	updateXml(caseName, np, rMax, borddomain, averageMP);
+	updateXml(caseName, np, rMax, borddomain);
 	
 }
 
@@ -233,19 +232,14 @@ double GenCaseBis_T::computeRayMax(int np, double *vol) {
 
 //==============================================================================
 ///calcul particles' and densoty' particles
-///define the average masse
 //==============================================================================
-void GenCaseBis_T::computeMassP(int np, double *vol, float *mp, float *rhop, float rhop0, float *averageMP){
-	float average = 0;
+void GenCaseBis_T::computeMassP(int np, double *vol, float *mp, float *rhop, float rhop0){
 
 	for (size_t i = 0; i < np; i++)
 	{
 		mp[i] = rhop0 * vol[i];
-		average += mp[i];
 		rhop[i] = rhop0;
 	}
-
-	*averageMP = average / np;
 
 }
 
@@ -288,7 +282,7 @@ double GenCaseBis_T::computeBorddomain(int np, tdouble3 posMax, tdouble3 posMin)
 //==============================================================================
 /// Add particles's informations on the Xml file 
 //==============================================================================
-void GenCaseBis_T::updateXml(std::string caseName, int np, double rMax, double borddomain, float massFluid) {
+void GenCaseBis_T::updateXml(std::string caseName, int np, double rMax, double borddomain) {
 	string directoryXml = "Def.xml";
 	JXml xml; xml.LoadFile(directoryXml);
 
@@ -386,14 +380,13 @@ void GenCaseBis_T::updateXml(std::string caseName, int np, double rMax, double b
 	/*TiXmlElement massbound("massbound");
 	massbound.SetAttribute("value", "8.0000000000E+00");
 	massbound.SetAttribute("units_comment", "kg");
-	(&constants)->InsertEndChild(massbound);*/
+	(&constants)->InsertEndChild(massbound);
 
-	char tampon4[32];
-	sprintf_s(tampon4, "%1.16f", massFluid);
+	//useless
 	TiXmlElement massfluid("massfluid");
-	massfluid.SetAttribute("value", tampon4);
+	massfluid.SetAttribute("value", "8.0000000000E+00");
 	massfluid.SetAttribute("units_comment", "kg");
-	(&constants)->InsertEndChild(massfluid);
+	(&constants)->InsertEndChild(massfluid);*/
 
 	ele2->InsertEndChild(constants);//insert constants into ele (execution note)
 	//end------------------
