@@ -698,7 +698,7 @@ void JSph::LoadCaseConfig(){
   const float alpha3 = Ef * nuf2 / (nf*(1 - nuf1) - 2.0f*nuf2*nuf2);
   const float alpha4 = Gf;
   const float alpha5 = Ef / (2.0f*(1 + nuf1));
-  
+
   C1 = alpha1; C12 = alpha3; C13 = alpha3;
   C2 = alpha2 + alpha5; C23 = alpha2 - alpha5; C3 = alpha2 + alpha5;
   C4 = alpha5; C5 = alpha4; C6 = alpha4;
@@ -981,7 +981,7 @@ void JSph::LoadCaseConfig_T() {
 	//-Predefined constantes.
 	if (ctes.GetEps() != 0)Log->PrintWarning("Eps value is not used (this correction is deprecated).");
 	H = (float)ctes.GetH();
-	CteB = (float)ctes.GetB();
+	//CteB = (float)ctes.GetB();
 	Gamma = (float)ctes.GetGamma();
 	RhopZero = (float)ctes.GetRhop0();
 	CFLnumber = (float)ctes.GetCFLnumber();
