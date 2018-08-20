@@ -200,6 +200,8 @@ void JSphSolidCpu::AllocCpuMemoryParticles(unsigned np, float over) {
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_12B, 1); // Press3D
 	// Thibaud
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_72B, 2); // Ellip
+	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_36B, 1); // GradU
+
 
 	//-Shows the allocated memory.
 	MemCpuParticles = ArraysCpu->GetAllocMemoryCpu();
@@ -603,19 +605,20 @@ void JSphSolidCpu::InitRun() {
 	//initialisation : sphere
 	for (unsigned p = 0; p < Np; p++) {
 		//vect 1
-		Ellipc_T[p].u.x = Dp / 2;
-		Ellipc_T[p].u.y = 0;
-		Ellipc_T[p].u.z = 0;
+		Ellipc_T[p].a.x = Dp / 2;
+		Ellipc_T[p].a.y = 0;
+		Ellipc_T[p].a.z = 0;
 		//vect 2
-		Ellipc_T[p].v.x = 0;
-		Ellipc_T[p].v.y = Dp / 2;
-		Ellipc_T[p].v.z = 0;
+		Ellipc_T[p].b.x = 0;
+		Ellipc_T[p].b.y = Dp / 2;
+		Ellipc_T[p].b.z = 0;
 		//vect 3
-		Ellipc_T[p].w.x = 0;
-		Ellipc_T[p].w.y = 0;
-		Ellipc_T[p].w.z = Dp / 2;
+		Ellipc_T[p].c.x = 0;
+		Ellipc_T[p].c.y = 0;
+		Ellipc_T[p].c.z = Dp / 2;
 	}
-	  
+	// gradU
+	memset(gradu_T, 0, sizeof(tmatrix3f)*Np);
 
 	if (UseDEM)DemDtForce = DtIni; //(DEM)
 	if (CaseNfloat)InitFloating();
@@ -1627,6 +1630,20 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 			omega[p1].yy += omegap1.yy;
 			omega[p1].yz += omegap1.yz;
 			omega[p1].zz += omegap1.zz;
+
+			// Maj gradU
+			gradu_T[p1].a11 += (gradvelp1.xx + omegap1.xx);
+			gradu_T[p1].a12 += (gradvelp1.xy + omegap1.xy);
+			gradu_T[p1].a13 += (gradvelp1.xz + omegap1.xz);
+
+			gradu_T[p1].a21 += (gradvelp1.xy - omegap1.xy);
+			gradu_T[p1].a22 += (gradvelp1.yy + omegap1.yy);
+			gradu_T[p1].a23 += (gradvelp1.yz + omegap1.yz);
+
+			gradu_T[p1].a31 += (gradvelp1.xz - omegap1.xz);
+			gradu_T[p1].a32 += (gradvelp1.yz - omegap1.yz);
+			gradu_T[p1].a33 += (gradvelp1.zz + omegap1.zz);
+
 		}
 	}
 

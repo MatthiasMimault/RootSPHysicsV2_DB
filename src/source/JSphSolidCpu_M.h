@@ -131,6 +131,7 @@ protected:
 
 	// Thibaud - particles representation
 	tvect3d *Ellipc_T;
+	tmatrix3f *gradu_T;
 
 
 	void InitVars();

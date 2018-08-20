@@ -416,16 +416,16 @@ inline float max_M(tsymatrix3f v) {  return max_M(max_M(max_M(v.xx, v.xy), v.xz)
 
 
 typedef struct {
-	tdouble3 u, v, w;
+	tdouble3 a, b, c;
 }tvect3d;
 
 inline tvect3d TVect3d() { return {TDouble3(0), TDouble3(0), TDouble3(0)}; };
-inline tvect3d TVect3d(tdouble3 u, tdouble3 v, tdouble3 w) { return { u, v, w }; };
+inline tvect3d TVect3d(tdouble3 a, tdouble3 b, tdouble3 c) { return { a, b, c }; }
 inline tdouble3 MainAxis(tvect3d e) { 
-	double normeu = Norme2(e.u);
-	double normev = Norme2(e.v);
-	double normew = Norme2(e.w);
-	return (norme);
+	double normeu = Norme2(e.a);
+	double normev = Norme2(e.b);
+	double normew = Norme2(e.c);
+	return (normeu > normev ? (normeu > normew ? e.a : e.c) : (normev > normew ? e.b : e.c));
 }
 
 
