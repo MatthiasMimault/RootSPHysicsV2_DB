@@ -1201,7 +1201,7 @@ namespace cuSol {
 	(bool boundp2, unsigned p1, const unsigned &pini, const unsigned &pfin, float visco
 		, const float *ftomassp, const float2 *tauff
 		, const double2 *posxy, const double *posz, const float4 *pospress, const float4 *velrhop, const typecode *code, const unsigned *idp
-		, float massp2, float ftmassp1, bool ftp1
+		, float massp2a, float ftmassp1, bool ftp1
 		, double3 posdp1, float3 posp1, float3 velp1, float pressp1, float rhopp1, float porep1
 		, float3 &acep1, float &arp1, float &visc, float &deltap1
 		, TpShifting tshifting, float3 &shiftposp1, float &shiftdetectp1, tsymatrix3f taup1, const tsymatrix3f* tau, const float *press, const float *pore, const float *mass, tsymatrix3f &gradvelp1, tsymatrix3f &omegap1)
@@ -1217,9 +1217,8 @@ namespace cuSol {
 				else if (tker == KERNEL_Gaussian)KerGetKernelGaussian(rr2, drx, dry, drz, frx, fry, frz);
 				else if (tker == KERNEL_Cubic)KerGetKernelCubic(rr2, drx, dry, drz, frx, fry, frz);
 
-				//-Obtains mass of particle p2 if any floating bodies exist.
-				//-Obtiene masa de particula p2 en caso de existir floatings.
-				//printf("Mass enregistree = %f \n", mass[p2]);				//massp2 = mass[p2];
+				//===== Get mass of particle p2 ===== 
+				float massp2 = mass[p2]; //-Contiene masa de particula segun sea bound o fluid.
 				bool ftp2;         //-Indicates if it is floating. | Indica si es floating.
 				float ftmassp2;    //-Contains mass of floating body or massf if fluid. | Contiene masa de particula floating o massp2 si es bound o fluid.
 				bool compute = true; //-Deactivated when DEM is used and is float-float or float-bound. | Se desactiva cuando se usa DEM y es float-float o float-bound.
@@ -1265,6 +1264,7 @@ namespace cuSol {
 				//-Density derivative.
 				const float dvx = velp1.x - velrhop2.x, dvy = velp1.y - velrhop2.y, dvz = velp1.z - velrhop2.z;
 				if (compute)arp1 += massp2*(dvx*frx + dvy * fry + dvz * frz);
+				//printf("massp2 = %1.16f \n", massp2);
 
 
 				const float cbar = CTE.cs0;
@@ -1808,7 +1808,6 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 	unsigned p = blockIdx.y*gridDim.x*blockDim.x + blockIdx.x*blockDim.x + threadIdx.x; //-Number of particle.
 	if (p < n) {
 		unsigned p1 = p + pinit;      //-Number of particle.
-		//printf(" ace = %f /%f /%f", ace[p1].x, ace[p1].y, ace[p1].z);
 		float visc = 0, arp1 = 0, deltap1 = 0;
 		float3 acep1 = make_float3(0, 0, 0);
 		tsymatrix3f gradvelp1 = { 0, 0, 0, 0, 0, 0 };

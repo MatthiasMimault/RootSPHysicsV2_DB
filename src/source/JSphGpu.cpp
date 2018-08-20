@@ -817,7 +817,6 @@ void JSphGpu::InitRun() {
 	//memset(JauTauc_M, 0, sizeof(tmatrix3f)*Np);
 	cudaMemset(JauTauc2_M, 0, sizeof(tsymatrix3f)*Np);
 	cudaMemset(Divisionc_M, 0, sizeof(bool)*Np);
-	printf("MassFluid = %f ", MassFluid);
 	cudaMemcpy(MassM1c_M, Massc_M, sizeof(float)*Np, cudaMemcpyDeviceToDevice);
 	cudaDeviceSynchronize();
 	if (UseDEM)DemDtForce = DtIni; //(DEM )
@@ -890,6 +889,8 @@ void JSphGpu::InitRun() {
 	if (DtFixed)DtIni = DtFixed->GetDt(TimeStep, DtIni);
 	TimePartNext = TimeOut->GetNextTime(TimeStep);
 }
+
+
 //==============================================================================
 /// Initialises arrays and variables for the execution.
 /// Inicializa vectores y variables para la ejecucion.

@@ -24,6 +24,7 @@
 #include "Types.h"
 #include "JSphGpu.h"
 #include <string>
+#include "GencaseBis_T.h"
 
 class JCellDivGpuSingle;
 class JPartsLoad4;
@@ -45,8 +46,11 @@ protected:
   llong GetMemoryGpuNct()const;
   void UpdateMaxValues();
   void LoadConfig(JCfgRun *cfg);
+  void LoadConfig_Tgpu(JCfgRun *cfg);
   void LoadCaseParticles();
+  void LoadCaseParticles_Tgpu();
   void ConfigDomain();
+  void ConfigDomain_Tgpu(JPartsLoad4 *pl);
 
   void ResizeParticlesSize(unsigned newsize,float oversize,bool updatedivide);
   void RunPeriodic();

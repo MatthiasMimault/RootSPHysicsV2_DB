@@ -664,10 +664,8 @@ void JSphSolidCpu::InitRun_T(JPartsLoad4 *pl) {
 	memset(JauTauc2_M, 0, sizeof(tsymatrix3f)*Np);
 	memset(Divisionc_M, 0, sizeof(bool)*Np);
 	for (unsigned p = 0; p < Np; p++) {
-		Massc_M[p] = pl->GetMass()[p];
-		MassM1c_M[p] = pl->GetMass()[p];
-
-
+		Massc_M[p] = pl->GetMass()[p];//Massc_M[p] = 0; pl->GetMass()[p];
+		MassM1c_M[p] = pl->GetMass()[p];//MassM1c_M[p] = 0;  pl->GetMass()[p];
 	}
 
 
@@ -796,7 +794,7 @@ void JSphSolidCpu::AddAccInput() {
 }
 
 //==============================================================================
-/// Prepare variables for interaction functions "INTER_Forces" or "INTER_ForcesCorr".
+/// Prepare variables for interaction functions "INTER_Forces" or "INTER_ForcesCorr"
 /// Prepara variables para interaccion "INTER_Forces" o "INTER_ForcesCorr".
 //==============================================================================
 void JSphSolidCpu::PreInteractionVars_Forces(TpInter tinter, unsigned np, unsigned npb) {
@@ -814,7 +812,7 @@ void JSphSolidCpu::PreInteractionVars_Forces(TpInter tinter, unsigned np, unsign
 	//memset(JauGradvelc_M + npb, 0, sizeof(tmatrix3f)*npf);  //JauGradvelc[]=(0,0,0,0,0,0).													
 	memset(JauGradvelc2_M + npb, 0, sizeof(tsymatrix3f)*npf);  //JauGradvelc[]=(0,0,0,0,0,0).													
 	memset(JauTauDot_M + npb, 0, sizeof(tsymatrix3f)*npf);  //JauGradvelc[]=(0,0,0,0,0,0).													
-	memset(JauOmega_M + npb, 0, sizeof(tsymatrix3f)*npf);  //JauGradvelc[]=(0,0,0,0,0,0).
+	memset(JauOmega_M + npb, 0, sizeof(tsymatrix3f)*npf);  //JauGradvelc[]=(0,0,0,0,0,0)..
 																			  //-Apply the extra forces to the correct particle sets.
 	if (AccInput)AddAccInput();
 

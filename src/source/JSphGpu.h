@@ -25,6 +25,7 @@
 #include "JSphTimersGpu.h"
 #include "JSph.h"
 #include <string>
+#include "JPartsLoad4.h"
 
 class JPartsOut;
 class JArraysGpu;

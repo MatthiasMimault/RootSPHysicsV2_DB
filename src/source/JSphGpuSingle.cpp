@@ -126,6 +126,21 @@ void JSphGpuSingle::LoadConfig(JCfgRun *cfg){
 }
 
 //==============================================================================
+/// Loads the configuration of the execution. Lucas
+//==============================================================================
+
+void JSphGpuSingle::LoadConfig_Tgpu(JCfgRun * cfg)
+{
+	const char met[] = "LoadConfig";
+	//-Loads general configuration.
+	JSph::LoadConfig_T(cfg);
+	BlockSizeMode = cfg->BlockSizeMode;
+	//-Checks compatibility of selected options.
+	Log->Print("**Special case configuration is loaded");
+}
+
+
+//==============================================================================
 /// Loads particles of the case to be processed.
 /// Carga particulas del caso a procesar.
 //==============================================================================
@@ -178,6 +193,61 @@ void JSphGpuSingle::LoadCaseParticles(){
   //-Saves initial domain in a VTK file (CasePosMin/Max, MapRealPosMin/Max and Map_PosMin/Max).
   SaveInitialDomainVtk();
 }
+
+//==============================================================================
+/// Loads particles of the case to be processed. Lucas (Thibaud CPU)
+//==============================================================================
+
+void JSphGpuSingle::LoadCaseParticles_Tgpu()
+{
+	Log->Print("Loading initial state of particles...");
+	PartsLoaded = new JPartsLoad4(false);
+	PartsLoaded->LoadParticles_T(DirCase, CaseName, PartBegin, PartBeginDir);
+	PartsLoaded->CheckConfig(CaseNp, CaseNfixed, CaseNmoving, CaseNfloat, CaseNfluid, PeriX, PeriY, PeriZ);
+	Log->Printf("Loaded particles: %u", PartsLoaded->GetCount());
+	//-Retrieves information of the loaded particles.
+	//-Recupera informacion de las particulas cargadas.
+	Simulate2D = PartsLoaded->GetSimulate2D();
+	Simulate2DPosY = PartsLoaded->GetSimulate2DPosY();
+	if (Simulate2D&&PeriY)RunException("LoadCaseParticles", "Cannot use periodic conditions in Y with 2D simulations");
+	CasePosMin = PartsLoaded->GetCasePosMin();
+	CasePosMax = PartsLoaded->GetCasePosMax();
+
+	//-Computes the current limits of the simulation.
+	//-Calcula limites reales de la simulacion.
+	if (PartsLoaded->MapSizeLoaded())
+	{
+		PartsLoaded->GetMapSize(MapRealPosMin, MapRealPosMax);
+	}
+	else {
+		PartsLoaded->CalculeLimits(double(H)*BORDER_MAP + BordDomain, Dp / 2., PeriX, PeriY, PeriZ, MapRealPosMin, MapRealPosMax);
+		ResizeMapLimits();
+	}
+	if (PartBegin) {
+		PartBeginTimeStep = PartsLoaded->GetPartBeginTimeStep();
+		PartBeginTotalNp = PartsLoaded->GetPartBeginTotalNp();
+	}
+	Log->Print(string("MapRealPos(final)=") + fun::Double3gRangeStr(MapRealPosMin, MapRealPosMax));
+	MapRealSize = MapRealPosMax - MapRealPosMin;
+	Log->Print("**Initial state of particles is loaded");
+
+	//-Configures the limits of the periodic axis.
+	//-Configura limites de ejes periodicos.
+	if (PeriX)PeriXinc.x = -MapRealSize.x;
+	if (PeriY)PeriYinc.y = -MapRealSize.y;
+	if (PeriZ)PeriZinc.z = -MapRealSize.z;
+	//-Computes the limits of simulations with periodic edges.
+	//-Calcula limites de simulacion con bordes periodicos.
+	Map_PosMin = MapRealPosMin; Map_PosMax = MapRealPosMax;
+	float dosh = float(H * 2);
+	if (PeriX) { Map_PosMin.x = Map_PosMin.x - dosh;  Map_PosMax.x = Map_PosMax.x + dosh; }
+	if (PeriY) { Map_PosMin.y = Map_PosMin.y - dosh;  Map_PosMax.y = Map_PosMax.y + dosh; }
+	if (PeriZ) { Map_PosMin.z = Map_PosMin.z - dosh;  Map_PosMax.z = Map_PosMax.z + dosh; }
+	Map_Size = Map_PosMax - Map_PosMin;
+	//-Saves initial domain in a VTK file (CasePosMin/Max, MapRealPosMin/Max and Map_PosMin/Max).
+	SaveInitialDomainVtk();
+}
+
 
 //==============================================================================
 /// Configuration of the current domain.
@@ -249,6 +319,78 @@ void JSphGpuSingle::ConfigDomain(){
   RunCellDivide(true);
 }
 
+
+//==============================================================================
+/// Configuration of the current domain. Lucas
+//==============================================================================
+void JSphGpuSingle::ConfigDomain_Tgpu(JPartsLoad4 *pl) {
+	const char* met = "ConfigDomain";
+	//-Computes the number of particles.
+	Np = PartsLoaded->GetCount(); Npb = CaseNpb; NpbOk = Npb;
+	//-Allocates memory for arrays with fixed size (motion and floating bodies).
+	AllocGpuMemoryFixed();
+	//-Allocates GPU memory for particles
+	AllocGpuMemoryParticles(Np, 0);
+	//-Allocates memory on the CPU.
+	AllocCpuMemoryFixed();
+	AllocCpuMemoryParticles(Np);
+
+	//-Copies particle data.
+	memcpy(AuxPos, PartsLoaded->GetPos(), sizeof(tdouble3)*Np);
+	memcpy(Idp, PartsLoaded->GetIdp(), sizeof(unsigned)*Np);
+	memcpy(Velrhop, PartsLoaded->GetVelRhop(), sizeof(tfloat4)*Np);
+	//memcpy(Mass, PartsLoaded->GetMass(), sizeof(float)*Np);
+		for (unsigned p = 0; p < Np; p++) {
+			Mass[p] = pl->GetMass()[p];
+		}
+
+	//-Computes radius of floating bodies.
+	if (CaseNfloat && PeriActive != 0 && !PartBegin)CalcFloatingRadius(Np, AuxPos, Idp);
+
+	//-Loads Code of the particles.
+	LoadCodeParticles(Np, Idp, Code);
+
+	//-Runs initialization operations from XML.
+	RunInitialize(Np, Npb, AuxPos, Idp, Code, Velrhop);
+
+	//-Computes MK domain for boundary and fluid particles.
+	MkInfo->ComputeMkDomains(Np, AuxPos, Code);
+
+	//-Frees memory of PartsLoaded.
+	//delete PartsLoaded; PartsLoaded=NULL;
+	//-Applies configuration of CellOrder.
+	ConfigCellOrder(CellOrder, Np, AuxPos, Velrhop);
+
+	//-Configure cell division.
+	ConfigCellDivision();
+	//-Sets local domain of the simulation within Map_Cells and computes DomCellCode.
+	//-Establece dominio de simulacion local dentro de Map_Cells y calcula DomCellCode.
+	SelecDomain(TUint3(0, 0, 0), Map_Cells);
+	//-Computes inital cell of the particles and checks if there are unexpected excluded particles.
+	//-Calcula celda inicial de particulas y comprueba si hay excluidas inesperadas.
+	LoadDcellParticles(Np, Code, AuxPos, Dcell);
+
+	//-Uploads particle data on the GPU.
+	ReserveBasicArraysGpu();
+	for (unsigned p = 0; p<Np; p++) { Posxy[p] = TDouble2(AuxPos[p].x, AuxPos[p].y); Posz[p] = AuxPos[p].z; }
+	ParticlesDataUp(Np);
+	//-Uploads constants on the GPU.
+	ConstantDataUp();
+
+	//-Creates object for Celldiv on the GPU and selects a valid cellmode.
+	//-Crea objeto para divide en Gpu y selecciona un cellmode valido.
+	CellDivSingle = new JCellDivGpuSingle(Stable, FtCount != 0, PeriActive, CellOrder, CellMode, Scell, Map_PosMin, Map_PosMax, Map_Cells, CaseNbound, CaseNfixed, CaseNpb, Log, DirOut);
+	CellDivSingle->DefineDomain(DomCellCode, DomCelIni, DomCelFin, DomPosMin, DomPosMax);
+	ConfigCellDiv((JCellDivGpu*)CellDivSingle);
+
+	ConfigBlockSizes(false, PeriActive != 0);
+	ConfigSaveData(0, 1, "");
+
+	//-Reorders particles according to cells.
+	//-Reordena particulas por celda.
+	BoundChanged = true;
+	RunCellDivide(true);
+}
 //==============================================================================
 /// Resizes the allocated space for particles on the CPU and the GPU measuring
 /// the time spent with TMG_SuResizeNp. At the end updates the division.
@@ -641,19 +783,59 @@ void JSphGpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
   //-Load parameters and values of input. | Carga de parametros y datos de entrada. //OK
   //--------------------------------------------------------------------------------
 
-  LoadConfig(cfg); 
+ /* LoadConfig(cfg); 
   LoadCaseParticles();
   ConfigConstants(Simulate2D);
   ConfigDomain();
   ConfigRunMode("Single-Gpu");
-  VisuParticleSummary();
+  VisuParticleSummary();*/
+
+  Log->Printf("\n---Thibaud's part---\n");
+  GenCaseBis_T gcb;
+  gcb.UseGencase(cfg->RunPath);
+  if (!gcb.getUseGencase()) {
+	  gcb.Bridge(cfg->CaseName);
+	  Log->Printf("\n---Thibaud's part end---\n");
+	  printf("---1---");
+	  LoadConfig_Tgpu(cfg);
+	  printf("---2---");
+	  LoadCaseParticles_Tgpu();
+	  printf("---3---");
+	  ConfigConstants(Simulate2D);
+	  printf("---4---");
+	  ConfigDomain_Tgpu(PartsLoaded);
+	  printf("---5---");
+	  ConfigRunMode("Single-Gpu");
+	  printf("---6---");
+	  VisuParticleSummary();
+	  printf("---7---");
+	  //-Initialisation of execution variables. | Inicializacion de variables de ejecucion.
+	  //------------------------------------------------------------------------------------
+	  InitRun();
+  }
+  else {
+	  Log->Printf("\n---Thibaud's part end---\n");
+	  printf("---1---");
+	  LoadConfig(cfg);
+	  printf("---2---");
+	  LoadCaseParticles();
+	  printf("---3---");
+	  ConfigConstants(Simulate2D);
+	  printf("---4---");
+	  ConfigDomain();
+	  printf("---5---");
+	  ConfigRunMode("Single-Gpu");
+	  printf("---6---");
+	  VisuParticleSummary();
+	  printf("---7---");
+	  //-Initialisation of execution variables. | Inicializacion de variables de ejecucion.
+	  //------------------------------------------------------------------------------------
+	  InitRun();
+  }
 
 
-
-
-  //-Initialisation of execution variables. | Inicializacion de variables de ejecucion. 
-  //------------------------------------------------------------------------------------
-  InitRun(); // 
+  //InitRun(); 
+  delete PartsLoaded; PartsLoaded = NULL;
   RunGaugeSystem(TimeStep);
   UpdateMaxValues();
   PrintAllocMemory(GetAllocMemoryCpu(),GetAllocMemoryGpu());
