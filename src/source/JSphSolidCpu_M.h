@@ -131,7 +131,8 @@ protected:
 
 	// Thibaud - particles representation
 	tvect3d *Ellipc_T;
-	tmatrix3f *gradu_T;
+	tvect3d *EllipDot_T;
+	tmatrix3f *Gradu_T;
 
 
 	void InitVars();
@@ -363,6 +364,7 @@ protected:
 
 	void ComputeSpsTau(unsigned n, unsigned pini, const tfloat4 *velrhop, const tsymatrix3f *gradvel, tsymatrix3f *tau)const;
 	void ComputeJauTauDot_M(unsigned n, unsigned pini, const tsymatrix3f *gradvel, tsymatrix3f *tau, tsymatrix3f *taudot, tsymatrix3f *omega)const;
+	void ComputeJauEllips_T(unsigned n, unsigned pini)const;
 	void ComputeJauTauDotImplicit_M(unsigned n, unsigned pini, const double dt, const tsymatrix3f *gradvel, tsymatrix3f *tau, tsymatrix3f *taudot, tsymatrix3f *omega)const;
 
 	template<bool shift> void ComputeVerletVarsFluid(const tfloat4 *velrhop1, const tfloat4 *velrhop2, double dt, double dt2, tdouble3 *pos, unsigned *cell, typecode *code, tfloat4 *velrhopnew)const;
@@ -373,6 +375,10 @@ protected:
 		, const tsymatrix3f *tau1, const tsymatrix3f *tau2, const float *mass1, const float *mass2
 		, double dt, double dt2, tdouble3 *pos, unsigned *dcell, typecode *code, tfloat4 *velrhopnew, tsymatrix3f *taunew, float *massnew)const;
 	void ComputeVelrhopBound(const tfloat4* velrhopold, double armul, tfloat4* velrhopnew)const;
+	//Thibaud
+	template<bool shift> void JSphSolidCpu::ComputeVerletVarsSolMass_T(const tfloat4 *velrhop1, const tfloat4 *velrhop2
+		, const tsymatrix3f *tau1, const tsymatrix3f *tau2, const float *mass1, const float *mass2
+		, double dt, double dt2, tdouble3 *pos, unsigned *dcell, typecode *code, tfloat4 *velrhopnew, tsymatrix3f *taunew, float *massnew)const;
 	// Matthias
 	template<bool shift> void ComputeEulerVarsFluid_M(tfloat4 *velrhop, double dt, tdouble3 *pos, unsigned *dcell, word *code)const;
 	template<bool shift> void ComputeEulerVarsSolid_M(tfloat4 *velrhop, double dt, tdouble3 *pos, tsymatrix3f *tau, unsigned *dcell, word *code)const;

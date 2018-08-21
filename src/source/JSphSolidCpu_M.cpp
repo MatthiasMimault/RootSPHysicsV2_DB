@@ -94,7 +94,8 @@ void JSphSolidCpu::InitVars() {
 	//Amassc_M = NULL;
 	//Voluc_M = NULL;
 	// Thibaud
-	Ellipc_T = NULL;
+	Ellipc_T = NULL; EllipDot_T = NULL;
+	Gradu_T = NULL;
 		
 	RidpMove = NULL;
 	FtRidp = NULL;
@@ -199,8 +200,8 @@ void JSphSolidCpu::AllocCpuMemoryParticles(unsigned np, float over) {
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_4B, 4); // SaveFields
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_12B, 1); // Press3D
 	// Thibaud
-	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_72B, 2); // Ellip
-	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_36B, 1); // GradU
+	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_72B, 3); // Ellip - EllipDo
+	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_36B, 2); // GradU
 
 
 	//-Shows the allocated memory.
@@ -234,6 +235,7 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	tsymatrix3f *jautaum12 = SaveArrayCpu(Np, JauTauM1c2_M);
 	// Thibaud
 	tvect3d *ellip = SaveArrayCpu(Np, Ellipc_T);
+	tmatrix3f *gradup = SaveArrayCpu(Np, Gradu_T);
 
 	//-Frees pointers.
 	ArraysCpu->Free(Idpc);
@@ -256,6 +258,7 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	ArraysCpu->Free(JauTauM1c2_M);
 	//Thibaud
 	ArraysCpu->Free(Ellipc_T);
+	ArraysCpu->Free(Gradu_T);
 
 	//-Resizes CPU memory allocation.
 	const double mbparticle = (double(MemCpuParticles) / (1024 * 1024)) / CpuParticlesSize; //-MB por particula.
@@ -282,6 +285,8 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	JauTauc2_M = ArraysCpu->ReserveSymatrix3f();
 	// Thibaud
 	Ellipc_T = ArraysCpu->ReserveTVect3_T();
+	Gradu_T = ArraysCpu->ReserveMatrix3f_M();
+
 	if (velrhopm1) JauTauM1c2_M = ArraysCpu->ReserveSymatrix3f();
 
 	//-Restore data in CPU memory.
@@ -305,6 +310,7 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	RestoreArrayCpu(Np, jautaum12, JauTauM1c2_M);
 	// Thibaud
 	RestoreArrayCpu(Np, ellip, Ellipc_T);
+	RestoreArrayCpu(Np, gradup, Gradu_T);
 
 	//-Updates values.
 	CpuParticlesSize = npnew;
@@ -361,6 +367,7 @@ void JSphSolidCpu::ReserveBasicArraysCpu() {
 	JauTauc2_M = ArraysCpu->ReserveSymatrix3f();
 	// Thibaud
 	Ellipc_T = ArraysCpu->ReserveTVect3_T();
+	Gradu_T = ArraysCpu->ReserveMatrix3f_M();
 }
 
 //==============================================================================
@@ -490,15 +497,21 @@ unsigned JSphSolidCpu::GetParticlesData_M(unsigned n, unsigned pini, bool cellor
 	if (mass)memcpy(mass, Massc_M + pini, sizeof(float)*n);
 	if (tau)memcpy(tau, JauTauc2_M + pini, sizeof(tsymatrix3f)*n);
 	if (ellip) {
-		printf("\nJSphSolidCpu::GetParticlesData_M--------- ellip[0].u.x : %1.16f",   ellip[0].u.x);
-		printf("\nJSphSolidCpu::GetParticlesData_M--------- ellip[0].u.x : %1.16f",   ellip[0].u.y);
-		printf("\nJSphSolidCpu::GetParticlesData_M--------- ellip[0].u.x : %1.16f",   ellip[0].u.z);
-		printf("\nJSphSolidCpu::GetParticlesData_M--------- ellip[0].u.x : %1.16f",   ellip[0].v.x);
-		printf("\nJSphSolidCpu::GetParticlesData_M--------- ellip[0].u.x : %1.16f",   ellip[0].v.y);
-		printf("\nJSphSolidCpu::GetParticlesData_M--------- ellip[0].u.x : %1.16f",   ellip[0].v.z);
-		printf("\nJSphSolidCpu::GetParticlesData_M--------- ellip[0].u.x : %1.16f",   ellip[0].w.x);
-		printf("\nJSphSolidCpu::GetParticlesData_M--------- ellip[0].u.x : %1.16f",   ellip[0].w.y);
-		printf("\nJSphSolidCpu::GetParticlesData_M--------- ellip[0].u.x : %1.16f\n", ellip[0].w.z);
+		//printf("\nJSphSolidCpu::GetParticlesData_M--------- ellip[0].a.x : %1.16f", ellip[0].a.x);
+		//printf("\nJSphSolidCpu::GetParticlesData_M--------- ellip[0].a.y : %1.16f", ellip[0].a.y);
+		//printf("\nJSphSolidCpu::GetParticlesData_M--------- ellip[0].a.x : %1.16f", ellip[0].a.x);
+		printf("\nJSphSolidCpu::GetParticlesData_M--- norme ellip[0].a : %1.16f", Norme2(Ellipc_T[1].a));
+		//printf("\nJSphSolidCpu::GetParticlesData_M--------- ellip[0].b.x : %1.16f", ellip[0].b.x);
+		//printf("\nJSphSolidCpu::GetParticlesData_M--------- ellip[0].b.y : %1.16f", ellip[0].b.y);
+		//printf("\nJSphSolidCpu::GetParticlesData_M--------- ellip[0].b.z : %1.16f", ellip[0].b.z);
+		printf("\nJSphSolidCpu::GetParticlesData_M--- norme ellip[0].b : %1.16f", Norme2(Ellipc_T[1].b));
+		//printf("\nJSphSolidCpu::GetParticlesData_M--------- ellip[0].c.x : %1.16f", ellip[0].c.x);
+		//printf("\nJSphSolidCpu::GetParticlesData_M--------- ellip[0].c.y : %1.16f", ellip[0].c.y);
+		//printf("\nJSphSolidCpu::GetParticlesData_M--------- ellip[0].c.z : %1.16f", ellip[0].c.z);
+		printf("\nJSphSolidCpu::GetParticlesData_M--- norme ellip[0].c : %1.16f\n", Norme2(Ellipc_T[1].c));
+		printf("\nJSphSolidCpu::GetParticlesData_M--- volume ellip[0] :");// %1.16f\n", );
+		printf("\nJSphSolidCpu::GetParticlesData_M--- volume vol[0] : %1.16f\n", Massc_M[1]/Velrhopc[1].w);
+
 		memcpy(ellip, Ellipc_T + pini, sizeof(tvect3d)*n);
 	}
 
@@ -601,9 +614,20 @@ void JSphSolidCpu::InitRun() {
 		MassM1c_M[p] = MassFluid;	
 	}
 
+	Ellipc_T[0].a.x = 100;
+	Ellipc_T[0].a.y = 0;
+	Ellipc_T[0].a.z = 0;
+	//vect 2
+	Ellipc_T[0].b.x = 0;
+	Ellipc_T[0].b.y = 100;
+	Ellipc_T[0].b.z = 0;
+	//vect 3
+	Ellipc_T[0].c.x = 0;
+	Ellipc_T[0].c.y = 0;
+	Ellipc_T[0].c.z = 100;
 	// Thibaud
 	//initialisation : sphere
-	for (unsigned p = 0; p < Np; p++) {
+	for (unsigned p = 1; p < Np; p++) {
 		//vect 1
 		Ellipc_T[p].a.x = Dp / 2;
 		Ellipc_T[p].a.y = 0;
@@ -618,7 +642,7 @@ void JSphSolidCpu::InitRun() {
 		Ellipc_T[p].c.z = Dp / 2;
 	}
 	// gradU
-	memset(gradu_T, 0, sizeof(tmatrix3f)*Np);
+	memset(Gradu_T, 0, sizeof(tmatrix3f)*Np);
 
 	if (UseDEM)DemDtForce = DtIni; //(DEM)
 	if (CaseNfloat)InitFloating();
@@ -864,6 +888,9 @@ void JSphSolidCpu::PreInteractionVars_Forces(TpInter tinter, unsigned np, unsign
 	memset(JauGradvelc2_M + npb, 0, sizeof(tsymatrix3f)*npf);  //JauGradvelc[]=(0,0,0,0,0,0).													
 	memset(JauTauDot_M + npb, 0, sizeof(tsymatrix3f)*npf);  //JauGradvelc[]=(0,0,0,0,0,0).													
 	memset(JauOmega_M + npb, 0, sizeof(tsymatrix3f)*npf);  //JauGradvelc[]=(0,0,0,0,0,0).
+	// Thibaud
+	memset(Gradu_T + npb, 0, sizeof(tmatrix3f)*npf);  //JauGradvelc[]=(0,0,0,0,0,0).
+	memset(EllipDot_T + npb, 0, sizeof(tmatrix3f)*npf);  //JauGradvelc[]=(0,0,0,0,0,0).
 																			  //-Apply the extra forces to the correct particle sets.
 	if (AccInput)AddAccInput();
 
@@ -916,6 +943,9 @@ void JSphSolidCpu::PreInteraction_Forces(TpInter tinter) {
 	JauGradvelc2_M = ArraysCpu->ReserveSymatrix3f();
 	JauTauDot_M = ArraysCpu->ReserveSymatrix3f();
 	JauOmega_M = ArraysCpu->ReserveSymatrix3f();
+	// Thibaud	
+	Gradu_T = ArraysCpu->ReserveMatrix3f_M();
+	EllipDot_T = ArraysCpu->ReserveTVect3_T();
 
 	//-Prepare values for interaction Pos-Simpe.
 	if (Psingle) {
@@ -1008,6 +1038,9 @@ void JSphSolidCpu::PosInteraction_Forces() {
 	ArraysCpu->Free(JauGradvelc2_M);  JauGradvelc2_M = NULL;
 	ArraysCpu->Free(JauTauDot_M);  JauTauDot_M = NULL;
 	ArraysCpu->Free(JauOmega_M);  JauOmega_M = NULL;
+	// Thibaud
+	ArraysCpu->Free(Gradu_T);  Gradu_T = NULL;
+	ArraysCpu->Free(EllipDot_T);  EllipDot_T = NULL;
 
 }
 
@@ -1631,18 +1664,6 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 			omega[p1].yz += omegap1.yz;
 			omega[p1].zz += omegap1.zz;
 
-			// Maj gradU
-			gradu_T[p1].a11 += (gradvelp1.xx + omegap1.xx);
-			gradu_T[p1].a12 += (gradvelp1.xy + omegap1.xy);
-			gradu_T[p1].a13 += (gradvelp1.xz + omegap1.xz);
-
-			gradu_T[p1].a21 += (gradvelp1.xy - omegap1.xy);
-			gradu_T[p1].a22 += (gradvelp1.yy + omegap1.yy);
-			gradu_T[p1].a23 += (gradvelp1.yz + omegap1.yz);
-
-			gradu_T[p1].a31 += (gradvelp1.xz - omegap1.xz);
-			gradu_T[p1].a32 += (gradvelp1.yz - omegap1.yz);
-			gradu_T[p1].a33 += (gradvelp1.zz + omegap1.zz);
 
 		}
 	}
@@ -2085,6 +2106,19 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 			omega[p1].yz += omegap1.yz;
 			omega[p1].zz += omegap1.zz;
 
+
+			// Maj gradU
+			Gradu_T[p1].a11 += (gradvelp1.xx + omegap1.xx);
+			Gradu_T[p1].a12 += (gradvelp1.xy + omegap1.xy);
+			Gradu_T[p1].a13 += (gradvelp1.xz + omegap1.xz);
+
+			Gradu_T[p1].a21 += (gradvelp1.xy - omegap1.xy);
+			Gradu_T[p1].a22 += (gradvelp1.yy + omegap1.yy);
+			Gradu_T[p1].a23 += (gradvelp1.yz + omegap1.yz);
+
+			Gradu_T[p1].a31 += (gradvelp1.xz - omegap1.xz);
+			Gradu_T[p1].a32 += (gradvelp1.yz - omegap1.yz);
+			Gradu_T[p1].a33 += (gradvelp1.zz + omegap1.zz);
 		}
 	}
 
@@ -2259,33 +2293,31 @@ void JSphSolidCpu::ComputeJauTauDot_M(unsigned n, unsigned pini, const tsymatrix
 		taudot[p].yz = E.yz + (tau.zz - tau.yy)*omega.yz - tau.xz*omega.xy - tau.xy*omega.xz;
 		taudot[p].zz = E.zz - 2.0f*tau.xz*omega.xz - 2.0f*tau.yz*omega.yz;
 
-		/*const tsymatrix3f E = {
-			C1 * gradvel.xx + C12 * gradvel.yy + C13 * gradvel.zz - (C1 + C12 + C13) * traceGradVel,	
-			C4 * gradvel.xy,	
-			C5 * gradvel.xz,	
-			C12 * gradvel.xx + C2 * gradvel.yy + C23 * gradvel.zz - (C2 + C12 + C23) * traceGradVel,	
-			C6 * gradvel.yz,	
-			C13 * gradvel.xx + C23 * gradvel.yy + C3 * gradvel.zz - (C3 + C13 + C23) * traceGradVel };	
- 		taudot[p].xx = E.xx + 2.0f*tau.xy*omega.xy + 2.0f*tau.xz*omega.xz;	
-		taudot[p].xy = E.xy + (tau.yy - tau.xx)*omega.xy + tau.xz*omega.yz + tau.yz*omega.xz;	
-		taudot[p].xz = E.xz + (tau.zz - tau.xx)*omega.xz - tau.xy*omega.yz + tau.yz*omega.xy;	
-		taudot[p].yy = E.yy - 2.0f*tau.xy*omega.xy + 2.0f*tau.yz*omega.yz;	
-		taudot[p].yz = E.yz + (tau.zz - tau.yy)*omega.yz - tau.xz*omega.xy - tau.xy*omega.xz;	
-		taudot[p].zz = E.zz - 2.0f*tau.xz*omega.xz - 2.0f*tau.yz*omega.yz;	
- 		const tsymatrix3f e = {
-			2.0f / 3.0f * gradvel.xx - 1.0f / 3.0f * gradvel.yy - 1.0f / 3.0f * gradvel.zz,
-			gradvel.xy,
-			gradvel.xz,
-			2.0f / 3.0f * gradvel.yy - 1.0f / 3.0f * gradvel.xx - 1.0f / 3.0f * gradvel.zz,
-			gradvel.yz,
-			2.0f / 3.0f * gradvel.zz - 1.0f / 3.0f * gradvel.xx - 1.0f / 3.0f * gradvel.yy };
+		
+	}
+}
 
-		taudot[p].xx = 2.0f*AnisotropyG_M.xx*Mu*E.xx + 2.0f*tau.xy*omega.xy + 2.0f*tau.xz*omega.xz;
-		taudot[p].xy = 2.0f*AnisotropyG_M.xy*Mu*E.xy + (tau.yy - tau.xx)*omega.xy + tau.xz*omega.yz + tau.yz*omega.xz;
-		taudot[p].xz = 2.0f*AnisotropyG_M.xz*Mu*E.xz + (tau.zz - tau.xx)*omega.xz - tau.xy*omega.yz + tau.yz*omega.xy;
-		taudot[p].yy = 2.0f*AnisotropyG_M.yy*Mu*E.yy - 2.0f*tau.xy*omega.xy + 2.0f*tau.yz*omega.yz;
-		taudot[p].yz = 2.0f*AnisotropyG_M.yz*Mu*E.yz + (tau.zz - tau.yy)*omega.yz - tau.xz*omega.xy - tau.xy*omega.xz;
-		taudot[p].zz = 2.0f*AnisotropyG_M.zz*Mu*E.zz - 2.0f*tau.xz*omega.xz - 2.0f*tau.yz*omega.yz;*/
+//==============================================================================
+/// Computes deformation of ellips - Thibaud 
+//==============================================================================
+void JSphSolidCpu::ComputeJauEllips_T(unsigned n, unsigned pini)const {
+	const int pfin = int(pini + n);
+#ifdef OMP_USE
+#pragma omp parallel for schedule (static)
+#endif
+	for (int p = int(pini); p < pfin; p++) {
+		const tmatrix3f tau = Gradu_T[p];
+
+		EllipDot_T[p].a.x =    Ellipc_T[p].a.x * tau.a11  +  Ellipc_T[p].a.y * tau.a21  +  Ellipc_T[p].a.z * tau.a31;
+		EllipDot_T[p].a.y =    Ellipc_T[p].a.x * tau.a12  +  Ellipc_T[p].a.y * tau.a22  +  Ellipc_T[p].a.z * tau.a32;
+		EllipDot_T[p].a.z =    Ellipc_T[p].a.x * tau.a13  +  Ellipc_T[p].a.y * tau.a23  +  Ellipc_T[p].a.z * tau.a33;
+		EllipDot_T[p].b.x =    Ellipc_T[p].b.x * tau.a11  +  Ellipc_T[p].b.y * tau.a21  +  Ellipc_T[p].b.z * tau.a31;
+		EllipDot_T[p].b.y =    Ellipc_T[p].b.x * tau.a12  +  Ellipc_T[p].b.y * tau.a22  +  Ellipc_T[p].b.z * tau.a32;
+		EllipDot_T[p].b.z =    Ellipc_T[p].b.x * tau.a13  +  Ellipc_T[p].b.y * tau.a23  +  Ellipc_T[p].b.z * tau.a33;
+		EllipDot_T[p].c.x =    Ellipc_T[p].c.x * tau.a11  +  Ellipc_T[p].c.y * tau.a21  +  Ellipc_T[p].c.z * tau.a31;
+		EllipDot_T[p].c.y =    Ellipc_T[p].c.x * tau.a12  +  Ellipc_T[p].c.y * tau.a22  +  Ellipc_T[p].c.z * tau.a32;
+		EllipDot_T[p].c.z =    Ellipc_T[p].c.x * tau.a13  +  Ellipc_T[p].c.y * tau.a23  +  Ellipc_T[p].c.z * tau.a33;
+																											
 	}
 }
 
@@ -2453,6 +2485,7 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 
 		// Compute Sdot
 		ComputeJauTauDot_M(npf, npb, jaugradvel, jautau, jautaudot, jauomega);
+
 	}
 	if (npbok) {
 		//-Interaction Bound-Fluid.
@@ -2498,6 +2531,7 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 
 		// Compute Sdot
 	    ComputeJauTauDot_M(npf, npb, jaugradvel, jautau, jautaudot, jauomega);
+		ComputeJauEllips_T(npf, npb);
 	}
 	if (npbok) {
 		//-Interaction Bound-Fluid.
@@ -5247,6 +5281,8 @@ template<bool shift> void JSphSolidCpu::ComputeVerletVarsSolMass_M(const tfloat4
 {
 	const double dt205 = 0.5*dt*dt;
 	const int pini = int(Npb), pfin = int(Np), npf = int(Np - Npb);
+
+
 #ifdef OMP_USE
 #pragma omp parallel for schedule (static) if(npf>OMP_LIMIT_COMPUTESTEP)
 #endif
@@ -5288,6 +5324,80 @@ template<bool shift> void JSphSolidCpu::ComputeVerletVarsSolMass_M(const tfloat4
 			taunew[p].zz = float(double(tau2[p].zz) + double(JauTauDot_M[p].zz)*dt2);
 			// Update mass
 
+			massnew[p] = float(double(mass2[p]) + dt2 * double(adens*volu));
+
+		}
+		else {//-Floating Particles.
+			velrhopnew[p] = velrhop1[p];
+			velrhopnew[p].w = (rhopnew<RhopZero ? RhopZero : rhopnew); //-Avoid fluid particles being absorved by floating ones. | Evita q las floating absorvan a las fluidas.
+		}
+	}
+}
+
+//==============================================================================
+/// Verlet update with Solid, pore pressure and mass - Thibaud 
+//==============================================================================
+template<bool shift> void JSphSolidCpu::ComputeVerletVarsSolMass_T(const tfloat4 *velrhop1, const tfloat4 *velrhop2
+	, const tsymatrix3f *tau1, const tsymatrix3f *tau2, const float *mass1, const float *mass2
+	, double dt, double dt2, tdouble3 *pos, unsigned *dcell, typecode *code, tfloat4 *velrhopnew, tsymatrix3f *taunew, float *massnew)const
+{
+	const double dt205 = 0.5*dt*dt;
+	const int pini = int(Npb), pfin = int(Np), npf = int(Np - Npb);
+
+
+#ifdef OMP_USE
+#pragma omp parallel for schedule (static) if(npf>OMP_LIMIT_COMPUTESTEP)
+#endif
+	for (int p = pini; p<pfin; p++) {
+		// Calcul mass variation
+		const float volu = float(double(mass1[p]) / double(velrhop1[p].w));
+		const float adens = float(LambdaMass * (RhopZero / velrhop1[p].w - 1.0f));
+
+		//-Calculate density. | Calcula densidad.
+		const float rhopnew = float(double(velrhop2[p].w) + dt2 * (Arc[p] + adens));
+
+		if (!WithFloating || CODE_IsFluid(code[p])) {//-Fluid Particles.
+													 //-Calculate displacement and update position. | Calcula desplazamiento y actualiza posicion.
+			double dx = double(velrhop1[p].x)*dt + double(Acec[p].x)*dt205;
+			double dy = double(velrhop1[p].y)*dt + double(Acec[p].y)*dt205;
+			double dz = double(velrhop1[p].z)*dt + double(Acec[p].z)*dt205;
+
+			if (shift) {
+				dx += double(ShiftPosc[p].x);
+				dy += double(ShiftPosc[p].y);
+				dz += double(ShiftPosc[p].z);
+			}
+			bool outrhop = (rhopnew<RhopOutMin || rhopnew>RhopOutMax);
+			//	printf("rvell ,race = %f,%f,%f,%f,%f,%f", velrhop1[p].x, velrhop1[p].y, velrhop1[p].z, Acec[p].x, Acec[p].y, Acec[p].z);
+			UpdatePos(pos[p], dx, dy, dz, outrhop, p, pos, dcell, code);
+
+			//-Update velocity & density. | Actualiza velocidad y densidad.
+			velrhopnew[p].x = float(double(velrhop2[p].x) + double(Acec[p].x)*dt2);
+			velrhopnew[p].y = float(double(velrhop2[p].y) + double(Acec[p].y)*dt2);
+			velrhopnew[p].z = float(double(velrhop2[p].z) + double(Acec[p].z)*dt2);
+			velrhopnew[p].w = rhopnew;
+
+			// Update Shear stress
+			taunew[p].xx = float(double(tau2[p].xx) + double(JauTauDot_M[p].xx)*dt2);
+			taunew[p].xy = float(double(tau2[p].xy) + double(JauTauDot_M[p].xy)*dt2);
+			taunew[p].xz = float(double(tau2[p].xz) + double(JauTauDot_M[p].xz)*dt2);
+			taunew[p].yy = float(double(tau2[p].yy) + double(JauTauDot_M[p].yy)*dt2);
+			taunew[p].yz = float(double(tau2[p].yz) + double(JauTauDot_M[p].yz)*dt2);
+			taunew[p].zz = float(double(tau2[p].zz) + double(JauTauDot_M[p].zz)*dt2);
+
+
+			// update Ellip
+			Ellipc_T[p].a.x = float(double(Ellipc_T[p].a.x) + double(EllipDot_T[p].a.x)*dt2);
+			Ellipc_T[p].a.y = float(double(Ellipc_T[p].a.y) + double(EllipDot_T[p].a.y)*dt2);
+			Ellipc_T[p].a.z = float(double(Ellipc_T[p].a.z) + double(EllipDot_T[p].a.z)*dt2);
+			Ellipc_T[p].b.x = float(double(Ellipc_T[p].b.x) + double(EllipDot_T[p].b.x)*dt2);
+			Ellipc_T[p].b.y = float(double(Ellipc_T[p].b.y) + double(EllipDot_T[p].b.y)*dt2);
+			Ellipc_T[p].b.z = float(double(Ellipc_T[p].b.z) + double(EllipDot_T[p].b.z)*dt2);
+			Ellipc_T[p].c.x = float(double(Ellipc_T[p].c.x) + double(EllipDot_T[p].c.x)*dt2);
+			Ellipc_T[p].c.y = float(double(Ellipc_T[p].c.y) + double(EllipDot_T[p].c.y)*dt2);
+			Ellipc_T[p].c.z = float(double(Ellipc_T[p].c.z) + double(EllipDot_T[p].c.z)*dt2);
+
+			// Update mass
 			massnew[p] = float(double(mass2[p]) + dt2 * double(adens*volu));
 
 		}
@@ -5481,7 +5591,7 @@ void JSphSolidCpu::ComputeVerlet(double dt) {
 		ComputeVelrhopBound(Velrhopc, dt, VelrhopM1c);
 		VerletStep = 0;
 	}*/
-	if (VerletStep<VerletSteps) {
+	/*if (VerletStep<VerletSteps) {
 		const double twodt = dt + dt;
 		if (TShifting)ComputeVerletVarsSolMass_M<true>(Velrhopc, VelrhopM1c, JauTauc2_M, JauTauM1c2_M, Massc_M, MassM1c_M, dt, twodt, Posc, Dcellc, Codec, VelrhopM1c, JauTauc2_M, MassM1c_M);
 		else         ComputeVerletVarsSolMass_M<false>(Velrhopc, VelrhopM1c, JauTauc2_M, JauTauM1c2_M, Massc_M, MassM1c_M, dt, twodt, Posc, Dcellc, Codec, VelrhopM1c, JauTauc2_M, MassM1c_M);
@@ -5490,6 +5600,18 @@ void JSphSolidCpu::ComputeVerlet(double dt) {
 	else {
 		if (TShifting)ComputeVerletVarsSolMass_M<true>(Velrhopc, Velrhopc, JauTauc2_M, JauTauc2_M, Massc_M, Massc_M, dt, dt, Posc, Dcellc, Codec, VelrhopM1c, JauTauc2_M, Massc_M);
 		else         ComputeVerletVarsSolMass_M<false>(Velrhopc, Velrhopc, JauTauc2_M, JauTauc2_M, Massc_M, Massc_M, dt, dt, Posc, Dcellc, Codec, VelrhopM1c, JauTauc2_M, Massc_M);
+		ComputeVelrhopBound(Velrhopc, dt, VelrhopM1c);
+		VerletStep = 0;
+	}*/
+	if (VerletStep<VerletSteps) {
+		const double twodt = dt + dt;
+		if (TShifting)ComputeVerletVarsSolMass_T<true>(Velrhopc, VelrhopM1c, JauTauc2_M, JauTauM1c2_M, Massc_M, MassM1c_M, dt, twodt, Posc, Dcellc, Codec, VelrhopM1c, JauTauc2_M, MassM1c_M);
+		else         ComputeVerletVarsSolMass_T<false>(Velrhopc, VelrhopM1c, JauTauc2_M, JauTauM1c2_M, Massc_M, MassM1c_M, dt, twodt, Posc, Dcellc, Codec, VelrhopM1c, JauTauc2_M, MassM1c_M);
+		ComputeVelrhopBound(VelrhopM1c, twodt, VelrhopM1c);
+	}
+	else {
+		if (TShifting)ComputeVerletVarsSolMass_T<true>(Velrhopc, Velrhopc, JauTauc2_M, JauTauc2_M, Massc_M, Massc_M, dt, dt, Posc, Dcellc, Codec, VelrhopM1c, JauTauc2_M, Massc_M);
+		else         ComputeVerletVarsSolMass_T<false>(Velrhopc, Velrhopc, JauTauc2_M, JauTauc2_M, Massc_M, Massc_M, dt, dt, Posc, Dcellc, Codec, VelrhopM1c, JauTauc2_M, Massc_M);
 		ComputeVelrhopBound(Velrhopc, dt, VelrhopM1c);
 		VerletStep = 0;
 	}
