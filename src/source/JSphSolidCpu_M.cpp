@@ -200,7 +200,7 @@ void JSphSolidCpu::AllocCpuMemoryParticles(unsigned np, float over) {
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_4B, 4); // SaveFields
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_12B, 1); // Press3D
 	// Thibaud
-	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_72B, 3); // Ellip - EllipDo
+	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_36B, 3); // Ellip - EllipDo
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_36B, 2); // GradU
 
 
@@ -234,7 +234,7 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	tsymatrix3f *jautau2 = SaveArrayCpu(Np, JauTauc2_M);
 	tsymatrix3f *jautaum12 = SaveArrayCpu(Np, JauTauM1c2_M);
 	// Thibaud
-	tvect3d *ellip = SaveArrayCpu(Np, Ellipc_T);
+	tmatrix3f *ellip = SaveArrayCpu(Np, Ellipc_T);
 	tmatrix3f *gradup = SaveArrayCpu(Np, Gradu_T);
 
 	//-Frees pointers.
@@ -284,7 +284,7 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	//JauTauc_M = ArraysCpu->ReserveMatrix3f_M();
 	JauTauc2_M = ArraysCpu->ReserveSymatrix3f();
 	// Thibaud
-	Ellipc_T = ArraysCpu->ReserveTVect3_T();
+	Ellipc_T = ArraysCpu->ReserveMatrix3f_M();
 	Gradu_T = ArraysCpu->ReserveMatrix3f_M();
 
 	if (velrhopm1) JauTauM1c2_M = ArraysCpu->ReserveSymatrix3f();
@@ -366,7 +366,7 @@ void JSphSolidCpu::ReserveBasicArraysCpu() {
 	//JauTauc_M = ArraysCpu->ReserveMatrix3f_M();
 	JauTauc2_M = ArraysCpu->ReserveSymatrix3f();
 	// Thibaud
-	Ellipc_T = ArraysCpu->ReserveTVect3_T();
+	Ellipc_T = ArraysCpu->ReserveMatrix3f_M();
 	Gradu_T = ArraysCpu->ReserveMatrix3f_M();
 }
 
@@ -464,7 +464,7 @@ unsigned JSphSolidCpu::GetParticlesData(unsigned n, unsigned pini, bool cellorde
 /// - onlynormal: Solo se queda con las normales, elimina las particulas periodicas.
 //==============================================================================
 unsigned JSphSolidCpu::GetParticlesData_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
-	, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, tfloat3 *press, float* mass, tsymatrix3f *tau, typecode *code, tvect3d *ellip)
+	, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, tfloat3 *press, float* mass, tsymatrix3f *tau, typecode *code, tmatrix3f *ellip)
 {
 	const char met[] = "GetParticlesData";
 	unsigned num = n;
@@ -497,22 +497,30 @@ unsigned JSphSolidCpu::GetParticlesData_M(unsigned n, unsigned pini, bool cellor
 	if (mass)memcpy(mass, Massc_M + pini, sizeof(float)*n);
 	if (tau)memcpy(tau, JauTauc2_M + pini, sizeof(tsymatrix3f)*n);
 	if (ellip) {
+		double normea0 = sqrt(Norme2(TDouble3(Ellipc_T[0].a11, Ellipc_T[0].a12, Ellipc_T[0].a13)));
+		double normeb0 = sqrt(Norme2(TDouble3(Ellipc_T[0].a21, Ellipc_T[0].a22, Ellipc_T[0].a23)));
+		double normec0 = sqrt(Norme2(TDouble3(Ellipc_T[0].a31, Ellipc_T[0].a32, Ellipc_T[0].a33)));
+
+		double normeaN2 = sqrt(Norme2(TDouble3(Ellipc_T[n / 2].a11, Ellipc_T[n / 2].a12, Ellipc_T[n / 2].a13)));
+		double normebN2 = sqrt(Norme2(TDouble3(Ellipc_T[n / 2].a21, Ellipc_T[n / 2].a22, Ellipc_T[n / 2].a23)));
+		double normecN2 = sqrt(Norme2(TDouble3(Ellipc_T[n / 2].a31, Ellipc_T[n / 2].a32, Ellipc_T[n / 2].a33)));
 		//printf("\nJSphSolidCpu::GetParticlesData_M--------- ellip[0].a.x : %1.16f", ellip[0].a.x);
 		//printf("\nJSphSolidCpu::GetParticlesData_M--------- ellip[0].a.y : %1.16f", ellip[0].a.y);
 		//printf("\nJSphSolidCpu::GetParticlesData_M--------- ellip[0].a.x : %1.16f", ellip[0].a.x);
-		printf("\nJSphSolidCpu::GetParticlesData_M--- norme ellip[0].a : %1.16f", Norme2(Ellipc_T[1].a));
+		//printf("\nJSphSolidCpu::GetParticlesData_M--- norme ellip[0].a : %1.7f", normea);
 		//printf("\nJSphSolidCpu::GetParticlesData_M--------- ellip[0].b.x : %1.16f", ellip[0].b.x);
 		//printf("\nJSphSolidCpu::GetParticlesData_M--------- ellip[0].b.y : %1.16f", ellip[0].b.y);
 		//printf("\nJSphSolidCpu::GetParticlesData_M--------- ellip[0].b.z : %1.16f", ellip[0].b.z);
-		printf("\nJSphSolidCpu::GetParticlesData_M--- norme ellip[0].b : %1.16f", Norme2(Ellipc_T[1].b));
+		//printf("\nJSphSolidCpu::GetParticlesData_M--- norme ellip[0].b : %1.7f", normeb);
 		//printf("\nJSphSolidCpu::GetParticlesData_M--------- ellip[0].c.x : %1.16f", ellip[0].c.x);
 		//printf("\nJSphSolidCpu::GetParticlesData_M--------- ellip[0].c.y : %1.16f", ellip[0].c.y);
 		//printf("\nJSphSolidCpu::GetParticlesData_M--------- ellip[0].c.z : %1.16f", ellip[0].c.z);
-		printf("\nJSphSolidCpu::GetParticlesData_M--- norme ellip[0].c : %1.16f\n", Norme2(Ellipc_T[1].c));
-		printf("\nJSphSolidCpu::GetParticlesData_M--- volume ellip[0] : %1.16f", (4/3*3.1415*sqrt(Norme2(Ellipc_T[1].a))*sqrt(Norme2(Ellipc_T[1].b))*sqrt(Norme2(Ellipc_T[1].c))) / (4 / 3 * 3.1415*0.001));
-		printf("\nJSphSolidCpu::GetParticlesData_M--- volume vol[0] : %1.16f\n", (Massc_M[1]/Velrhopc[1].w) / (8 / RhopZero));
+		//printf("\nJSphSolidCpu::GetParticlesData_M--- norme ellip[0].c : %1.7f\n", normec);
+		printf("volume   ellip[0] : %1.7f    vol[0] : %1.7f", (4/3*3.1415*normea0*normeb0*normec0) / (4 / 3 * 3.1415*0.001), (Massc_M[0]/Velrhopc[0].w) / (8 / RhopZero));
 
-		memcpy(ellip, Ellipc_T + pini, sizeof(tvect3d)*n);
+		printf("\nvolume ellip[n/2] : %1.7f  vol[n/2] : %1.7f\n", (4 / 3 * 3.1415*normeaN2*normebN2*normecN2) / (4 / 3 * 3.1415*0.001), (Massc_M[n / 2] / Velrhopc[n / 2].w) / (8 / RhopZero));
+
+		memcpy(ellip, Ellipc_T + pini, sizeof(tmatrix3f)*n);
 	}
 
 	//-Eliminate non-normal particles (periodic & others). | Elimina particulas no normales (periodicas y otras).
@@ -614,32 +622,22 @@ void JSphSolidCpu::InitRun() {
 		MassM1c_M[p] = MassFluid;	
 	}
 
-	Ellipc_T[0].a.x = 100;
-	Ellipc_T[0].a.y = 0;
-	Ellipc_T[0].a.z = 0;
-	//vect 2
-	Ellipc_T[0].b.x = 0;
-	Ellipc_T[0].b.y = 100;
-	Ellipc_T[0].b.z = 0;
-	//vect 3
-	Ellipc_T[0].c.x = 0;
-	Ellipc_T[0].c.y = 0;
-	Ellipc_T[0].c.z = 100;
+	
 	// Thibaud
 	//initialisation : sphere
-	for (unsigned p = 1; p < Np; p++) {
+	for (unsigned p = 0; p < Np; p++) {
 		//vect 1
-		Ellipc_T[p].a.x = Dp / 2;
-		Ellipc_T[p].a.y = 0;
-		Ellipc_T[p].a.z = 0;
+		Ellipc_T[p].a11 = Dp / 2;
+		Ellipc_T[p].a12 = 0;
+		Ellipc_T[p].a13 = 0;
 		//vect 2
-		Ellipc_T[p].b.x = 0;
-		Ellipc_T[p].b.y = Dp / 2;
-		Ellipc_T[p].b.z = 0;
+		Ellipc_T[p].a21 = 0;
+		Ellipc_T[p].a22 = Dp / 2;
+		Ellipc_T[p].a23 = 0;
 		//vect 3
-		Ellipc_T[p].c.x = 0;
-		Ellipc_T[p].c.y = 0;
-		Ellipc_T[p].c.z = Dp / 2;
+		Ellipc_T[p].a31 = 0;
+		Ellipc_T[p].a32 = 0;
+		Ellipc_T[p].a33 = Dp / 2;
 	}
 	// gradU
 	memset(Gradu_T, 0, sizeof(tmatrix3f)*Np);
@@ -945,7 +943,7 @@ void JSphSolidCpu::PreInteraction_Forces(TpInter tinter) {
 	JauOmega_M = ArraysCpu->ReserveSymatrix3f();
 	// Thibaud	
 	Gradu_T = ArraysCpu->ReserveMatrix3f_M();
-	EllipDot_T = ArraysCpu->ReserveTVect3_T();
+	EllipDot_T = ArraysCpu->ReserveMatrix3f_M();
 
 	//-Prepare values for interaction Pos-Simpe.
 	if (Psingle) {
@@ -2308,15 +2306,15 @@ void JSphSolidCpu::ComputeJauEllips_T(unsigned n, unsigned pini)const {
 	for (int p = int(pini); p < pfin; p++) {
 		const tmatrix3f tau = Gradu_T[p];
 
-		EllipDot_T[p].a.x =    Ellipc_T[p].a.x * tau.a11  +  Ellipc_T[p].a.y * tau.a21  +  Ellipc_T[p].a.z * tau.a31;
-		EllipDot_T[p].a.y =    Ellipc_T[p].a.x * tau.a12  +  Ellipc_T[p].a.y * tau.a22  +  Ellipc_T[p].a.z * tau.a32;
-		EllipDot_T[p].a.z =    Ellipc_T[p].a.x * tau.a13  +  Ellipc_T[p].a.y * tau.a23  +  Ellipc_T[p].a.z * tau.a33;
-		EllipDot_T[p].b.x =    Ellipc_T[p].b.x * tau.a11  +  Ellipc_T[p].b.y * tau.a21  +  Ellipc_T[p].b.z * tau.a31;
-		EllipDot_T[p].b.y =    Ellipc_T[p].b.x * tau.a12  +  Ellipc_T[p].b.y * tau.a22  +  Ellipc_T[p].b.z * tau.a32;
-		EllipDot_T[p].b.z =    Ellipc_T[p].b.x * tau.a13  +  Ellipc_T[p].b.y * tau.a23  +  Ellipc_T[p].b.z * tau.a33;
-		EllipDot_T[p].c.x =    Ellipc_T[p].c.x * tau.a11  +  Ellipc_T[p].c.y * tau.a21  +  Ellipc_T[p].c.z * tau.a31;
-		EllipDot_T[p].c.y =    Ellipc_T[p].c.x * tau.a12  +  Ellipc_T[p].c.y * tau.a22  +  Ellipc_T[p].c.z * tau.a32;
-		EllipDot_T[p].c.z =    Ellipc_T[p].c.x * tau.a13  +  Ellipc_T[p].c.y * tau.a23  +  Ellipc_T[p].c.z * tau.a33;
+		EllipDot_T[p].a11 =    Ellipc_T[p].a11 * tau.a11  +  Ellipc_T[p].a12 * tau.a21  +  Ellipc_T[p].a13 * tau.a31;
+		EllipDot_T[p].a12 =    Ellipc_T[p].a11 * tau.a12  +  Ellipc_T[p].a12 * tau.a22  +  Ellipc_T[p].a13 * tau.a32;
+		EllipDot_T[p].a13 =    Ellipc_T[p].a11 * tau.a13  +  Ellipc_T[p].a12 * tau.a23  +  Ellipc_T[p].a13 * tau.a33;
+		EllipDot_T[p].a21 =    Ellipc_T[p].a21 * tau.a11  +  Ellipc_T[p].a22 * tau.a21  +  Ellipc_T[p].a23 * tau.a31;
+		EllipDot_T[p].a22 =    Ellipc_T[p].a21 * tau.a12  +  Ellipc_T[p].a22 * tau.a22  +  Ellipc_T[p].a23 * tau.a32;
+		EllipDot_T[p].a23 =    Ellipc_T[p].a21 * tau.a13  +  Ellipc_T[p].a22 * tau.a23  +  Ellipc_T[p].a23 * tau.a33;
+		EllipDot_T[p].a31 =    Ellipc_T[p].a31 * tau.a11  +  Ellipc_T[p].a32 * tau.a21  +  Ellipc_T[p].a33 * tau.a31;
+		EllipDot_T[p].a32 =    Ellipc_T[p].a31 * tau.a12  +  Ellipc_T[p].a32 * tau.a22  +  Ellipc_T[p].a33 * tau.a32;
+		EllipDot_T[p].a33 =    Ellipc_T[p].a31 * tau.a13  +  Ellipc_T[p].a32 * tau.a23  +  Ellipc_T[p].a33 * tau.a33;
 																											
 	}
 }
@@ -5387,15 +5385,15 @@ template<bool shift> void JSphSolidCpu::ComputeVerletVarsSolMass_T(const tfloat4
 
 
 			// update Ellip
-			Ellipc_T[p].a.x = float(double(Ellipc_T[p].a.x) + double(EllipDot_T[p].a.x)*dt2);
-			Ellipc_T[p].a.y = float(double(Ellipc_T[p].a.y) + double(EllipDot_T[p].a.y)*dt2);
-			Ellipc_T[p].a.z = float(double(Ellipc_T[p].a.z) + double(EllipDot_T[p].a.z)*dt2);
-			Ellipc_T[p].b.x = float(double(Ellipc_T[p].b.x) + double(EllipDot_T[p].b.x)*dt2);
-			Ellipc_T[p].b.y = float(double(Ellipc_T[p].b.y) + double(EllipDot_T[p].b.y)*dt2);
-			Ellipc_T[p].b.z = float(double(Ellipc_T[p].b.z) + double(EllipDot_T[p].b.z)*dt2);
-			Ellipc_T[p].c.x = float(double(Ellipc_T[p].c.x) + double(EllipDot_T[p].c.x)*dt2);
-			Ellipc_T[p].c.y = float(double(Ellipc_T[p].c.y) + double(EllipDot_T[p].c.y)*dt2);
-			Ellipc_T[p].c.z = float(double(Ellipc_T[p].c.z) + double(EllipDot_T[p].c.z)*dt2);
+			Ellipc_T[p].a11 = float(double(Ellipc_T[p].a11) + double(EllipDot_T[p].a11)*dt2);
+			Ellipc_T[p].a12 = float(double(Ellipc_T[p].a12) + double(EllipDot_T[p].a12)*dt2);
+			Ellipc_T[p].a13 = float(double(Ellipc_T[p].a13) + double(EllipDot_T[p].a13)*dt2);
+			Ellipc_T[p].a21 = float(double(Ellipc_T[p].a21) + double(EllipDot_T[p].a21)*dt2);
+			Ellipc_T[p].a22 = float(double(Ellipc_T[p].a22) + double(EllipDot_T[p].a22)*dt2);
+			Ellipc_T[p].a23 = float(double(Ellipc_T[p].a23) + double(EllipDot_T[p].a23)*dt2);
+			Ellipc_T[p].a31 = float(double(Ellipc_T[p].a31) + double(EllipDot_T[p].a31)*dt2);
+			Ellipc_T[p].a32 = float(double(Ellipc_T[p].a32) + double(EllipDot_T[p].a32)*dt2);
+			Ellipc_T[p].a33 = float(double(Ellipc_T[p].a33) + double(EllipDot_T[p].a33)*dt2);
 
 			// Update mass
 			massnew[p] = float(double(mass2[p]) + dt2 * double(adens*volu));

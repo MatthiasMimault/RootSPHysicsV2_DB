@@ -1536,7 +1536,7 @@ void JSphCpuSingle::SaveData_M() {
 	float *volu = NULL;
 	tfloat3 *press = NULL;
 	tsymatrix3f *tau = NULL;
-	tvect3d *ellip = NULL;
+	tmatrix3f *ellip = NULL;
 
 	if (save) {
 		//-Assign memory and collect particle values. | Asigna memoria y recupera datos de las particulas.
@@ -1549,7 +1549,7 @@ void JSphCpuSingle::SaveData_M() {
 		volu = ArraysCpu->ReserveFloat();
 		press = ArraysCpu->ReserveFloat3();
 		tau = ArraysCpu->ReserveSymatrix3f();
-		ellip = ArraysCpu->ReserveTVect3_T();
+		ellip = ArraysCpu->ReserveMatrix3f_M();
 
 		unsigned npnormal = GetParticlesData_M(Np, 0, true, PeriActive != 0, idp, pos, vel, rhop, pore, press, mass, tau, NULL, ellip);
 		if (npnormal != npsave)RunException("SaveData", "The number of particles is invalid.");

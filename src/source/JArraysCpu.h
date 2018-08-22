@@ -130,8 +130,6 @@ public:
   //Matthias
   tmatrix3f*   ReserveMatrix3f_M(){ return((tmatrix3f*)Arrays36b->Reserve());   }
   bool*        ReserveBool(){		return((bool*)Arrays1b->Reserve());         }
-  //Thibaud
-  tvect3d*     ReserveTVect3_T() {  return((tvect3d*)Arrays72b->Reserve());     }
   
 
 #ifdef CODE_SIZE4
@@ -154,8 +152,6 @@ public:
   void Free(tsymatrix3f *pointer){ Arrays24b->Free(pointer); }
   // Matthias
   void Free(tmatrix3f   *pointer){ Arrays36b->Free(pointer); }
-  // Thibaud
-  void Free(tvect3d     *pointer) { Arrays72b->Free(pointer);}
 };
 #endif
 
