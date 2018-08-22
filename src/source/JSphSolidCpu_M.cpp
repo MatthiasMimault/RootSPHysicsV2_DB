@@ -509,8 +509,8 @@ unsigned JSphSolidCpu::GetParticlesData_M(unsigned n, unsigned pini, bool cellor
 		//printf("\nJSphSolidCpu::GetParticlesData_M--------- ellip[0].c.y : %1.16f", ellip[0].c.y);
 		//printf("\nJSphSolidCpu::GetParticlesData_M--------- ellip[0].c.z : %1.16f", ellip[0].c.z);
 		printf("\nJSphSolidCpu::GetParticlesData_M--- norme ellip[0].c : %1.16f\n", Norme2(Ellipc_T[1].c));
-		printf("\nJSphSolidCpu::GetParticlesData_M--- volume ellip[0] :");// %1.16f\n", );
-		printf("\nJSphSolidCpu::GetParticlesData_M--- volume vol[0] : %1.16f\n", Massc_M[1]/Velrhopc[1].w);
+		printf("\nJSphSolidCpu::GetParticlesData_M--- volume ellip[0] : %1.16f", (4/3*3.1415*sqrt(Norme2(Ellipc_T[1].a))*sqrt(Norme2(Ellipc_T[1].b))*sqrt(Norme2(Ellipc_T[1].c))) / (4 / 3 * 3.1415*0.001));
+		printf("\nJSphSolidCpu::GetParticlesData_M--- volume vol[0] : %1.16f\n", (Massc_M[1]/Velrhopc[1].w) / (8 / RhopZero));
 
 		memcpy(ellip, Ellipc_T + pini, sizeof(tvect3d)*n);
 	}
