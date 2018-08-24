@@ -190,6 +190,13 @@ protected:
   float *Pressg;
   float3 *Press3Dc;
 
+  // CPU ellipse
+  tmatrix3f *Ellipc;
+  // GPU ellipse
+  tmatrix3f *gradu_T;
+  tmatrix3f *Ellipg;
+  tmatrix3f *Ellipdot;
+
   
   TimersGpu Timers;  ///<Declares an array with timers for CPU (type structure \ref StSphTimerGpu).
 

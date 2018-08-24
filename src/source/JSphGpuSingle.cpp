@@ -271,6 +271,21 @@ void JSphGpuSingle::ConfigDomain(){
   memcpy(Velrhop,PartsLoaded->GetVelRhop(),sizeof(tfloat4)*Np);
   for (int i = 0; i < Np; i++) { Mass[i] = MassFluid; }
 
+  // Calculation ellipse
+  for (unsigned p = 0; p < Np; p++) {
+	  //vect 1
+	  Ellipc[p].a11 = Dp / 2;
+	  Ellipc[p].a12 = 0;
+	  Ellipc[p].a13 = 0;
+	  //vect 2
+	  Ellipc[p].a21 = 0;
+	  Ellipc[p].a22 = Dp / 2;
+	  Ellipc[p].a23 = 0;
+	  //vect 3
+	  Ellipc[p].a31 = 0;
+	  Ellipc[p].a32 = 0;
+	  Ellipc[p].a33 = Dp / 2;
+  }
   //-Computes radius of floating bodies.
   if(CaseNfloat && PeriActive!=0 && !PartBegin)CalcFloatingRadius(Np,AuxPos,Idp);
 
@@ -343,6 +358,9 @@ void JSphGpuSingle::ConfigDomain_Tgpu(JPartsLoad4 *pl) {
 		for (unsigned p = 0; p < Np; p++) {
 			Mass[p] = pl->GetMass()[p];
 		}
+
+	// Compute ellipse
+
 
 	//-Computes radius of floating bodies.
 	if (CaseNfloat && PeriActive != 0 && !PartBegin)CalcFloatingRadius(Np, AuxPos, Idp);
@@ -611,7 +629,7 @@ void JSphGpuSingle::Interaction_Forces(TpInter tinter){
  //cusph::Interaction_Forces(Psingle,TKernel,WithFloating,UseDEM,lamsps,TDeltaSph,CellMode,Visco*ViscoBoundFactor,Visco,bsbound,bsfluid,Np,Npb,NpbOk,CellDivSingle->GetNcells(),CellDivSingle->GetBeginCell(),CellDivSingle->GetCellDomainMin(),Dcellg,Posxyg,Poszg,PsPospressg,Velrhopg,Codeg,Idpg,FtoMasspg,SpsTaug,SpsGradvelg,ViscDtg,Arg,Aceg,Deltag,TShifting,ShiftPosg,ShiftDetectg,Simulate2D,NULL,NULL);
 
   //-Interaction Lucas Sol 
- cuSol::Interaction_Forces_M(TKernel, WithFloating, TShifting, TVisco, TDeltaSph, UseDEM, CellMode, Visco*ViscoBoundFactor, Visco, bsbound, bsfluid, Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellg, Posxyg, Poszg, PsPospressg, Velrhopg, Idpg, Codeg, JauTauc2_M, JauGradvelc2_M, JauOmega_M, JauTauc2_M, JauGradvelc2_M, JauTauDot_M, JauOmega_M, ViscDtg, Arg, Aceg, Deltag, ShiftPosg, ShiftDetectg, Simulate2D, NULL, NULL, Pressg, Porec_M, Massc_M, AnisotropyG_M, Mu, FtoMasspg);
+ cuSol::Interaction_Forces_M(TKernel, WithFloating, TShifting, TVisco, TDeltaSph, UseDEM, CellMode, Visco*ViscoBoundFactor, Visco, bsbound, bsfluid, Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellg, Posxyg, Poszg, PsPospressg, Velrhopg, Idpg, Codeg, JauTauc2_M, JauGradvelc2_M, JauOmega_M, JauTauc2_M, JauGradvelc2_M, JauTauDot_M, JauOmega_M, ViscDtg, Arg, Aceg, Deltag, gradu_T, Ellipg,Ellipdot, ShiftPosg, ShiftDetectg, Simulate2D, NULL, NULL, Pressg, Porec_M, Massc_M, AnisotropyG_M, Mu, FtoMasspg);
 
   //-Interaction DEM Floating-Bound & Floating-Floating.//(DEM) ..
   if(UseDEM)cusph::Interaction_ForcesDem(Psingle,CellMode,BlockSizes.forcesdem,CaseNfloat,CellDivSingle->GetNcells(),CellDivSingle->GetBeginCell(),CellDivSingle->GetCellDomainMin(),Dcellg,FtRidpg,DemDatag,float(DemDtForce),Posxyg,Poszg,PsPospressg,Velrhopg,Codeg,Idpg,ViscDtg,Aceg,NULL);

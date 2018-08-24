@@ -245,6 +245,7 @@ void JSphGpu::AllocCpuMemoryParticles(unsigned np){
       AuxVel=new tfloat3[np];    MemCpuParticles+=sizeof(tfloat3)*np;
       AuxRhop=new float[np];     MemCpuParticles+=sizeof(float)*np;
 	  Mass = new float[np];     MemCpuParticles += sizeof(float)*np;
+	  Ellipc = new tmatrix3f[np];     MemCpuParticles += sizeof(tmatrix3f)*np;
     }
     catch(const std::bad_alloc){
       RunException(met,fun::PrintStr("Could not allocate the requested memory (np=%u).",np));
@@ -312,6 +313,7 @@ void JSphGpu::AllocGpuMemoryParticles(unsigned np,float over){
   ArraysGpu->AddArrayCount(JArraysGpu::SIZE_24B, 4); //-JauGradvel, JauTau2, Omega and Taudot
   ArraysGpu->AddArrayCount(JArraysGpu::SIZE_4B, 4); // SaveFields
   ArraysGpu->AddArrayCount(JArraysGpu::SIZE_12B, 1); // Press3D
+  ArraysGpu->AddArrayCount(JArraysGpu::SIZE_36B, 3); // gradu & ellipg & ellipdot
   //-Shows the allocated memory.
   MemGpuParticles=ArraysGpu->GetAllocMemoryGpu();
   PrintSizeNp(GpuParticlesSize,MemGpuParticles);
@@ -430,6 +432,9 @@ void JSphGpu::ReserveBasicArraysGpu(){
   Massc_M = ArraysGpu->ReserveFloat();
   //JauTauc_M = ArraysCpu->ReserveMatrix3f_M();
   JauTauc2_M = ArraysGpu->ReserveSymatrix3f();
+  gradu_T = ArraysGpu->ReserveMatrix3f_M();
+  Ellipg = ArraysGpu->ReserveMatrix3f_M();
+  Ellipdot = ArraysGpu->ReserveMatrix3f_M();
 }
 
 //==============================================================================
@@ -535,6 +540,7 @@ void JSphGpu::ParticlesDataUp(unsigned n){
   cudaMemcpy(Poszg   ,Posz   ,sizeof(double)*n  ,cudaMemcpyHostToDevice);
   cudaMemcpy(Velrhopg,Velrhop,sizeof(float4)*n  ,cudaMemcpyHostToDevice);
   cudaMemcpy(Massc_M, Mass, sizeof(float)*n, cudaMemcpyHostToDevice);
+  cudaMemcpy(Ellipg, Ellipc, sizeof(tmatrix3f)*n, cudaMemcpyHostToDevice);
   CheckCudaError("ParticlesDataUp","Failed copying data to GPU.");
 }
 
@@ -798,8 +804,8 @@ void JSphGpu::InitFloating(){
   }
 }
 //==============================================================================
-/// Initialisation of arrays and variables for execution.
-/// Inicializa vectores y variables para la ejecucion.
+/// Initialisation of arrays and variables for execution
+/// Inicializa vectores y variables para la ejecucion
 //==============================================================================
 
 void JSphGpu::InitRun() {
@@ -818,6 +824,8 @@ void JSphGpu::InitRun() {
 	cudaMemset(JauTauc2_M, 0, sizeof(tsymatrix3f)*Np);
 	cudaMemset(Divisionc_M, 0, sizeof(bool)*Np);
 	cudaMemcpy(MassM1c_M, Massc_M, sizeof(float)*Np, cudaMemcpyDeviceToDevice);
+	cudaMemset(Ellipdot, 0, sizeof(tmatrix3f)*Np);
+	cudaMemset(gradu_T, 0, sizeof(tmatrix3f)*Np);
 	cudaDeviceSynchronize();
 	if (UseDEM)DemDtForce = DtIni; //(DEM )
 	if (CaseNfloat)InitFloating();
@@ -1104,11 +1112,11 @@ void JSphGpu::ComputeVerlet(double dt){
   //-Calcula desplazamiento, velocidad y densidad.
   if(VerletStep<VerletSteps){
     const double twodt=dt+dt;
-    cuSol::ComputeStepVerlet_L(WithFloating,shift,Np,Npb,Velrhopg,VelrhopM1g,Arg,Aceg,ShiftPosg,dt,twodt,RhopOutMin,RhopOutMax,Codeg,movxyg,movzg,VelrhopM1g, JauTauM1c2_M,JauTauDot_M, JauTauc2_M, Massc_M, MassM1c_M, MassM1c_M, LambdaMass, RhopZero);
+    cuSol::ComputeStepVerlet_L(WithFloating,shift,Np,Npb,Velrhopg,VelrhopM1g,Arg,Aceg,ShiftPosg,dt,twodt,RhopOutMin,RhopOutMax,Codeg,movxyg,movzg,VelrhopM1g, JauTauM1c2_M,JauTauDot_M, JauTauc2_M, Massc_M, MassM1c_M, MassM1c_M, LambdaMass, RhopZero,Ellipg,Ellipdot);
 	cuSol::ComputeVelrhopBound(Npb, VelrhopM1g, twodt, VelrhopM1g, Arg, RhopZero);
   }
   else{
-    cuSol::ComputeStepVerlet_L(WithFloating,shift,Np,Npb,Velrhopg,Velrhopg,Arg,Aceg,ShiftPosg,dt,dt,RhopOutMin,RhopOutMax,Codeg,movxyg,movzg,VelrhopM1g, JauTauc2_M, JauTauDot_M, JauTauc2_M, Massc_M,Massc_M, Massc_M, LambdaMass, RhopZero);
+    cuSol::ComputeStepVerlet_L(WithFloating,shift,Np,Npb,Velrhopg,Velrhopg,Arg,Aceg,ShiftPosg,dt,dt,RhopOutMin,RhopOutMax,Codeg,movxyg,movzg,VelrhopM1g, JauTauc2_M, JauTauDot_M, JauTauc2_M, Massc_M,Massc_M, Massc_M, LambdaMass, RhopZero,Ellipg, Ellipdot);
 	cuSol::ComputeVelrhopBound(Npb, Velrhopg, dt, VelrhopM1g, Arg, RhopZero);
 	VerletStep=0;
   }

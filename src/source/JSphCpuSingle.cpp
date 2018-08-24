@@ -1347,7 +1347,7 @@ void JSphCpuSingle::RunGaugeSystem(double timestep){
 //==============================================================================
 /// Initialises execution of simulation.
 /// Inicia ejecucion de simulacion.
-//==============================================================================
+//===============================================================================
 void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
   const char* met="Run";
   if(!cfg||!log)return;
@@ -1440,7 +1440,7 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
     if(CaseNmoving)RunMotion(stepdt);
 
 	// Matthias - Cell division
-	//RunSizeDivision_M();
+	RunSizeDivision_M();
 	//RunDivisionDisplacement_M();
 	RunCellDivide(true);
 
