@@ -229,7 +229,7 @@ protected:
   float Ef, Et, Gf, nuf1, nuf2;
   float C1, C2, C3, C12, C13, C23, C4, C5, C6;
   float K;
-  tfloat3 CteB3D;
+  //tfloat3 CteB3D;
   // Pore
   float PoreZero;
   // Mass

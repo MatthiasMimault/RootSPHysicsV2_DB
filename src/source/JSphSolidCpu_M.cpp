@@ -462,13 +462,13 @@ unsigned JSphSolidCpu::GetParticlesData_M(unsigned n, unsigned pini, bool cellor
 
 	// Matthias
 	if (pore)memcpy(pore, Porec_M + pini, sizeof(float)*n); 
-	if (press) {
+	/*if (press) {
 		for (unsigned p = 0; p<n; p++) {
 			//tfloat3 pre = AnisotropyK_M * TFloat3(CteB * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f));
 			tfloat3 pre =CteB3D * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f);
 			press[p] = TFloat3(pre.x, pre.y, pre.z);
 		}
-	}
+	}*/
 	//if (press)memcpy(press, Press3Dc + pini, sizeof(tfloat3)*n); // Not used, but Pressure seems to be recorded anyway, as well for tau
 	if (mass)memcpy(mass, Massc_M + pini, sizeof(float)*n);
 	if (tau)memcpy(tau, JauTauc2_M + pini, sizeof(tsymatrix3f)*n);
