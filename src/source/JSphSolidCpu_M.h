@@ -336,14 +336,15 @@ protected:
 		, float &viscdt, float* ar, tfloat3 *ace, float *delta
 		, tsymatrix3f *jautau, tsymatrix3f *jaugradvel, tsymatrix3f *jautaudot, tsymatrix3f *jauomega
 		, tfloat3 *shiftpos, float *shiftdetect)const;
-	
-	void Interaction_Forces_M(unsigned np, unsigned npb, unsigned npbok
+
+	void InteractionSimple_Forces_M(unsigned np, unsigned npb, unsigned npbok
 		, tuint3 ncells, const unsigned *begincell, tuint3 cellmin, const unsigned *dcell
-		, const tdouble3 *pos, const tfloat4 *velrhop, const unsigned *idp, const typecode *code
-		, const tfloat3 *press, const float *pore, const float *mass
+		, const tfloat3 *pspos, const tfloat4 *velrhop, const unsigned *idp, const typecode *code
+		, const float *press, const float *pore, const float *mass
 		, float &viscdt, float* ar, tfloat3 *ace, float *delta
 		, tsymatrix3f *jautau, tsymatrix3f *jaugradvel, tsymatrix3f *jautaudot, tsymatrix3f *jauomega
 		, tfloat3 *shiftpos, float *shiftdetect)const;
+	
 
 	void InteractionSimple_Forces_M(unsigned np, unsigned npb, unsigned npbok
 		, tuint3 ncells, const unsigned *begincell, tuint3 cellmin, const unsigned *dcell
@@ -353,13 +354,6 @@ protected:
 		, tsymatrix3f *jautau, tsymatrix3f *jaugradvel, tsymatrix3f *jautaudot, tsymatrix3f *jauomega
 		, tfloat3 *shiftpos, float *shiftdetect)const;
 	
-	void InteractionSimple_Forces_M(unsigned np, unsigned npb, unsigned npbok
-		, tuint3 ncells, const unsigned *begincell, tuint3 cellmin, const unsigned *dcell
-		, const tfloat3 *pspos, const tfloat4 *velrhop, const unsigned *idp, const typecode *code
-		, const tfloat3 *press, const float *pore, const float *mass
-		, float &viscdt, float* ar, tfloat3 *ace, float *delta
-		, tsymatrix3f *jautau, tsymatrix3f *jaugradvel, tsymatrix3f *jautaudot, tsymatrix3f *jauomega
-		, tfloat3 *shiftpos, float *shiftdetect)const;
 
 	void InteractionSimple_Forces_M(unsigned np, unsigned npb, unsigned npbok
 		, tuint3 ncells, const unsigned *begincell, tuint3 cellmin, const unsigned *dcell

@@ -157,7 +157,6 @@ void JSph::InitVars(){
   PoreZero = RateBirth_M = Spread_M = 0; 
   LambdaMass = 0;
   SizeDivision_M = 0;
-  CteB3D = TFloat3(0);
   AnisotropyK_M = TFloat3(0);
   AnisotropyG_M = TSymatrix3f(0);
 
@@ -702,11 +701,11 @@ void JSph::LoadCaseConfig(){
   C1 = alpha1; C12 = alpha3; C13 = alpha3;
   C2 = alpha2 + alpha5; C23 = alpha2 - alpha5; C3 = alpha2 + alpha5;
   C4 = alpha5; C5 = alpha4; C6 = alpha4;
-  K = min(min(min(C1, C12), min(C13, C2)), min(C3, C23)) / 3.0f;
+ // K = min(min(min(C1, C12), min(C13, C2)), min(C3, C23)) / 3.0f;
+  K = ( C1 + C2 + C3 ) / 3.0f;
   
   // New B for anisotropy
   CteB = K / Gamma;
-  CteB3D = TFloat3((C1 + C12 + C13) / Gamma, (C2 + C12 + C23) / Gamma, (C3 + C13 + C23) / Gamma);
   // Pore
   PoreZero = (float)ctes.GetPoreZero();
   // Mass
@@ -1008,12 +1007,11 @@ void JSph::LoadCaseConfig_T() {
 	C1 = alpha1; C12 = alpha3; C13 = alpha3;
 	C2 = alpha2 + alpha5; C23 = alpha2 - alpha5; C3 = alpha2 + alpha5;
 	C4 = alpha5; C5 = alpha4; C6 = alpha4;
-	K = min(min(min(C1, C12), min(C13, C2)), min(C3, C23)) / 3.0f;
+	// K = min(min(min(C1, C12), min(C13, C2)), min(C3, C23)) / 3.0f;
+	K = (C1 + C2 + C3) / 3.0f;
 
 	// New B for anisotropy
 	CteB = K / Gamma;
-	CteB3D = TFloat3((C1 + C12 + C13) / Gamma, (C2 + C12 + C23) / Gamma, (C3 + C13 + C23) / Gamma);
-
 	// Pore
 	PoreZero = (float)ctes.GetPoreZero();
 	// Mass
@@ -1373,8 +1371,7 @@ void JSph::VisuConfig()const{
   Log->Print(fun::VarStr("Dx",Dp));
   Log->Print(fun::VarStr("H",H));
   Log->Print(fun::VarStr("CoefficientH",H/(Dp*sqrt(Simulate2D? 2.f: 3.f))));
-  //Log->Print(fun::VarStr("CteB",CteB));
-  Log->Print(fun::VarStr("CteB3D",CteB3D));
+  Log->Print(fun::VarStr("CteB",CteB));
   Log->Print(fun::VarStr("Gamma",Gamma));
   Log->Print(fun::VarStr("RhopZero",RhopZero));
   Log->Print(fun::VarStr("Cs0",Cs0));
