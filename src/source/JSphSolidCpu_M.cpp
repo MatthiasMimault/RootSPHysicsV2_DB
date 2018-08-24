@@ -504,6 +504,20 @@ unsigned JSphSolidCpu::GetParticlesData_M(unsigned n, unsigned pini, bool cellor
 		double normeaN2 = sqrt(Norme2(TDouble3(Ellipc_T[n / 2].a11, Ellipc_T[n / 2].a12, Ellipc_T[n / 2].a13)));
 		double normebN2 = sqrt(Norme2(TDouble3(Ellipc_T[n / 2].a21, Ellipc_T[n / 2].a22, Ellipc_T[n / 2].a23)));
 		double normecN2 = sqrt(Norme2(TDouble3(Ellipc_T[n / 2].a31, Ellipc_T[n / 2].a32, Ellipc_T[n / 2].a33)));
+		double volumeTotalEllip = 0;
+		double volumeTotalParticles = 0;
+
+		double normeai;
+		double normebi;
+		double normeci;
+
+		for (int i = 0; i < n; i++) {
+			double normeai = sqrt(Norme2(TDouble3(Ellipc_T[i].a11, Ellipc_T[i].a12, Ellipc_T[i].a13)));
+			double normebi = sqrt(Norme2(TDouble3(Ellipc_T[i].a21, Ellipc_T[i].a22, Ellipc_T[i].a23)));
+			double normeci = sqrt(Norme2(TDouble3(Ellipc_T[i].a31, Ellipc_T[i].a32, Ellipc_T[i].a33)));
+			volumeTotalEllip += ((4.0 / 3.0) * 3.1415*normeai*normebi*normeci);// / (4 / 3 * 3.1415*0.001);
+			volumeTotalParticles += (Massc_M[i] / Velrhopc[i].w);// / (8 / RhopZero);
+		}
 		//printf("\nJSphSolidCpu::GetParticlesData_M--------- ellip[0].a.x : %1.16f", ellip[0].a.x);
 		//printf("\nJSphSolidCpu::GetParticlesData_M--------- ellip[0].a.y : %1.16f", ellip[0].a.y);
 		//printf("\nJSphSolidCpu::GetParticlesData_M--------- ellip[0].a.x : %1.16f", ellip[0].a.x);
@@ -516,9 +530,9 @@ unsigned JSphSolidCpu::GetParticlesData_M(unsigned n, unsigned pini, bool cellor
 		//printf("\nJSphSolidCpu::GetParticlesData_M--------- ellip[0].c.y : %1.16f", ellip[0].c.y);
 		//printf("\nJSphSolidCpu::GetParticlesData_M--------- ellip[0].c.z : %1.16f", ellip[0].c.z);
 		//printf("\nJSphSolidCpu::GetParticlesData_M--- norme ellip[0].c : %1.7f\n", normec);
-		printf("volume   ellip[0] : %1.7f    vol[0] : %1.7f", (4/3*3.1415*normea0*normeb0*normec0) / (4 / 3 * 3.1415*0.001), (Massc_M[0]/Velrhopc[0].w) / (8 / RhopZero));
-
-		printf("\nvolume ellip[n/2] : %1.7f  vol[n/2] : %1.7f\n", (4 / 3 * 3.1415*normeaN2*normebN2*normecN2) / (4 / 3 * 3.1415*0.001), (Massc_M[n / 2] / Velrhopc[n / 2].w) / (8 / RhopZero));
+		//printf("volume   ellip[0] : %1.7f    vol[0] : %1.7f", (4/3*3.1415*normea0*normeb0*normec0) / (4 / 3 * 3.1415*0.001), (Massc_M[0]/Velrhopc[0].w) / (8 / RhopZero));
+		//printf("\nvolume ellip[n/2] : %1.7f  vol[n/2] : %1.7f\n", (4 / 3 * 3.1415*normeaN2*normebN2*normecN2) / (4 / 3 * 3.1415*0.001), (Massc_M[n / 2] / Velrhopc[n / 2].w) / (8 / RhopZero));
+		printf("volume   ellip : %1.7f    particles : %1.7f\n", volumeTotalEllip/n , volumeTotalParticles/n);
 
 		memcpy(ellip, Ellipc_T + pini, sizeof(tmatrix3f)*n);
 	}
