@@ -377,6 +377,10 @@ protected:
 		, double dt, double dt2, tdouble3 *pos, unsigned *dcell, typecode *code, tfloat4 *velrhopnew, tsymatrix3f *taunew, float *massnew)const;
 	void ComputeVelrhopBound(const tfloat4* velrhopold, double armul, tfloat4* velrhopnew)const;
 	//Thibaud
+	template<bool shift> void JSphSolidCpu::ComputeVerletVarsSolMass_M(const tfloat4 *velrhop1, const tfloat4 *velrhop2
+		, const tsymatrix3f *tau1, const tsymatrix3f *tau2, const float *mass1, const float *mass2
+		, double dt, double dt2, tdouble3 *pos, unsigned *dcell, typecode *code, tfloat4 *velrhopnew, tsymatrix3f *taunew, float *massnew)const;
+	
 	template<bool shift> void JSphSolidCpu::ComputeVerletVarsSolMass_T(const tfloat4 *velrhop1, const tfloat4 *velrhop2
 		, const tsymatrix3f *tau1, const tsymatrix3f *tau2, const float *mass1, const float *mass2
 		, double dt, double dt2, tdouble3 *pos, unsigned *dcell, typecode *code, tfloat4 *velrhopnew, tsymatrix3f *taunew, float *massnew)const;

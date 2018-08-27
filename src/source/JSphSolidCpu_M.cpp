@@ -363,7 +363,6 @@ void JSphSolidCpu::ReserveBasicArraysCpu() {
 	JauTauc2_M = ArraysCpu->ReserveSymatrix3f();
 	// Thibaud
 	Ellipc_T = ArraysCpu->ReserveMatrix3f_M();
-	Gradu_T = ArraysCpu->ReserveMatrix3f_M();
 }
 
 //==============================================================================
@@ -732,8 +731,6 @@ void JSphSolidCpu::InitRun() {
 		Ellipc_T[p].a32 = 0;
 		Ellipc_T[p].a33 = Dp / 2;
 	}
-	// gradU
-	memset(Gradu_T, 0, sizeof(tmatrix3f)*Np);
 
 	if (UseDEM)DemDtForce = DtIni; //(DEM)
 	if (CaseNfloat)InitFloating();
