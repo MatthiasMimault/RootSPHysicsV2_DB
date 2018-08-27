@@ -701,8 +701,8 @@ void JSph::LoadCaseConfig(){
   C1 = alpha1; C12 = alpha3; C13 = alpha3;
   C2 = alpha2 + alpha5; C23 = alpha2 - alpha5; C3 = alpha2 + alpha5;
   C4 = alpha5; C5 = alpha4; C6 = alpha4;
-  K = min(min(min(C1, C12), min(C13, C2)), min(C3, C23)) / 3.0f;
-  //K = (C1 + C2 + C3) / 9.0f;
+  //K = min(min(min(C1, C12), min(C13, C2)), min(C3, C23)) / 3.0f;
+  K = (C1 + C2 + C3) / 9.0f;
 
   // New B for anisotropy
   CteB = K / ( Gamma ) ;
@@ -1008,8 +1008,8 @@ void JSph::LoadCaseConfig_T() {
 	C1 = alpha1; C12 = alpha3; C13 = alpha3;
 	C2 = alpha2 + alpha5; C23 = alpha2 - alpha5; C3 = alpha2 + alpha5;
 	C4 = alpha5; C5 = alpha4; C6 = alpha4;
-	K = min(min(min(C1, C12), min(C13, C2)), min(C3, C23)) / 3.0f;
-	//K = (C1 + C2 + C3) / 9.0f;
+	//K = min(min(min(C1, C12), min(C13, C2)), min(C3, C23)) / 3.0f;
+	K = (C1 + C2 + C3) / 9.0f;
 
 	// New B for anisotropy
 	CteB = K / ( Gamma );
