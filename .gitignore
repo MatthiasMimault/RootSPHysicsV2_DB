@@ -20,4 +20,7 @@ bin/windows/*.ipdb
 bin/windows/*.exe
 bin/windows/*.ilk
 bin/windows/*.pdb 
+bin/windows/DualSPHysics4.2_win64_debug.exe
+bin/windows/DualSPHysics4.2_win64_debug.ilk
+bin/windows/DualSPHysics4.2_win64_debug.pdb 
 
