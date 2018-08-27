@@ -200,8 +200,9 @@ void JSphSolidCpu::AllocCpuMemoryParticles(unsigned np, float over) {
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_4B, 4); // SaveFields
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_12B, 1); // Press3D
 	// Thibaud
-	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_36B, 3); // Ellip - EllipDo
+	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_36B, 2); // Ellip - EllipDo
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_36B, 2); // GradU
+	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_12B, 3); // SaveFields : ellipa, ellipb, ellipc
 
 
 	//-Shows the allocated memory.
@@ -464,7 +465,7 @@ unsigned JSphSolidCpu::GetParticlesData(unsigned n, unsigned pini, bool cellorde
 /// - onlynormal: Solo se queda con las normales, elimina las particulas periodicas.
 //==============================================================================
 unsigned JSphSolidCpu::GetParticlesData_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
-	, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, tfloat3 *press, float* mass, tsymatrix3f *tau, typecode *code, tmatrix3f *ellip)
+	, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, tfloat3 *press, float* mass, tsymatrix3f *tau, typecode *code)
 {
 	const char met[] = "GetParticlesData";
 	unsigned num = n;
@@ -496,7 +497,82 @@ unsigned JSphSolidCpu::GetParticlesData_M(unsigned n, unsigned pini, bool cellor
 	//if (press)memcpy(press, Press3Dc + pini, sizeof(tfloat3)*n); // Not used, but Pressure seems to be recorded anyway, as well for tau
 	if (mass)memcpy(mass, Massc_M + pini, sizeof(float)*n);
 	if (tau)memcpy(tau, JauTauc2_M + pini, sizeof(tsymatrix3f)*n);
-	if (ellip) {
+	
+
+	//-Eliminate non-normal particles (periodic & others). | Elimina particulas no normales (periodicas y otras).
+	if (onlynormal) {
+		if (!idp || !pos || !vel || !rhop)RunException(met, "Pointers without data.");
+		typecode *code2 = code;
+		if (!code2) {
+			code2 = ArraysCpu->ReserveTypeCode();
+			memcpy(code2, Codec + pini, sizeof(typecode)*n);
+		}
+		unsigned ndel = 0;
+		for (unsigned p = 0; p<n; p++) {
+			bool normal = CODE_IsNormal(code2[p]);
+			if (ndel && normal) {
+				const unsigned pdel = p - ndel;
+				idp[pdel] = idp[p];
+				pos[pdel] = pos[p];
+				vel[pdel] = vel[p];
+				rhop[pdel] = rhop[p];
+				code2[pdel] = code2[p];
+			}
+			if (!normal)ndel++;
+		}
+		num -= ndel;
+		if (!code)ArraysCpu->Free(code2);
+	}
+	//-Reorder components in their original order. | Reordena componentes en su orden original.
+	if (cellorderdecode)DecodeCellOrder(n, pos, vel);
+	return(num);
+}
+
+//==============================================================================
+/// Collect data from a range of particles and return the number of particles that 
+/// will be less than n and eliminate the periodic ones
+/// - cellorderdecode: Reorder components of position (pos) and velocity (vel) according to CellOrder.
+/// - onlynormal: Only keep the normal ones and eliminate the periodic particles.
+///
+/// Recupera datos de un rango de particulas y devuelve el numero de particulas que
+/// sera menor que n si se eliminaron las periodicas.
+/// - cellorderdecode: Reordena componentes de pos y vel segun CellOrder.
+/// - onlynormal: Solo se queda con las normales, elimina las particulas periodicas.
+//==============================================================================
+unsigned JSphSolidCpu::GetParticlesData_T(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
+	, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, tfloat3 *press, float* mass, tsymatrix3f *tau, typecode *code, tfloat3 *ellipa, tfloat3 *ellipb, tfloat3 *ellipc)
+{
+	const char met[] = "GetParticlesData";
+	unsigned num = n;
+	//-Copy selected values.
+	if (code)memcpy(code, Codec + pini, sizeof(typecode)*n);
+	if (idp)memcpy(idp, Idpc + pini, sizeof(unsigned)*n);
+	if (pos)memcpy(pos, Posc + pini, sizeof(tdouble3)*n);
+	if (vel && rhop) {
+		for (unsigned p = 0; p<n; p++) {
+			tfloat4 vr = Velrhopc[p + pini];
+			vel[p] = TFloat3(vr.x, vr.y, vr.z);
+			rhop[p] = vr.w;
+		}
+	}
+	else {
+		if (vel) for (unsigned p = 0; p<n; p++) { tfloat4 vr = Velrhopc[p + pini]; vel[p] = TFloat3(vr.x, vr.y, vr.z); }
+		if (rhop)for (unsigned p = 0; p<n; p++)rhop[p] = Velrhopc[p + pini].w;
+	}
+
+	// Matthias
+	if (pore)memcpy(pore, Porec_M + pini, sizeof(float)*n);
+	if (press) {
+		for (unsigned p = 0; p<n; p++) {
+			//tfloat3 pre = AnisotropyK_M * TFloat3(CteB * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f));
+			tfloat3 pre = CteB3D * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f);
+			press[p] = TFloat3(pre.x, pre.y, pre.z);
+		}
+	}
+	//if (press)memcpy(press, Press3Dc + pini, sizeof(tfloat3)*n); // Not used, but Pressure seems to be recorded anyway, as well for tau
+	if (mass)memcpy(mass, Massc_M + pini, sizeof(float)*n);
+	if (tau)memcpy(tau, JauTauc2_M + pini, sizeof(tsymatrix3f)*n);
+	/*if (ellip) {
 		double normea0 = sqrt(Norme2(TDouble3(Ellipc_T[0].a11, Ellipc_T[0].a12, Ellipc_T[0].a13)));
 		double normeb0 = sqrt(Norme2(TDouble3(Ellipc_T[0].a21, Ellipc_T[0].a22, Ellipc_T[0].a23)));
 		double normec0 = sqrt(Norme2(TDouble3(Ellipc_T[0].a31, Ellipc_T[0].a32, Ellipc_T[0].a33)));
@@ -532,9 +608,17 @@ unsigned JSphSolidCpu::GetParticlesData_M(unsigned n, unsigned pini, bool cellor
 		//printf("\nJSphSolidCpu::GetParticlesData_M--- norme ellip[0].c : %1.7f\n", normec);
 		//printf("volume   ellip[0] : %1.7f    vol[0] : %1.7f", (4/3*3.1415*normea0*normeb0*normec0) / (4 / 3 * 3.1415*0.001), (Massc_M[0]/Velrhopc[0].w) / (8 / RhopZero));
 		//printf("\nvolume ellip[n/2] : %1.7f  vol[n/2] : %1.7f\n", (4 / 3 * 3.1415*normeaN2*normebN2*normecN2) / (4 / 3 * 3.1415*0.001), (Massc_M[n / 2] / Velrhopc[n / 2].w) / (8 / RhopZero));
-		printf("volume   ellip : %1.7f    particles : %1.7f\n", volumeTotalEllip/n , volumeTotalParticles/n);
+		//printf("volume   ellip : %1.7f    particles : %1.7f\n", volumeTotalEllip/n , volumeTotalParticles/n);
 
 		memcpy(ellip, Ellipc_T + pini, sizeof(tmatrix3f)*n);
+	}*/
+
+	if (ellipa && ellipb && ellipc) {
+		for (int i = 0; i < n; i++) {
+			ellipa[i] = TFloat3(Ellipc_T[i].a11, Ellipc_T[i].a12, Ellipc_T[i].a13);
+			ellipb[i] = TFloat3(Ellipc_T[i].a21, Ellipc_T[i].a22, Ellipc_T[i].a23);
+			ellipc[i] = TFloat3(Ellipc_T[i].a31, Ellipc_T[i].a32, Ellipc_T[i].a33);
+		}
 	}
 
 	//-Eliminate non-normal particles (periodic & others). | Elimina particulas no normales (periodicas y otras).

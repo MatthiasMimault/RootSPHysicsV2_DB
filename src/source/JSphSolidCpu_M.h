@@ -183,8 +183,11 @@ protected:
 	unsigned GetParticlesData(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
 		, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, typecode *code);
 	unsigned GetParticlesData_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
-		, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, tfloat3 *press, float* mass, tsymatrix3f *tau, typecode *code, tmatrix3f *ellip);
+		, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, tfloat3 *press, float* mass, tsymatrix3f *tau, typecode *code);
+	unsigned GetParticlesData_T(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
+		, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, tfloat3 *press, float* mass, tsymatrix3f *tau, typecode *code, tfloat3 *ellipa, tfloat3 *ellipb, tfloat3 *ellipc);
 	void ConfigOmp(const JCfgRun *cfg);
+	
 
 	void ConfigRunMode(const JCfgRun *cfg, std::string preinfo = "");
 	void ConfigCellDiv(JCellDivCpu* celldiv) { CellDiv = celldiv; }

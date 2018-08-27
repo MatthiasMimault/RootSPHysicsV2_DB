@@ -1536,7 +1536,9 @@ void JSphCpuSingle::SaveData_M() {
 	float *volu = NULL;
 	tfloat3 *press = NULL;
 	tsymatrix3f *tau = NULL;
-	tmatrix3f *ellip = NULL;
+	tfloat3 *ellipa = NULL;
+	tfloat3 *ellipb = NULL;
+	tfloat3 *ellipc = NULL;
 
 	if (save) {
 		//-Assign memory and collect particle values. | Asigna memoria y recupera datos de las particulas.
@@ -1549,9 +1551,11 @@ void JSphCpuSingle::SaveData_M() {
 		volu = ArraysCpu->ReserveFloat();
 		press = ArraysCpu->ReserveFloat3();
 		tau = ArraysCpu->ReserveSymatrix3f();
-		ellip = ArraysCpu->ReserveMatrix3f_M();
+		ellipa = ArraysCpu->ReserveFloat3();
+		ellipb = ArraysCpu->ReserveFloat3();
+		ellipc = ArraysCpu->ReserveFloat3();
 
-		unsigned npnormal = GetParticlesData_M(Np, 0, true, PeriActive != 0, idp, pos, vel, rhop, pore, press, mass, tau, NULL, ellip);
+		unsigned npnormal = GetParticlesData_T(Np, 0, true, PeriActive != 0, idp, pos, vel, rhop, pore, press, mass, tau, NULL, ellipa, ellipb, ellipc);
 		if (npnormal != npsave)RunException("SaveData", "The number of particles is invalid.");
 	}
 	//-Gather additional information. | Reune informacion adicional..
@@ -1572,7 +1576,7 @@ void JSphCpuSingle::SaveData_M() {
 
 	//-Stores particle data. | Graba datos de particulas.
 	const tdouble3 vdom[2] = { OrderDecode(CellDivSingle->GetDomainLimits(true)),OrderDecode(CellDivSingle->GetDomainLimits(false)) };
-	JSph::SaveData_M(npsave, idp, pos, vel, rhop, pore, press, mass, tau, 1, vdom, &infoplus);
+	JSph::SaveData_T(npsave, idp, pos, vel, rhop, pore, press, mass, tau, ellipa, ellipb, ellipc, 1, vdom, &infoplus);
 	//JSph::SaveData(npsave, idp, pos, vel, rhop, 1, vdom, &infoplus);
 	//-Free auxiliary memory for particle data. | Libera memoria auxiliar para datos de particulas.
 	ArraysCpu->Free(idp);
@@ -1584,7 +1588,9 @@ void JSphCpuSingle::SaveData_M() {
 	ArraysCpu->Free(volu);
 	ArraysCpu->Free(press);
 	ArraysCpu->Free(tau);
-	ArraysCpu->Free(ellip);
+	ArraysCpu->Free(ellipa);
+	ArraysCpu->Free(ellipb);
+	ArraysCpu->Free(ellipc);
 	TmcStop(Timers, TMC_SuSavePart);
 }
 

@@ -340,6 +340,20 @@ void  JPartDataBi4::AddPartData_T(unsigned npok, const int *idp, const tdouble3 
 	Part->CreateArray("Mass", JBinaryDataDef::DatFloat, npok, mp, externalpointer);
 }
 
+void  JPartDataBi4::AddPartData_T(unsigned npok, const int *idp, const tdouble3 *posd, const tfloat3 *vel, const float *rhop, const tfloat3 *ellipa, const tfloat3 *ellipb, const tfloat3 *ellipc, bool externalpointer) {
+	const char met[] = "AddPartData";
+	if (!idp)RunException(met, "The id of particles is invalid.");
+	if (!posd)RunException(met, "The position of particles is invalid.");
+	//-Creates valid particles array.
+	Part->CreateArray("Idp", JBinaryDataDef::DatUint, npok, idp, externalpointer);
+	Part->CreateArray("Posd", JBinaryDataDef::DatDouble3, npok, posd, externalpointer);
+	Part->CreateArray("Vel", JBinaryDataDef::DatFloat3, npok, vel, externalpointer);
+	Part->CreateArray("Rhop", JBinaryDataDef::DatFloat, npok, rhop, externalpointer);
+	Part->CreateArray("EllipA", JBinaryDataDef::DatFloat3, npok, ellipa, externalpointer);
+	Part->CreateArray("EllipB", JBinaryDataDef::DatFloat3, npok, ellipb, externalpointer);
+	Part->CreateArray("EllipC", JBinaryDataDef::DatFloat3, npok, ellipc, externalpointer);
+}
+
 //==============================================================================
 /// Añade datos Splitting de particulas de de nuevo part.
 /// Add data Splitting of particles to new part.

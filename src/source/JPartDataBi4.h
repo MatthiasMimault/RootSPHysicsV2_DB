@@ -107,6 +107,7 @@ class JPartDataBi4 : protected JObject
   static std::string GetFileData(std::string casename,std::string dirname,unsigned cpart,byte &npiece);
 
   void AddPartData_T(unsigned npok, const int *idp, const tdouble3 *posd, const tfloat3 *vel, const float *rhop, const float *mp, bool externalpointer = true);
+  void AddPartData_T(unsigned npok, const int *idp, const tdouble3 *posd, const tfloat3 *vel, const float *rhop, const tfloat3 *ellipa, const tfloat3 *ellipb, const tfloat3 *ellipc, bool externalpointer);
 
   //Grabacion de datos:
   //Recording of data
