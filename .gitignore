@@ -17,3 +17,7 @@ bin/*
 ## Ignores temporary files.
 bin/windows/*.iobj
 bin/windows/*.ipdb
+bin/windows/*.exe
+bin/windows/*.ilk
+bin/windows/*.pdb 
+
