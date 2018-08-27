@@ -200,8 +200,7 @@ void JSphSolidCpu::AllocCpuMemoryParticles(unsigned np, float over) {
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_4B, 4); // SaveFields
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_12B, 1); // Press3D
 	// Thibaud
-	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_36B, 2); // Ellip - EllipDo
-	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_36B, 2); // GradU
+	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_36B, 4); // Ellip - EllipDo // Gradu
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_12B, 3); // SaveFields : ellipa, ellipb, ellipc
 
 
@@ -236,7 +235,6 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	tsymatrix3f *jautaum12 = SaveArrayCpu(Np, JauTauM1c2_M);
 	// Thibaud
 	tmatrix3f *ellip = SaveArrayCpu(Np, Ellipc_T);
-	tmatrix3f *gradup = SaveArrayCpu(Np, Gradu_T);
 
 	//-Frees pointers.
 	ArraysCpu->Free(Idpc);
@@ -259,7 +257,6 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	ArraysCpu->Free(JauTauM1c2_M);
 	//Thibaud
 	ArraysCpu->Free(Ellipc_T);
-	ArraysCpu->Free(Gradu_T);
 
 	//-Resizes CPU memory allocation.
 	const double mbparticle = (double(MemCpuParticles) / (1024 * 1024)) / CpuParticlesSize; //-MB por particula.
@@ -286,7 +283,6 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	JauTauc2_M = ArraysCpu->ReserveSymatrix3f();
 	// Thibaud
 	Ellipc_T = ArraysCpu->ReserveMatrix3f_M();
-	Gradu_T = ArraysCpu->ReserveMatrix3f_M();
 
 	if (velrhopm1) JauTauM1c2_M = ArraysCpu->ReserveSymatrix3f();
 
@@ -311,7 +307,6 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	RestoreArrayCpu(Np, jautaum12, JauTauM1c2_M);
 	// Thibaud
 	RestoreArrayCpu(Np, ellip, Ellipc_T);
-	RestoreArrayCpu(Np, gradup, Gradu_T);
 
 	//-Updates values.
 	CpuParticlesSize = npnew;

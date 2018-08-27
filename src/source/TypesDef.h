@@ -194,7 +194,7 @@ inline tfloat3 MinValues(const tfloat3& a, const tfloat3& b){ return(TFloat3((a.
 inline tfloat3 MaxValues(const tfloat3& a, const tfloat3& b){ return(TFloat3((a.x>=b.x? a.x: b.x),(a.y>=b.y? a.y: b.y),(a.z>=b.z? a.z: b.z))); }
 inline float TFloat3Get(const tfloat3& a,unsigned c){ return(!c? a.x: (c==1? a.y: a.z)); }
 inline tfloat3 TFloat3Set(const tfloat3& a,unsigned c,float v){ return(TFloat3((c? a.x: v),(c!=1? a.y: v),(c!=2? a.z: v))); }
-
+inline float Norme2(tfloat3 d) { return (d.x*d.x + d.y*d.y + d.z*d.z); }
 
 ///Structure of 2 variables of type double.
 typedef struct{
@@ -427,7 +427,12 @@ inline tdouble3 MainAxis(tmatrix3f e) {
 	double normew = Norme2(e.c);
 	return (normeu > normev ? (normeu > normew ? e.a : e.c) : (normev > normew ? e.b : e.c));
 }*/
-
+inline int MainAxis(tmatrix3f e) {
+	float normeu = Norme2(TFloat3(e.a11, e.a12, e.a13));
+	float normev = Norme2(TFloat3(e.a21, e.a22, e.a23));
+	float normew = Norme2(TFloat3(e.a31, e.a32, e.a33));
+	return (normeu > normev ? (normeu > normew ? 1 : 3) : (normev > normew ? 2 : 3));
+}
 
 
 
