@@ -2332,6 +2332,7 @@ void JSph::SavePartData_T(unsigned npok, unsigned nout, const unsigned *idp, con
 			else {
 				posf3 = GetPointerDataFloat3(npok, pos);
 				DataBi4->AddPartData(npok, idp, posf3, vel, rhop);
+				DataBi4->AddPartData("Mass", npok, mass);
 				DataBi4->AddPartData("EllipA", npok, ellipa);
 				DataBi4->AddPartData("EllipB", npok, ellipb);
 				DataBi4->AddPartData("EllipC", npok, ellipc);
