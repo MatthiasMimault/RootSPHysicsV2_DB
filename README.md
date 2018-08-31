@@ -4,7 +4,7 @@
   <br>
 </h1>
 
-<h4 align="center">A model of Root growth based on the Smoothed Particle Hydrodynamics method and the code <a href="http://dual.sphysics.org/" target="_blank">DualSPHysics</a> code.</h4>
+<h4 align="center">A model of Root growth based on the Smoothed Particle Hydrodynamics method and the <a href="http://dual.sphysics.org/" target="_blank">DualSPHysics</a> code.</h4>
 
 # Authors and people involved
 
