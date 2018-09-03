@@ -2402,6 +2402,7 @@ void JSphSolidCpu::ComputeJauEllips_T(unsigned n, unsigned pini)const {
 #pragma omp parallel for schedule (static)
 #endif
 	for (int p = int(pini); p < pfin; p++) {
+
 		const tmatrix3f tau = Gradu_T[p];
 
 		EllipDot_T[p].a11 =    Ellipc_T[p].a11 * tau.a11  +  Ellipc_T[p].a12 * tau.a21  +  Ellipc_T[p].a13 * tau.a31;
@@ -2415,6 +2416,21 @@ void JSphSolidCpu::ComputeJauEllips_T(unsigned n, unsigned pini)const {
 		EllipDot_T[p].a33 =    Ellipc_T[p].a31 * tau.a13  +  Ellipc_T[p].a32 * tau.a23  +  Ellipc_T[p].a33 * tau.a33;
 																											
 	}
+	/*
+	int n = 108;
+	int m = 109;
+
+		fstream fichier("fichierTest.txt");
+		fichier.seekp(0, ios::end);//On se rend à la fin du fichier afin de ne pas effacer le contenu déjà présent
+		fichier << 
+			to_string(Posc[n].x)      + ";" + to_string(Posc[n].y)      + ";" + to_string(Posc[n].z)      + ";" +
+			to_string(Massc_M[n])     + ";" + to_string(Velrhopc[n].w)  + ";" + 
+			to_string(Velrhopc[n].x)  + ";" + to_string(Velrhopc[n].y)  + ";" + to_string(Velrhopc[n].z)  + ";" +
+			to_string(Gradu_T[n].a11) + ";" + to_string(Gradu_T[n].a12) + ";" + to_string(Gradu_T[n].a13) + ";" +
+			to_string(Gradu_T[n].a21) + ";" + to_string(Gradu_T[n].a22) + ";" + to_string(Gradu_T[n].a23) + ";" +
+			to_string(Gradu_T[n].a31) + ";" + to_string(Gradu_T[n].a32) + ";" + to_string(Gradu_T[n].a33) + "\n" << endl;
+		fichier.close();*/
+		
 }
 
 //==============================================================================
@@ -5483,15 +5499,15 @@ template<bool shift> void JSphSolidCpu::ComputeVerletVarsSolMass_T(const tfloat4
 
 
 			// update Ellip
-			Ellipc_T[p].a11 = float(double(Ellipc_T[p].a11) + double(EllipDot_T[p].a11)*dt2);
-			Ellipc_T[p].a12 = float(double(Ellipc_T[p].a12) + double(EllipDot_T[p].a12)*dt2);
-			Ellipc_T[p].a13 = float(double(Ellipc_T[p].a13) + double(EllipDot_T[p].a13)*dt2);
-			Ellipc_T[p].a21 = float(double(Ellipc_T[p].a21) + double(EllipDot_T[p].a21)*dt2);
-			Ellipc_T[p].a22 = float(double(Ellipc_T[p].a22) + double(EllipDot_T[p].a22)*dt2);
-			Ellipc_T[p].a23 = float(double(Ellipc_T[p].a23) + double(EllipDot_T[p].a23)*dt2);
-			Ellipc_T[p].a31 = float(double(Ellipc_T[p].a31) + double(EllipDot_T[p].a31)*dt2);
-			Ellipc_T[p].a32 = float(double(Ellipc_T[p].a32) + double(EllipDot_T[p].a32)*dt2);
-			Ellipc_T[p].a33 = float(double(Ellipc_T[p].a33) + double(EllipDot_T[p].a33)*dt2);
+			Ellipc_T[p].a11 = float(double(Ellipc_T[p].a11) + double(EllipDot_T[p].a11)*dt);
+			Ellipc_T[p].a12 = float(double(Ellipc_T[p].a12) + double(EllipDot_T[p].a12)*dt);
+			Ellipc_T[p].a13 = float(double(Ellipc_T[p].a13) + double(EllipDot_T[p].a13)*dt);
+			Ellipc_T[p].a21 = float(double(Ellipc_T[p].a21) + double(EllipDot_T[p].a21)*dt);
+			Ellipc_T[p].a22 = float(double(Ellipc_T[p].a22) + double(EllipDot_T[p].a22)*dt);
+			Ellipc_T[p].a23 = float(double(Ellipc_T[p].a23) + double(EllipDot_T[p].a23)*dt);
+			Ellipc_T[p].a31 = float(double(Ellipc_T[p].a31) + double(EllipDot_T[p].a31)*dt);
+			Ellipc_T[p].a32 = float(double(Ellipc_T[p].a32) + double(EllipDot_T[p].a32)*dt);
+			Ellipc_T[p].a33 = float(double(Ellipc_T[p].a33) + double(EllipDot_T[p].a33)*dt);
 
 			// Update mass
 			massnew[p] = float(double(mass2[p]) + dt2 * double(adens*volu));
