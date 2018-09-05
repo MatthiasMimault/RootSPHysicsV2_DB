@@ -696,6 +696,47 @@ void JSphCpuSingle::RunSizeDivision_M() {
 	TmcStop(Timers, TMC_SuPeriodic);
 }
 
+//==============================================================================
+/// Cell division controlled by cell size
+//==============================================================================
+void JSphCpuSingle::RunSizeDivision_L() {
+	const char met[] = "RunSizeDivision_L";
+	TmcStart(Timers, TMC_SuPeriodic); // Use of Periodic timer for creation of particles
+	bool run = true;
+	unsigned count = 0;
+	for (unsigned p = Npb; p < Np; p++) {
+		double normeai = sqrt(Norme2(TDouble3(Ellipc_T[p].a11, Ellipc_T[p].a12, Ellipc_T[p].a13)));
+		double normebi = sqrt(Norme2(TDouble3(Ellipc_T[p].a21, Ellipc_T[p].a22, Ellipc_T[p].a23)));
+		double normeci = sqrt(Norme2(TDouble3(Ellipc_T[p].a31, Ellipc_T[p].a32, Ellipc_T[p].a33)));
+		double vol = ((4.0 / 3.0) * 3.1415*normeai*normebi*normeci);
+		if (vol > SizeDivision_M*PI*Dp*Dp*Dp / 6.0) {
+			Divisionc_M[p] = true;
+			count++;
+		}
+	}
+	while (run) {
+		// 2. Prepare memory for count particles
+		//-Maximum number of particles that fit in the list / Numero maximo de particulas que caben en la lista.
+		unsigned nmax = CpuParticlesSize - 1;
+		if (Np >= 0x80000000)RunException(met, "The number of particles is too big.");//-Because the last bit is used to mark the direction in which a new periodic particle is created / Pq el ultimo bit se usa para marcar el sentido en que se crea la nueva periodica.
+																					  // Maximal number of division per turn
+																					  //-Redimension memory for particles if there is insufficient space and repeat the search process.
+		if (count > nmax || count + Np > CpuParticlesSize) {
+			TmcStop(Timers, TMC_SuPeriodic);
+			// Peut etre qu'ici on a la source de certains bug (trop particles, need extend)
+			ResizeParticlesSize(Np + count, PERIODIC_OVERMEMORYNP, false);
+			TmcStart(Timers, TMC_SuPeriodic);
+		}
+		// 3. Divide marked particles
+		else {
+			run = false;
+			// Divide the selected particles in X direction
+			MarkedDivision_L(count, Np, Npb, DomCells, Idpc, Codec, Dcellc, Posc, Velrhopc, JauTauc2_M, Divisionc_M, Porec_M, Massc_M, VelrhopM1c, JauTauM1c2_M, MassM1c_M);
+			Np += count;
+		}
+	}
+	TmcStop(Timers, TMC_SuPeriodic);
+}
 
 //==============================================================================
 /// Cell division controlled by cell size
@@ -938,6 +979,132 @@ void JSphCpuSingle::MarkedDivision_M(unsigned countMax, unsigned np, unsigned pi
 	}
 }
 
+//==============================================================================
+/// Division of marked particles
+//==============================================================================
+void JSphCpuSingle::MarkedDivision_L(unsigned countMax, unsigned np, unsigned pini, tuint3 cellmax
+	, unsigned *idp, typecode *code, unsigned *dcell, tdouble3 *pos, tfloat4 *velrhop, tsymatrix3f *taup
+	, bool *divisionp, float *porep, float *massp, tfloat4 *velrhopm1, tsymatrix3f *taupm1, float *masspm1)const
+{
+	const char met[] = "MarkedDivision_L";
+	unsigned count = 0;
+	unsigned p = pini + (rand() % np);
+	tfloat3 orientation;
+	for (p = pini; p < Np; p++) {
+		if (divisionp[p]) {
+			const unsigned pnew = np + count;
+			int numAxe = MainAxis(Ellipc_T[p]);
+			switch (numAxe)
+			{
+			case 1:
+				orientation = TFloat3(Ellipc_T[p].a11, Ellipc_T[p].a12, Ellipc_T[p].a13);
+				break;
+			case 2:
+				orientation = TFloat3(Ellipc_T[p].a21, Ellipc_T[p].a22, Ellipc_T[p].a23);
+				break;
+			case 3:
+				orientation = TFloat3(Ellipc_T[p].a31, Ellipc_T[p].a32, Ellipc_T[p].a33);
+				break;
+			default:
+				break;
+			}
+			//orientation = { (double)rand() / RAND_MAX, (double)rand() / RAND_MAX, (double)rand() / RAND_MAX };
+			//orientation = orientation / sqrt(pow(orientation.x, 2) + pow(orientation.y, 2) + pow(orientation.z, 2)) - 0.5; // Not working properly
+			//orientation = { 1,0,0 }; // X-orientation
+			//orientation = { velrhop[p].x,velrhop[p].y,velrhop[p].z };// Velocity - orientation
+			//orientation = orientation / sqrt(pow(velrhop[p].x, 2) + pow(velrhop[p].y, 2) + pow(velrhop[p].z, 2));
+			tdouble3 ps = { pos[p].x + orientation.x / 2.0
+				, pos[p].y + orientation.y / 2.0
+				, pos[p].z + orientation.z / 2.0 };
+			//-Calculate coordinates of cell inside of domain / Calcula coordendas de celda dentro de dominio.
+			unsigned cx = unsigned((ps.x - DomPosMin.x) / Scell);
+			unsigned cy = unsigned((ps.y - DomPosMin.y) / Scell);
+			unsigned cz = unsigned((ps.z - DomPosMin.z) / Scell);
+			//-Adjust coordinates of cell is they exceed maximum / Ajusta las coordendas de celda si sobrepasan el maximo.
+			cx = (cx <= cellmax.x ? cx : cellmax.x);
+			cy = (cy <= cellmax.y ? cy : cellmax.y);
+			cz = (cz <= cellmax.z ? cz : cellmax.z);
+			//-Record position and cell of new particles /  Graba posicion y celda de nuevas particulas.
+			pos[pnew] = ps;
+			dcell[pnew] = PC__Cell(DomCellCode, cx, cy, cz);
+			idp[pnew] = pnew;
+			code[pnew] = code[p];
+			velrhop[pnew] = velrhop[p];
+			taup[pnew] = taup[p];
+			porep[pnew] = porep[p];
+			massp[pnew] = massp[p] / 2;
+			velrhopm1[pnew] = velrhopm1[p];
+			taupm1[pnew] = taupm1[p];
+			masspm1[pnew] = masspm1[p] / 2;
+			divisionp[pnew] = false;
+			switch (numAxe)
+			{
+			case 1:
+				Ellipc_T[pnew] = {
+					Ellipc_T[p].a11 / 2.f , Ellipc_T[p].a12 / 2.f , Ellipc_T[p].a13 / 2.f
+					, Ellipc_T[p].a21 , Ellipc_T[p].a22 , Ellipc_T[p].a23
+					, Ellipc_T[p].a31 , Ellipc_T[p].a32 , Ellipc_T[p].a33
+				};
+				break;
+			case 2:
+				Ellipc_T[pnew] = {
+					Ellipc_T[p].a11  , Ellipc_T[p].a12 , Ellipc_T[p].a13
+					, Ellipc_T[p].a21 / 2.0f , Ellipc_T[p].a22 / 2.0f, Ellipc_T[p].a23 / 2.0f
+					, Ellipc_T[p].a31 , Ellipc_T[p].a32 , Ellipc_T[p].a33
+				};
+				break;
+			case 3:
+				Ellipc_T[pnew] = {
+					Ellipc_T[p].a11 , Ellipc_T[p].a12 , Ellipc_T[p].a13
+					, Ellipc_T[p].a21 , Ellipc_T[p].a22 , Ellipc_T[p].a23
+					, Ellipc_T[p].a31 / 2.0f, Ellipc_T[p].a32 / 2.0f, Ellipc_T[p].a33 / 2.0f
+				};
+				break;
+			default:
+				break;
+			}
+			// MOVE
+			//-Get pos of particle to be duplicated / Obtiene pos de particula a duplicar.
+			ps = { pos[p].x - orientation.x / 2.0
+				, pos[p].y - orientation.y / 2.0
+				, pos[p].z - orientation.z / 2.0 };
+			//-Calculate coordinates of cell inside of domain / Calcula coordendas de celda dentro de dominio.
+			cx = unsigned((ps.x - DomPosMin.x) / Scell);
+			cy = unsigned((ps.y - DomPosMin.y) / Scell);
+			cz = unsigned((ps.z - DomPosMin.z) / Scell);
+			//-Adjust coordinates of cell is they exceed maximum / Ajusta las coordendas de celda si sobrepasan el maximo.
+			cx = (cx <= cellmax.x ? cx : cellmax.x);
+			cy = (cy <= cellmax.y ? cy : cellmax.y);
+			cz = (cz <= cellmax.z ? cz : cellmax.z);
+			pos[p] = ps;
+			dcell[p] = PC__Cell(DomCellCode, cx, cy, cz);
+			massp[p] = massp[pnew];
+			masspm1[p] = masspm1[pnew];
+			divisionp[p] = false;
+			switch (numAxe)
+			{
+			case 1:
+				Ellipc_T[p].a11 = Ellipc_T[p].a11 / 2.f;
+				Ellipc_T[p].a12 = Ellipc_T[p].a12 / 2.0f;
+				Ellipc_T[p].a13 = Ellipc_T[p].a13 / 2.0f;
+				break;
+			case 2:
+				Ellipc_T[p].a21 = Ellipc_T[p].a21 / 2.0f;
+				Ellipc_T[p].a22 = Ellipc_T[p].a22 / 2.0f;
+				Ellipc_T[p].a23 = Ellipc_T[p].a23 / 2.0f;
+				break;
+			case 3:
+				Ellipc_T[p].a31 = Ellipc_T[p].a31 / 2.0f;
+				Ellipc_T[p].a32 = Ellipc_T[p].a32 / 2.0f;
+				Ellipc_T[p].a33 = Ellipc_T[p].a33 / 2.0f;
+				break;
+			default:
+				break;
+			}
+			count++;
+		}
+	}
+}
 
 //==============================================================================
 /// Manages excluded particles fixed, moving and floating before aborting the execution.
@@ -1457,7 +1624,7 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
     if(CaseNmoving)RunMotion(stepdt);
 
 	// Matthias - Cell division
-	RunSizeDivision_M();
+	RunSizeDivision_L();
 	RunDivisionDisplacement_M();
 	RunCellDivide(true);
 
