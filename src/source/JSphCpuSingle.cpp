@@ -642,8 +642,27 @@ void JSphCpuSingle::RunSizeDivision_M() {
 		
 	}*/
 
+	//definition de Xzero
+	Xzero = TFloat3(0,0,0);
+	//definition des parametres
+	sigmaX = 1;
+	sigmaX2 = pow(sigmaX, 2);
+	coefX = 1 / (sigmaX * pow(2 * PI, (1.0 / 2.0)));
+	sigmaYZ = 1;
+	sigmaYZ2 = pow(sigmaX, 2);
+	coefYZ = 1 / (sigmaYZ * pow(2 * PI, (1.0 / 2.0)));
+
+	float dYZ2, dX2;
+	float C1, C2, C;
 	for (unsigned p = Npb; p < Np; p++) {
 		if (Massc_M[p] / Velrhopc[p].w > SizeDivision_M*PI*Dp*Dp*Dp/6.0) {
+
+			dYZ2 = (Posc[p].y - Xzero.y) * (Posc[p].y - Xzero.y) + (Posc[p].z - Xzero.z) * (Posc[p].z - Xzero.z); //distance entre la particule p et le projete de Xzero sur le plan YZ
+			C1 = coefYZ * exp(-dYZ2 / (2 * sigmaYZ2)); // 
+
+
+
+
 			Divisionc_M[p] = true;
 			count++;
 		}

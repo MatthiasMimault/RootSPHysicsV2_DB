@@ -96,6 +96,13 @@ void JSphSolidCpu::InitVars() {
 	// Thibaud
 	Ellipc_T = NULL; EllipDot_T = NULL;
 	Gradu_T = NULL;
+	Xzero = TFloat3(0,0,0);
+	sigmaX = 1;
+	sigmaX2 = pow(sigmaX, 2);
+	coefX = 1 / (sigmaX * pow(2 * PI, (1.0 / 2.0)));
+	sigmaYZ = 1;
+	sigmaYZ2 = pow(sigmaX, 2);
+	coefYZ = 1 / (sigmaYZ * pow(2 * PI, (1.0 / 2.0)));
 		
 	RidpMove = NULL;
 	FtRidp = NULL;

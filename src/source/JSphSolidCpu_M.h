@@ -134,6 +134,12 @@ protected:
 	tmatrix3f *EllipDot_T;
 	tmatrix3f *Gradu_T;
 
+	tfloat3 Xzero; // point ou la proba de division est la max
+	float sigmaYZ, sigmaYZ2, coefYZ;
+	float sigmaX, sigmaX2, coefX;
+
+
+
 
 	void InitVars();
 
