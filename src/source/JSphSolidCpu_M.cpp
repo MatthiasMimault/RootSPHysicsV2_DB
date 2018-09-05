@@ -837,7 +837,26 @@ void JSphSolidCpu::InitRun_T(JPartsLoad4 *pl) {
 
 	// Thibaud
 	//initialisation : sphere
-	
+	for (unsigned p = 0; p < Np; p++) {
+		// calcul le rayon en fonction du volume (et donc de la masse / densite)
+		double v = pl->GetMass()[p] / RhopZero;
+		double r = pow(v * (3.0 / 4.0), (1.0 / 3.0));
+		printf("\n%0.16f",r);
+		//vect 1
+		Ellipc_T[p].a11 = r / 2;
+		Ellipc_T[p].a12 = 0;
+		Ellipc_T[p].a13 = 0;
+		//vect 2
+		Ellipc_T[p].a21 = 0;
+		Ellipc_T[p].a22 = r / 2;
+		Ellipc_T[p].a23 = 0;
+		//vect 3
+		Ellipc_T[p].a31 = 0;
+		Ellipc_T[p].a32 = 0;
+		Ellipc_T[p].a33 = r / 2;
+	}
+	// gradU
+	memset(Gradu_T, 0, sizeof(tmatrix3f)*Np);
 
 
 	if (UseDEM)DemDtForce = DtIni; //(DEM)
