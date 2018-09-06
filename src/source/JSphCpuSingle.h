@@ -48,6 +48,7 @@ protected:
   void LoadCaseParticles();
   void LoadCaseParticles_T();
   void ConfigDomain();
+  void ConfigDomain_T();
 
   void ResizeParticlesSize(unsigned newsize,float oversize,bool updatedivide);
   unsigned PeriodicMakeList(unsigned np,unsigned pini,bool stable,unsigned nmax,tdouble3 perinc,const tdouble3 *pos,const typecode *code,unsigned *listp)const;

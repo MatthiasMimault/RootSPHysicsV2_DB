@@ -216,13 +216,13 @@ void JSphCpuSingle::ConfigDomain(){
   AllocCpuMemoryFixed();
   //-Allocates memory in CPU for particles. | Reserva memoria en Cpu para particulas.
   AllocCpuMemoryParticles(Np,0);
-
+  
+ 
   //-Copy particle values. | Copia datos de particulas.
   ReserveBasicArraysCpu();
   memcpy(Posc,PartsLoaded->GetPos(),sizeof(tdouble3)*Np);
   memcpy(Idpc,PartsLoaded->GetIdp(),sizeof(unsigned)*Np);
   memcpy(Velrhopc, PartsLoaded->GetVelRhop(), sizeof(tfloat4)*Np);
-
 
   //-Calculate floating radius. | Calcula radio de floatings.
   if(CaseNfloat && PeriActive!=0 && !PartBegin)CalcFloatingRadius(Np,Posc,Idpc);
@@ -258,6 +258,64 @@ void JSphCpuSingle::ConfigDomain(){
   //-Reorder particles for cell. | Reordena particulas por celda.
   BoundChanged=true;
   RunCellDivide(true);
+}
+
+//==============================================================================
+/// Configuration of current domain.
+/// Configuracion del dominio actual.
+//==============================================================================
+void JSphCpuSingle::ConfigDomain_T() {
+	const char* met = "ConfigDomain";
+	//-Calculate number of particles. | Calcula numero de particulas.
+	Np = PartsLoaded->GetCount(); Npb = CaseNpb; NpbOk = Npb;
+	//-Allocates fixed memory for moving & floating particles. | Reserva memoria fija para moving y floating.
+	AllocCpuMemoryFixed();
+	//-Allocates memory in CPU for particles. | Reserva memoria en Cpu para particulas.
+	AllocCpuMemoryParticles(Np, 0);
+
+
+	//-Copy particle values. | Copia datos de particulas.
+	ReserveBasicArraysCpu();
+	memcpy(Posc, PartsLoaded->GetPos(), sizeof(tdouble3)*Np);
+	memcpy(Idpc, PartsLoaded->GetIdp(), sizeof(unsigned)*Np);
+	memcpy(Velrhopc, PartsLoaded->GetVelRhop(), sizeof(tfloat4)*Np);
+	// Thibaud
+	memcpy(Massc_M, PartsLoaded->GetMass(), sizeof(float)*Np);
+
+	//-Calculate floating radius. | Calcula radio de floatings.
+	if (CaseNfloat && PeriActive != 0 && !PartBegin)CalcFloatingRadius(Np, Posc, Idpc);
+
+	//-Load particle code. | Carga code de particulas.
+	LoadCodeParticles(Np, Idpc, Codec);
+
+	//-Runs initialization operations from XML.
+	RunInitialize(Np, Npb, Posc, Idpc, Codec, Velrhopc);
+
+	//-Computes MK domain for boundary and fluid particles.
+	MkInfo->ComputeMkDomains(Np, Posc, Codec);
+
+	//-Free memory of PartsLoaded. | Libera memoria de PartsLoaded.
+	//delete PartsLoaded; PartsLoaded=NULL;
+	//-Apply configuration of CellOrder. | Aplica configuracion de CellOrder.
+	ConfigCellOrder(CellOrder, Np, Posc, Velrhopc);
+
+	//-Configure cells division. | Configura division celdas.
+	ConfigCellDivision();
+	//-Establish local simulation domain inside of Map_Cells & calculate DomCellCode. | Establece dominio de simulacion local dentro de Map_Cells y calcula DomCellCode.
+	SelecDomain(TUint3(0, 0, 0), Map_Cells);
+	//-Calculate initial cell of particles and check if there are unexpected excluded particles. | Calcula celda inicial de particulas y comprueba si hay excluidas inesperadas.
+	LoadDcellParticles(Np, Codec, Posc, Dcellc);
+
+	//-Create object for divide in CPU & select a valid cellmode. | Crea objeto para divide en Gpu y selecciona un cellmode valido.
+	CellDivSingle = new JCellDivCpuSingle(Stable, FtCount != 0, PeriActive, CellOrder, CellMode, Scell, Map_PosMin, Map_PosMax, Map_Cells, CaseNbound, CaseNfixed, CaseNpb, Log, DirOut);
+	CellDivSingle->DefineDomain(DomCellCode, DomCelIni, DomCelFin, DomPosMin, DomPosMax);
+	ConfigCellDiv((JCellDivCpu*)CellDivSingle);
+
+	ConfigSaveData(0, 1, "");
+
+	//-Reorder particles for cell. | Reordena particulas por celda.
+	BoundChanged = true;
+	RunCellDivide(true);
 }
 
 //==============================================================================
@@ -536,6 +594,9 @@ void JSphCpuSingle::RunCellDivide(bool updateperiodic){
   CellDivSingle->SortArray(Massc_M); 
   CellDivSingle->SortArray(Divisionc_M);
   CellDivSingle->SortArray(Porec_M);
+  // Thibaud
+  //CellDivSingle->SortArray(Ellipc_T); -> probleme dans cette fonction
+
 
   //-Collect divide data. | Recupera datos del divide.
   Np=CellDivSingle->GetNpFinal();
@@ -641,32 +702,14 @@ void JSphCpuSingle::RunSizeDivision_M() {
 		printf("\nMasse : %d %f", (int)p, Massc_M[p]);
 		
 	}*/
-
-	//definition de Xzero
-	Xzero = TFloat3(0,0,0);
-	//definition des parametres
-	sigmaX = 1;
-	sigmaX2 = pow(sigmaX, 2);
-	coefX = 1 / (sigmaX * pow(2 * PI, (1.0 / 2.0)));
-	sigmaYZ = 1;
-	sigmaYZ2 = pow(sigmaX, 2);
-	coefYZ = 1 / (sigmaYZ * pow(2 * PI, (1.0 / 2.0)));
-
-	float dYZ2, dX2;
-	float C1, C2, C;
 	for (unsigned p = Npb; p < Np; p++) {
-		if (Massc_M[p] / Velrhopc[p].w > SizeDivision_M*PI*Dp*Dp*Dp/6.0) {
-
-			dYZ2 = (Posc[p].y - Xzero.y) * (Posc[p].y - Xzero.y) + (Posc[p].z - Xzero.z) * (Posc[p].z - Xzero.z); //distance entre la particule p et le projete de Xzero sur le plan YZ
-			C1 = coefYZ * exp(-dYZ2 / (2 * sigmaYZ2)); // 
-
-
-
-
+		if (Massc_M[p] / Velrhopc[p].w > SizeDivision_M*PI*Dp*Dp*Dp / 6.0) {
 			Divisionc_M[p] = true;
 			count++;
 		}
 	}
+
+	
 	while (run) {
 
 		// 2. Prepare memory for count particles
@@ -704,14 +747,58 @@ void JSphCpuSingle::RunSizeDivision_L() {
 	TmcStart(Timers, TMC_SuPeriodic); // Use of Periodic timer for creation of particles
 	bool run = true;
 	unsigned count = 0;
+
+	//definition de Xzero
+	Xzero = TFloat3(0, 0, 0);
+	//definition des parametres
+	float maxYZ = 0;
+	for (unsigned p = Npb; p < Np; p++) {
+		float tmp = pow((Posc[p].y - Xzero.y), 2) + pow((Posc[p].z - Xzero.z), 2);
+		maxYZ = maxYZ > tmp ? maxYZ : tmp;
+	}
+	float maxX = 0;
+	for (unsigned p = Npb; p < Np; p++) {
+		float tmp = abs(Xzero.x - Posc[p].x);
+		maxX = maxX > tmp ? maxX : tmp;
+	}
+
+	sigmaX = (1.2 / 2.0) *maxX;
+	sigmaX2 = pow(sigmaX, 2);
+	coefX = 1 / (sigmaX * pow(2 * PI, (1.0 / 2.0)));
+	sigmaYZ = (1.2 / 2.0) *maxYZ;
+	sigmaYZ2 = pow(sigmaYZ, 2);
+	coefYZ = 1 / (sigmaYZ * pow(2 * PI, (1.0 / 2.0)));
+
+	float dYZ2, dX;
+	float C1, C2, C;
 	for (unsigned p = Npb; p < Np; p++) {
 		double normeai = sqrt(Norme2(TDouble3(Ellipc_T[p].a11, Ellipc_T[p].a12, Ellipc_T[p].a13)));
 		double normebi = sqrt(Norme2(TDouble3(Ellipc_T[p].a21, Ellipc_T[p].a22, Ellipc_T[p].a23)));
 		double normeci = sqrt(Norme2(TDouble3(Ellipc_T[p].a31, Ellipc_T[p].a32, Ellipc_T[p].a33)));
 		double vol = ((4.0 / 3.0) * 3.1415*normeai*normebi*normeci);
-		if (vol > SizeDivision_M*PI*Dp*Dp*Dp / 6.0) {
-			Divisionc_M[p] = true;
-			count++;
+		if (vol > SizeDivision_M * (4.0/3.0 * PI * pow((Dp/2.0), 3))) {
+
+			dYZ2 = pow(abs(Xzero.y - Posc[p].y), 2) + pow((Xzero.z - Posc[p].z), 2); //distance entre la particule p et le projete de Xzero sur le plan YZ
+			C1 = coefYZ * exp(-dYZ2 / (2 * sigmaYZ2)); // fonction de gauss appliquee a dYZ
+
+			dX = -((Xzero.x - Posc[p].x) + sigmaX); //distance entre la particule p et le projete de Xzero sur l'axe X
+			C2 = - coefX * 2 * dX * exp(-pow(dX, 2) / (2 * sigmaX2)); // derivee de la fonction de gauss appliquee a dX
+
+			
+			//printf("\nsize : OK ");
+			if (C2 < 0)
+			{
+				C2 = 0;
+			}
+
+			C = C1 * C2;
+			float r = (float)(rand() % 10000) / 10000.0;
+			if (r < C)
+			{
+				//printf("   pos : OK");
+				Divisionc_M[p] = true;
+				count++;
+			}
 		}
 	}
 	while (run) {
@@ -1560,7 +1647,7 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
 	  printf("---3---");
 	  ConfigConstants(Simulate2D);
 	  printf("---4---");
-	  ConfigDomain();
+	  ConfigDomain_T();
 	  printf("---5---");
 	  ConfigRunMode(cfg);
 	  printf("---6---");
