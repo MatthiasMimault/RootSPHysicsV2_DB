@@ -143,6 +143,8 @@ void JSph::InitVars(){
   SvDomainVtk=false;
 
   H=CteB=Gamma=RhopZero=CFLnumber=0; 
+  // Matthias
+  CteB_M = TFloat3(0, 0, 0);
   Dp=0;
   Cs0=0;
   Delta2H=0;
@@ -702,10 +704,18 @@ void JSph::LoadCaseConfig(){
   C2 = alpha2 + alpha5; C23 = alpha2 - alpha5; C3 = alpha2 + alpha5;
   C4 = alpha5; C5 = alpha4; C6 = alpha4;
   //K = min(min(min(C1, C12), min(C13, C2)), min(C3, C23)) / 3.0f;
-  K = (C1 + C2 + C3) / 9.0f;
+  K = (C1 + C2 + C3) / 3.0f;
+  K_M = TFloat3((C1 + C12 + C13) / 3.0f, (C2 + C12 + C23) / 3.0f, (C3 + C23 + C13) / 3.0f);
+
+  printf("///\n");
+  printf("C1 = %.3f, C12 = %.3f, C13 = %.3f\n", C1, C12, C13);
+  printf("C12 = %.3f, C2 = %.3f, C23 = %.3f\n", C12, C2, C23);
+  printf("C13 = %.3f, C23 = %.3f, C3 = %.3f\n", C13, C23, C3);
+  printf("K_M = (%.3f,%.3f,%.3f)\n", K_M.x, K_M.y, K_M.z);
 
   // New B for anisotropy
   CteB = K / ( Gamma ) ;
+  CteB_M = TFloat3(K_M.x / Gamma, K_M.y / Gamma, K_M.z / Gamma);
   //CteB3D = TFloat3((C1 + C12 + C13) / Gamma, (C2 + C12 + C23) / Gamma, (C3 + C13 + C23) / Gamma);
   // Pore
   PoreZero = (float)ctes.GetPoreZero();
@@ -1009,10 +1019,12 @@ void JSph::LoadCaseConfig_T() {
 	C2 = alpha2 + alpha5; C23 = alpha2 - alpha5; C3 = alpha2 + alpha5;
 	C4 = alpha5; C5 = alpha4; C6 = alpha4;
 	//K = min(min(min(C1, C12), min(C13, C2)), min(C3, C23)) / 3.0f;
-	K = (C1 + C2 + C3) / 9.0f;
+	K = (C1 + C2 + C3) / 3.0f;
+	K_M = TFloat3((C1 + C12 + C13) / 3.0f, (C2 + C12 + C23) / 3.0f, (C3 + C23 + C13) / 3.0f);
 
 	// New B for anisotropy
-	CteB = K / ( Gamma );
+	CteB = K / (Gamma);
+	CteB_M = TFloat3(K_M.x / Gamma, K_M.y / Gamma, K_M.z / Gamma);
 	//CteB3D = TFloat3((C1 + C12 + C13) / Gamma, (C2 + C12 + C23) / Gamma, (C3 + C13 + C23) / Gamma);
 
 	// Pore
@@ -1249,13 +1261,14 @@ void JSph::ConfigConstants(bool simulate2d){
   const double h=H;
   Delta2H=float(h*2*DeltaSph);
   // Cs0 version originale
-  // Cs0=sqrt(double(Gamma)*double(CteB)/double(RhopZero));
+  //Cs0=sqrt(double(Gamma)*double(CteB)/double(RhopZero));
+  // 3D CteB
+  Cs0 = sqrt(max(K_M.x, max(K_M.y, K_M.z)) / double(RhopZero));
   
   // New B for anisotropy
   // Cs0 with max(Cij)
-  const float CteB2 = max(max(max(C1, C12), max(C13, C2)), max(C3, C23)) / (3.0f * Gamma);
-
-  Cs0 = sqrt(double(Gamma)*double(CteB2) / double(RhopZero));
+  //const float CteB2 = max(max(max(C1, C12), max(C13, C2)), max(C3, C23)) / (3.0f * Gamma);
+  //Cs0 = sqrt(double(Gamma)*double(CteB2) / double(RhopZero));
 
   if(!DtIni)DtIni=h/Cs0;
   if(!DtMin)DtMin=(h/Cs0)*CoefDtMin;
@@ -1373,8 +1386,11 @@ void JSph::VisuConfig()const{
   Log->Print(fun::VarStr("Dx",Dp));
   Log->Print(fun::VarStr("H",H));
   Log->Print(fun::VarStr("CoefficientH",H/(Dp*sqrt(Simulate2D? 2.f: 3.f))));
-  Log->Print(fun::VarStr("CteB",CteB));
-  //Log->Print(fun::VarStr("CteB3D",CteB3D));
+  Log->Print(fun::VarStr("CteB", CteB));
+  // Matthias
+  Log->Print(fun::VarStr("CteB_M", CteB_M.x));
+  Log->Print(fun::VarStr("CteB_M", CteB_M.y));
+  Log->Print(fun::VarStr("CteB_M", CteB_M.z));
   Log->Print(fun::VarStr("Gamma",Gamma));
   Log->Print(fun::VarStr("RhopZero",RhopZero));
   Log->Print(fun::VarStr("Cs0",Cs0));
@@ -1796,6 +1812,7 @@ void JSph::ConfigSaveData(unsigned piece,unsigned pieces,std::string div){
   const char met[]="ConfigSaveData";
   //-Configures object to store particles and information.  
   //-Configura objeto para grabacion de particulas e informacion.
+  // Matthias - Might be a problem in 3D anisotropy
   if(SvData&SDAT_Info || SvData&SDAT_Binx){
     DataBi4=new JPartDataBi4();
     DataBi4->ConfigBasic(piece,pieces,RunCode,AppName,CaseName,Simulate2D,Simulate2DPosY,DirDataOut);
