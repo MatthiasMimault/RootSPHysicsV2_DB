@@ -502,6 +502,71 @@ unsigned JSphSolidCpu::GetParticlesData_M(unsigned n, unsigned pini, bool cellor
 	return(num);
 }
 
+unsigned JSphSolidCpu::GetParticlesData_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
+	, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, tfloat3 *press, float* mass, tsymatrix3f *gradvel, tsymatrix3f *tau, typecode *code)
+{
+	const char met[] = "GetParticlesData";
+	unsigned num = n;
+	//-Copy selected values.
+	if (code)memcpy(code, Codec + pini, sizeof(typecode)*n);
+	if (idp)memcpy(idp, Idpc + pini, sizeof(unsigned)*n);
+	if (pos)memcpy(pos, Posc + pini, sizeof(tdouble3)*n);
+	if (vel && rhop) {
+		for (unsigned p = 0; p<n; p++) {
+			tfloat4 vr = Velrhopc[p + pini];
+			vel[p] = TFloat3(vr.x, vr.y, vr.z);
+			rhop[p] = vr.w;
+		}
+	}
+	else {
+		if (vel) for (unsigned p = 0; p<n; p++) { tfloat4 vr = Velrhopc[p + pini]; vel[p] = TFloat3(vr.x, vr.y, vr.z); }
+		if (rhop)for (unsigned p = 0; p<n; p++)rhop[p] = Velrhopc[p + pini].w;
+	}
+
+	// Matthias
+	if (pore)memcpy(pore, Porec_M + pini, sizeof(float)*n);
+	/*if (press) {
+	for (unsigned p = 0; p<n; p++) {
+	//tfloat3 pre = AnisotropyK_M * TFloat3(CteB * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f));
+	tfloat3 pre =CteB3D * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f);
+	press[p] = TFloat3(pre.x, pre.y, pre.z);
+	}
+	}*/
+	//if (press)memcpy(press, Press3Dc + pini, sizeof(tfloat3)*n); // Not used, but Pressure seems to be recorded anyway, as well for tau
+	if (mass)memcpy(mass, Massc_M + pini, sizeof(float)*n);
+	if (tau)memcpy(tau, JauTauc2_M + pini, sizeof(tsymatrix3f)*n);
+	if (gradvel)memcpy(tau, JauTauc2_M + pini, sizeof(tsymatrix3f)*n);
+	//if (gradvel)memcpy(gradvel, JauGradvelc2_M + pini, sizeof(tsymatrix3f)*n);
+
+	//-Eliminate non-normal particles (periodic & others). | Elimina particulas no normales (periodicas y otras).
+	if (onlynormal) {
+		if (!idp || !pos || !vel || !rhop)RunException(met, "Pointers without data.");
+		typecode *code2 = code;
+		if (!code2) {
+			code2 = ArraysCpu->ReserveTypeCode();
+			memcpy(code2, Codec + pini, sizeof(typecode)*n);
+		}
+		unsigned ndel = 0;
+		for (unsigned p = 0; p<n; p++) {
+			bool normal = CODE_IsNormal(code2[p]);
+			if (ndel && normal) {
+				const unsigned pdel = p - ndel;
+				idp[pdel] = idp[p];
+				pos[pdel] = pos[p];
+				vel[pdel] = vel[p];
+				rhop[pdel] = rhop[p];
+				code2[pdel] = code2[p];
+			}
+			if (!normal)ndel++;
+		}
+		num -= ndel;
+		if (!code)ArraysCpu->Free(code2);
+	}
+	//-Reorder components in their original order. | Reordena componentes en su orden original.
+	if (cellorderdecode)DecodeCellOrder(n, pos, vel);
+	return(num);
+}
+
 //==============================================================================
 /// Load the execution configuration with OpenMP.
 /// Carga la configuracion de ejecucion con OpenMP.
@@ -883,6 +948,7 @@ void JSphSolidCpu::PreInteraction_Forces(TpInter tinter) {
 	//-Calcula VelMax: Se incluyen las particulas floatings y no afecta el uso de condiciones periodicas.
 	const unsigned pini = (DtAllParticles ? 0 : Npb);
 	VelMax = CalcVelMaxOmp(Np - pini, Velrhopc + pini);
+	//printf("Velmax: %.3f\n", VelMax);
 	ViscDtMax = 0;
 	TmcStop(Timers, TMC_CfPreForces);
 }
@@ -5641,6 +5707,11 @@ double JSphSolidCpu::DtVariable(bool final) {
 		}
 	}
 	if (SaveDt && final)SaveDt->AddValues(TimeStep, dt, dt1*CFLnumber, dt2*CFLnumber, AceMax, ViscDtMax, VelMax);
+	//if (TimeStep>=TimePartNext) {
+	//	printf("A: %.4f, V: %.4f, Visc: %.4f\n", AceMax, VelMax, ViscDtMax);
+	//	printf("Dt1: %.4f, Dt2: %.4f\n", dt1, dt2);
+	//	printf("Dt: %.4f\n", dt);
+	//}
 	return(dt);
 }
 

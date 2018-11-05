@@ -1367,38 +1367,24 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
   if (!gcb.getUseGencase()) {
 	  gcb.Bridge(cfg->CaseName);
 	  Log->Printf("\n---Thibaud's part end---\n");
-	  printf("---1---");
 	  LoadConfig_T(cfg);
-	  printf("---2---");
 	  LoadCaseParticles_T();
-	  printf("---3---");
 	  ConfigConstants(Simulate2D);
-	  printf("---4---");
 	  ConfigDomain();
-	  printf("---5---");
 	  ConfigRunMode(cfg);
-	  printf("---6---");
 	  VisuParticleSummary();
-	  printf("---7---");
 	  //-Initialisation of execution variables. | Inicializacion de variables de ejecucion.
 	  //------------------------------------------------------------------------------------
 	  InitRun_T(PartsLoaded);
   }
   else {
 	  Log->Printf("\n---Thibaud's part end---\n");
-	  printf("---1---");
 	  LoadConfig(cfg);
-	  printf("---2---");
 	  LoadCaseParticles();
-	  printf("---3---");
 	  ConfigConstants(Simulate2D);
-	  printf("---4---");
 	  ConfigDomain();
-	  printf("---5---");
 	  ConfigRunMode(cfg);
-	  printf("---6---");
 	  VisuParticleSummary();
-	  printf("---7---");
 	  //-Initialisation of execution variables. | Inicializacion de variables de ejecucion.
 	  //------------------------------------------------------------------------------------
 	  InitRun();
@@ -1426,8 +1412,12 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
   Log->Print(string("\n[Initialising simulation (")+RunCode+")  "+fun::GetDateTime()+"]");
   PrintHeadPart();
 
+  //printf("---Start loop---");
+
   while(TimeStep<TimeMax){
     if(ViscoTime)Visco=ViscoTime->GetVisco(float(TimeStep));
+
+	//printf("---Loop1---");
 	//printf("\nTimeStep : %1.10f", TimeStep);
 	// Control of step - Matthias
 	//double stepdt = ComputeStep_Eul_M();
@@ -1441,6 +1431,7 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
 	RunDivisionDisplacement_M();
 	RunCellDivide(true);
 
+	//printf("---Loop2---");
     TimeStep+=stepdt;
 	partoutstop=(Np<NpMinimum || !Np);
     if(TimeStep>=TimePartNext || partoutstop){
@@ -1455,6 +1446,7 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
       TimePartNext=TimeOut->GetNextTime(TimeStep);
       TimerPart.Start();
     }
+	//printf("---Loop3--");
     UpdateMaxValues();
     Nstep++;
     if(Part<=PartIni+1 && tc.CheckTime())Log->Print(string("  ")+tc.GetInfoFinish((TimeStep-TimeStepIni)/(TimeMax-TimeStepIni)));
@@ -1534,6 +1526,7 @@ void JSphCpuSingle::SaveData_M() {
 	float *mass = NULL;
 	float *volu = NULL;
 	tfloat3 *press = NULL;
+	tsymatrix3f *gradvel = NULL;
 	tsymatrix3f *tau = NULL;
 	if (save) {
 		//-Assign memory and collect particle values. | Asigna memoria y recupera datos de las particulas.
@@ -1545,9 +1538,10 @@ void JSphCpuSingle::SaveData_M() {
 		mass = ArraysCpu->ReserveFloat();
 		volu = ArraysCpu->ReserveFloat();
 		press = ArraysCpu->ReserveFloat3();
+		gradvel = ArraysCpu->ReserveSymatrix3f();
 		tau = ArraysCpu->ReserveSymatrix3f();
 
-		unsigned npnormal = GetParticlesData_M(Np, 0, true, PeriActive != 0, idp, pos, vel, rhop, pore, press, mass, tau, NULL);
+		unsigned npnormal = GetParticlesData_M(Np, 0, true, PeriActive != 0, idp, pos, vel, rhop, pore, press, mass, gradvel, tau, NULL);
 		if (npnormal != npsave)RunException("SaveData", "The number of particles is invalid.");
 	}
 	//-Gather additional information. | Reune informacion adicional..
@@ -1568,7 +1562,7 @@ void JSphCpuSingle::SaveData_M() {
 
 	//-Stores particle data. | Graba datos de particulas.
 	const tdouble3 vdom[2] = { OrderDecode(CellDivSingle->GetDomainLimits(true)),OrderDecode(CellDivSingle->GetDomainLimits(false)) };
-	JSph::SaveData_M(npsave, idp, pos, vel, rhop, pore, press, mass, tau, 1, vdom, &infoplus);
+	JSph::SaveData_M(npsave, idp, pos, vel, rhop, pore, press, mass, gradvel, tau, 1, vdom, &infoplus);
 	//JSph::SaveData(npsave, idp, pos, vel, rhop, 1, vdom, &infoplus);
 	//-Free auxiliary memory for particle data. | Libera memoria auxiliar para datos de particulas.
 	ArraysCpu->Free(idp);
@@ -1579,6 +1573,7 @@ void JSphCpuSingle::SaveData_M() {
 	ArraysCpu->Free(mass);
 	ArraysCpu->Free(volu);
 	ArraysCpu->Free(press);
+	ArraysCpu->Free(gradvel);
 	ArraysCpu->Free(tau);
 	TmcStop(Timers, TMC_SuSavePart);
 }

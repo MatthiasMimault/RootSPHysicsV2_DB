@@ -175,6 +175,8 @@ protected:
 		, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, typecode *code);
 	unsigned GetParticlesData_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
 		, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, tfloat3 *press, float* mass, tsymatrix3f *tau, typecode *code);
+	unsigned GetParticlesData_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
+		, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, tfloat3 *press, float* mass, tsymatrix3f *gradvel, tsymatrix3f *tau, typecode *code);
 	void ConfigOmp(const JCfgRun *cfg);
 
 	void ConfigRunMode(const JCfgRun *cfg, std::string preinfo = "");
