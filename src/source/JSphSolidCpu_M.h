@@ -126,7 +126,6 @@ protected:
 	tsymatrix3f *JauGradvelc2_M;
 	tsymatrix3f *JauTauDot_M;
 	tsymatrix3f *JauOmega_M;
-	tsymatrix3f *Sigma_M, *SigmaDot_M, *SigmaM1c_M;
 
 	TimersCpu Timers;
 
@@ -246,15 +245,6 @@ protected:
 		, float &viscdt, float *ar, tfloat3 *ace, float *delta
 		, TpShifting tshifting, tfloat3 *shiftpos, float *shiftdetect)const;
 
-	template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph tdelta, bool shift> void InteractionForces_M
-	(unsigned n, unsigned pinit, tint4 nc, int hdiv, unsigned cellinitial, float visco
-		, const unsigned *beginendcell, tint3 cellzero, const unsigned *dcell
-		, tsymatrix3f* gradvel, tsymatrix3f* omega
-		, const tdouble3 *pos, const tfloat3 *pspos, const tfloat4 *velrhop, const typecode *code, const unsigned *idp
-		, const tsymatrix3f *sigma, const float *pore, const float *mass
-		, float &viscdt, float *ar, tfloat3 *ace, float *delta
-		, TpShifting tshifting, tfloat3 *shiftpos, float *shiftdetect)const;
-
 	template<bool psingle> void InteractionForcesDEM
 	(unsigned nfloat, tint4 nc, int hdiv, unsigned cellfluid
 		, const unsigned *beginendcell, tint3 cellzero, const unsigned *dcell
@@ -298,15 +288,6 @@ protected:
 		, tsymatrix3f *jautau, tsymatrix3f *jaugradvel, tsymatrix3f *jautaudot, tsymatrix3f *jauomega
 		, TpShifting tshifting, tfloat3 *shiftpos, float *shiftdetect)const;
 
-	template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph tdelta, bool shift> void	Interaction_ForcesT
-	(unsigned np, unsigned npb, unsigned npbok
-		, tuint3 ncells, const unsigned *begincell, tuint3 cellmin, const unsigned *dcell
-		, const tdouble3 *pos, const tfloat3 *pspos, const tfloat4 *velrhop, const typecode *code, const unsigned *idp
-		, const tsymatrix3f *sigma, tsymatrix3f *sigmadot, const float *pore, const float *mass
-		, float &viscdt, float* ar, tfloat3 *ace, float *delta
-		, tsymatrix3f *jaugradvel, tsymatrix3f *jautaudot, tsymatrix3f *jauomega
-		, TpShifting tshifting, tfloat3 *shiftpos, float *shiftdetect)const;
-
 	void Interaction_Forces(unsigned np, unsigned npb, unsigned npbok
 		, tuint3 ncells, const unsigned *begincell, tuint3 cellmin, const unsigned *dcell
 		, const tdouble3 *pos, const tfloat4 *velrhop, const unsigned *idp, const typecode *code
@@ -347,23 +328,21 @@ protected:
 		, tsymatrix3f *jautau, tsymatrix3f *jaugradvel, tsymatrix3f *jautaudot, tsymatrix3f *jauomega
 		, tfloat3 *shiftpos, float *shiftdetect)const;
 	
-
 	void InteractionSimple_Forces_M(unsigned np, unsigned npb, unsigned npbok
 		, tuint3 ncells, const unsigned *begincell, tuint3 cellmin, const unsigned *dcell
 		, const tfloat3 *pspos, const tfloat4 *velrhop, const unsigned *idp, const typecode *code
-		, const tsymatrix3f *sigma, tsymatrix3f *sigmadot, const float *pore, const float *mass
+		, const float *press, const float *pore, const float *mass
 		, float &viscdt, float* ar, tfloat3 *ace, float *delta
-		, tsymatrix3f *jaugradvel, tsymatrix3f *jautaudot, tsymatrix3f *jauomega
+		, tsymatrix3f *jautau, tsymatrix3f *jaugradvel, tsymatrix3f *jautaudot, tsymatrix3f *jauomega
 		, tfloat3 *shiftpos, float *shiftdetect)const;
 	
-
 	// Press3D
 	void InteractionSimple_Forces_M(unsigned np, unsigned npb, unsigned npbok
 		, tuint3 ncells, const unsigned *begincell, tuint3 cellmin, const unsigned *dcell
-		, const tdouble3 *pos, const tfloat4 *velrhop, const unsigned *idp, const typecode *code
-		, const tsymatrix3f *sigma, tsymatrix3f *sigmadot, const float *pore, const float *mass
+		, const tfloat3 *pspos, const tfloat4 *velrhop, const unsigned *idp, const typecode *code
+		, const tfloat3 *press, const float *pore, const float *mass
 		, float &viscdt, float* ar, tfloat3 *ace, float *delta
-		, tsymatrix3f *jaugradvel, tsymatrix3f *jautaudot, tsymatrix3f *jauomega
+		, tsymatrix3f *jautau, tsymatrix3f *jaugradvel, tsymatrix3f *jautaudot, tsymatrix3f *jauomega
 		, tfloat3 *shiftpos, float *shiftdetect)const;
 
 	void Interaction_Forces_M(unsigned np, unsigned npb, unsigned npbok
@@ -374,10 +353,10 @@ protected:
 		, tsymatrix3f *jautau, tsymatrix3f *jaugradvel, tsymatrix3f *jautaudot, tsymatrix3f *jauomega
 		, tfloat3 *shiftpos, float *shiftdetect)const;
 
+
 	void ComputeSpsTau(unsigned n, unsigned pini, const tfloat4 *velrhop, const tsymatrix3f *gradvel, tsymatrix3f *tau)const;
 	void ComputeJauTauDot_M(unsigned n, unsigned pini, const tsymatrix3f *gradvel, tsymatrix3f *tau, tsymatrix3f *taudot, tsymatrix3f *omega)const;
-	void ComputeJauTauDot_M(unsigned n, unsigned pini, tsymatrix3f *taudot)const;	
-	void ComputeSigmaDot_M(unsigned n, unsigned pini, tsymatrix3f *sigmadot)const;
+	void ComputeJauTauDotImplicit_M(unsigned n, unsigned pini, const double dt, const tsymatrix3f *gradvel, tsymatrix3f *tau, tsymatrix3f *taudot, tsymatrix3f *omega)const;
 
 	template<bool shift> void ComputeVerletVarsFluid(const tfloat4 *velrhop1, const tfloat4 *velrhop2, double dt, double dt2, tdouble3 *pos, unsigned *cell, typecode *code, tfloat4 *velrhopnew)const;
 	// Matthias
@@ -386,10 +365,7 @@ protected:
 	template<bool shift> void ComputeVerletVarsSolMass_M(const tfloat4 *velrhop1, const tfloat4 *velrhop2
 		, const tsymatrix3f *tau1, const tsymatrix3f *tau2, const float *mass1, const float *mass2
 		, double dt, double dt2, tdouble3 *pos, unsigned *dcell, typecode *code, tfloat4 *velrhopnew, tsymatrix3f *taunew, float *massnew)const;
-	template<bool shift> void ComputeVerletVarsDev_M(const tfloat4 *velrhop1, const tfloat4 *velrhop2
-		, const tsymatrix3f *tau1, const tsymatrix3f *tau2, const float *mass1, const float *mass2, const tsymatrix3f *sigma1, const tsymatrix3f *sigma2
-		, double dt, double dt2, tdouble3 *pos, unsigned *dcell, typecode *code, tfloat4 *velrhopnew, tsymatrix3f *taunew, float *massnew, tsymatrix3f *sigmanew)const;
-		void ComputeVelrhopBound(const tfloat4* velrhopold, double armul, tfloat4* velrhopnew)const;
+	void ComputeVelrhopBound(const tfloat4* velrhopold, double armul, tfloat4* velrhopnew)const;
 	// Matthias
 	template<bool shift> void ComputeEulerVarsFluid_M(tfloat4 *velrhop, double dt, tdouble3 *pos, unsigned *dcell, word *code)const;
 	template<bool shift> void ComputeEulerVarsSolid_M(tfloat4 *velrhop, double dt, tdouble3 *pos, tsymatrix3f *tau, unsigned *dcell, word *code)const;

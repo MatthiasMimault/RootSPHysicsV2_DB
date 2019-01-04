@@ -91,7 +91,6 @@ void JSphSolidCpu::InitVars() {
 	Porec_M = NULL;
 	Massc_M = NULL;
 	Divisionc_M = NULL;
-	Sigma_M = NULL; SigmaDot_M = NULL; SigmaM1c_M = NULL;
 	//Amassc_M = NULL;
 	//Voluc_M = NULL;
 
@@ -176,7 +175,7 @@ void JSphSolidCpu::AllocCpuMemoryParticles(unsigned np, float over) {
 	}
 	if (TStep == STEP_Verlet) {
 		ArraysCpu->AddArrayCount(JArraysCpu::SIZE_16B, 1); //-velrhopm1
-		ArraysCpu->AddArrayCount(JArraysCpu::SIZE_24B, 2); //-JauTauM12, SigmaM1
+		ArraysCpu->AddArrayCount(JArraysCpu::SIZE_24B, 1); //-JauTauM12
 	}
 	else if (TStep == STEP_Symplectic) {
 		ArraysCpu->AddArrayCount(JArraysCpu::SIZE_24B, 1); //-pospre
@@ -194,7 +193,7 @@ void JSphSolidCpu::AllocCpuMemoryParticles(unsigned np, float over) {
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_4B, 1); // Pore
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_4B, 1); // Mass
 	//ArraysCpu->AddArrayCount(JArraysCpu::SIZE_36B, 1); //-JauGradvel, JauTau
-	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_24B, 6); //-JauGradvel, JauTau2, Omega and Taudot, Sigma and SigmaDot
+	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_24B, 3); //-JauGradvel, JauTau2, Omega and Taudot
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_4B, 4); // SaveFields
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_12B, 1); // Press3D
 
@@ -227,8 +226,6 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	//tmatrix3f *jautau = SaveArrayCpu(Np, JauTauc_M);
 	tsymatrix3f *jautau2 = SaveArrayCpu(Np, JauTauc2_M);
 	tsymatrix3f *jautaum12 = SaveArrayCpu(Np, JauTauM1c2_M);
-	tsymatrix3f *sigma = SaveArrayCpu(Np, Sigma_M);
-	tsymatrix3f *sigmam1 = SaveArrayCpu(Np, SigmaM1c_M);
 
 	//-Frees pointers.
 	ArraysCpu->Free(Idpc);
@@ -249,8 +246,6 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	//ArraysCpu->Free(JauTauc_M);
 	ArraysCpu->Free(JauTauc2_M);
 	ArraysCpu->Free(JauTauM1c2_M);
-	ArraysCpu->Free(Sigma_M);
-	ArraysCpu->Free(SigmaM1c_M);
 
 	//-Resizes CPU memory allocation.
 	const double mbparticle = (double(MemCpuParticles) / (1024 * 1024)) / CpuParticlesSize; //-MB por particula.
@@ -275,9 +270,7 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	//Voluc_M = ArraysCpu->ReserveFloat();
 	//JauTauc_M = ArraysCpu->ReserveMatrix3f_M();
 	JauTauc2_M = ArraysCpu->ReserveSymatrix3f();
-	if (jautaum12) JauTauM1c2_M = ArraysCpu->ReserveSymatrix3f();
-	Sigma_M = ArraysCpu->ReserveSymatrix3f();
-	if (sigmam1)SigmaM1c_M = ArraysCpu->ReserveSymatrix3f();
+	if (velrhopm1) JauTauM1c2_M = ArraysCpu->ReserveSymatrix3f();
 
 	//-Restore data in CPU memory.
 	RestoreArrayCpu(Np, idp, Idpc);
@@ -298,8 +291,6 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	//RestoreArrayCpu(Np, jautau, JauTauc_M);
 	RestoreArrayCpu(Np, jautau2, JauTauc2_M);
 	RestoreArrayCpu(Np, jautaum12, JauTauM1c2_M);
-	RestoreArrayCpu(Np, sigma, Sigma_M);
-	RestoreArrayCpu(Np, sigmam1, SigmaM1c_M);
 	//-Updates values.
 	CpuParticlesSize = npnew;
 	MemCpuParticles = ArraysCpu->GetAllocMemoryCpu();
@@ -344,7 +335,6 @@ void JSphSolidCpu::ReserveBasicArraysCpu() {
 		VelrhopM1c = ArraysCpu->ReserveFloat4();
 		MassM1c_M = ArraysCpu->ReserveFloat();
 		JauTauM1c2_M = ArraysCpu->ReserveSymatrix3f();
-		SigmaM1c_M = ArraysCpu->ReserveSymatrix3f();
 	}
 	if (TVisco == VISCO_LaminarSPS)SpsTauc = ArraysCpu->ReserveSymatrix3f();
 
@@ -354,7 +344,6 @@ void JSphSolidCpu::ReserveBasicArraysCpu() {
 	Massc_M = ArraysCpu->ReserveFloat();
 	//JauTauc_M = ArraysCpu->ReserveMatrix3f_M();
 	JauTauc2_M = ArraysCpu->ReserveSymatrix3f();
-	Sigma_M = ArraysCpu->ReserveSymatrix3f();
 }
 
 //==============================================================================
@@ -476,6 +465,7 @@ unsigned JSphSolidCpu::GetParticlesData_M(unsigned n, unsigned pini, bool cellor
 	/*if (press) {
 		for (unsigned p = 0; p<n; p++) {
 			//tfloat3 pre = AnisotropyK_M * TFloat3(CteB * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f));
+			tfloat3 pre =CteB3D * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f);
 			press[p] = TFloat3(pre.x, pre.y, pre.z);
 		}
 	}*/
@@ -633,7 +623,6 @@ void JSphSolidCpu::InitRun() {
 	if (TStep == STEP_Verlet) {
 		memcpy(VelrhopM1c, Velrhopc, sizeof(tfloat4)*Np);
 		memset(JauTauM1c2_M, 0, sizeof(tsymatrix3f)*Np);
-		memset(SigmaM1c_M, 0, sizeof(tsymatrix3f)*Np);
 		VerletStep = 0;
 	}
 	else if (TStep == STEP_Symplectic)DtPre = DtIni;
@@ -642,7 +631,6 @@ void JSphSolidCpu::InitRun() {
 	// Matthias
 	//memset(JauTauc_M, 0, sizeof(tmatrix3f)*Np);
 	memset(JauTauc2_M, 0, sizeof(tsymatrix3f)*Np);
-	memset(Sigma_M, 0, sizeof(tsymatrix3f)*Np);
 	memset(Divisionc_M, 0, sizeof(bool)*Np);
 	for (unsigned p = 0; p < Np; p++) {
 		Massc_M[p] = MassFluid;
@@ -739,11 +727,12 @@ void JSphSolidCpu::InitRun_T(JPartsLoad4 *pl) {
 	// Matthias
 	//memset(JauTauc_M, 0, sizeof(tmatrix3f)*Np);
 	memset(JauTauc2_M, 0, sizeof(tsymatrix3f)*Np);
-	memset(Sigma_M, 0, sizeof(tsymatrix3f)*Np);
 	memset(Divisionc_M, 0, sizeof(bool)*Np);
 	for (unsigned p = 0; p < Np; p++) {
 		Massc_M[p] = pl->GetMass()[p];
 		MassM1c_M[p] = pl->GetMass()[p];
+
+
 	}
 
 
@@ -890,8 +879,7 @@ void JSphSolidCpu::PreInteractionVars_Forces(TpInter tinter, unsigned np, unsign
 	//memset(JauGradvelc_M + npb, 0, sizeof(tmatrix3f)*npf);  //JauGradvelc[]=(0,0,0,0,0,0).													
 	memset(JauGradvelc2_M + npb, 0, sizeof(tsymatrix3f)*npf);  //JauGradvelc[]=(0,0,0,0,0,0).													
 	memset(JauTauDot_M + npb, 0, sizeof(tsymatrix3f)*npf);  //JauGradvelc[]=(0,0,0,0,0,0).													
-	memset(JauOmega_M + npb, 0, sizeof(tsymatrix3f)*npf);  //JauGradvelc[]=(0,0,0,0,0,0).										
-	memset(SigmaDot_M + npb, 0, sizeof(tsymatrix3f)*npf);  //JauGradvelc[]=(0,0,0,0,0,0).
+	memset(JauOmega_M + npb, 0, sizeof(tsymatrix3f)*npf);  //JauGradvelc[]=(0,0,0,0,0,0).
 																			  //-Apply the extra forces to the correct particle sets.
 	if (AccInput)AddAccInput();
 
@@ -951,9 +939,6 @@ void JSphSolidCpu::PreInteraction_Forces(TpInter tinter) {
 	JauGradvelc2_M = ArraysCpu->ReserveSymatrix3f();
 	JauTauDot_M = ArraysCpu->ReserveSymatrix3f();
 	JauOmega_M = ArraysCpu->ReserveSymatrix3f();
-
-	// Deformation sin Density
-	SigmaDot_M = ArraysCpu->ReserveSymatrix3f();
 
 	//-Prepare values for interaction Pos-Simpe.
 	if (Psingle) {
@@ -1047,7 +1032,6 @@ void JSphSolidCpu::PosInteraction_Forces() {
 	ArraysCpu->Free(JauGradvelc2_M);  JauGradvelc2_M = NULL;
 	ArraysCpu->Free(JauTauDot_M);  JauTauDot_M = NULL;
 	ArraysCpu->Free(JauOmega_M);  JauOmega_M = NULL;
-	ArraysCpu->Free(SigmaDot_M);  SigmaDot_M = NULL;
 
 }
 
@@ -1678,12 +1662,12 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 }
 
 //==============================================================================
-/// V4 Interaction particles with Solid, pore, mass variation and Sigma - Matthias
+/// Interaction particles with Solid, pore and mass variation - Matthias
 //==============================================================================
-template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph tdelta, bool shift> void JSphSolidCpu::InteractionForces_M
+template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph tdelta, bool shift> void JSphSolidCpu::InteractionForcesSolMass_M
 (unsigned n, unsigned pinit, tint4 nc, int hdiv, unsigned cellinitial, float visco
 	, const unsigned *beginendcell, tint3 cellzero, const unsigned *dcell
-	, tsymatrix3f* gradvel, tsymatrix3f* omega
+	, const tsymatrix3f* tau, tsymatrix3f* gradvel, tsymatrix3f* omega
 	, const tdouble3 *pos, const tfloat3 *pspos, const tfloat4 *velrhop, const typecode *code, const unsigned *idp
 	, const float *press, const float *pore, const float *mass
 	, float &viscdt, float *ar, tfloat3 *ace, float *delta
@@ -1726,8 +1710,7 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 		const tdouble3 posp1 = (psingle ? TDouble3(0) : pos[p1]);
 		const float pressp1 = press[p1];
 		// Matthias
-		const tsymatrix3f sigmap1 = sigma[p1];
-		//const tsymatrix3f taup1 = tau[p1];
+		const tsymatrix3f taup1 = tau[p1];
 		const float porep1 = pore[p1];
 
 		//-Obtain interaction limits.
@@ -2256,7 +2239,7 @@ void JSphSolidCpu::ComputeSpsTau(unsigned n, unsigned pini, const tfloat4 *velrh
 }
 
 //==============================================================================
-/// Computes deviatoric stress tensor rate for solid - Matthias 
+/// Computes stress tensor rate for solid - Matthias 
 //==============================================================================
 void JSphSolidCpu::ComputeJauTauDot_M(unsigned n, unsigned pini, const tsymatrix3f *gradvel, tsymatrix3f *tau, tsymatrix3f *taudot, tsymatrix3f *omega)const {
 	const int pfin = int(pini + n);
@@ -2296,7 +2279,6 @@ void JSphSolidCpu::ComputeJauTauDot_M(unsigned n, unsigned pini, const tsymatrix
 		taudot[p].yz = E.yz + (tau.zz - tau.yy)*omega.yz - tau.xz*omega.xy - tau.xy*omega.xz;
 		taudot[p].zz = E.zz - 2.0f*tau.xz*omega.xz - 2.0f*tau.yz*omega.yz;
 	}
-//printf("MaxEpsilonX = %.3f, MinEpsilonX = %.3f\n", maxEpsilonX, minEpsilonX);
 }
 
 //==============================================================================
@@ -2555,10 +2537,10 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 }
 
 
+
 //==============================================================================
 /// Selection of template parameters for Interaction_ForcesX.
 /// Seleccion de parametros template para Interaction_ForcesX.
-// Right one
 //==============================================================================
 void JSphSolidCpu::Interaction_Forces_M(unsigned np, unsigned npb, unsigned npbok
 	, tuint3 ncells, const unsigned *begincell, tuint3 cellmin, const unsigned *dcell
@@ -2881,9 +2863,8 @@ void JSphSolidCpu::Interaction_Forces_M(unsigned np, unsigned npb, unsigned npbo
 //==============================================================================
 /// Selection of template parameters for Interaction_ForcesX.
 /// Seleccion de parametros template para Interaction_ForcesX.
-// Right one
 //==============================================================================
-void JSphSolidCpu::InteractionSimple_Forces_M(unsigned np, unsigned npb, unsigned npbok
+void JSphSolidCpu::Interaction_Forces_M(unsigned np, unsigned npb, unsigned npbok
 	, tuint3 ncells, const unsigned *begincell, tuint3 cellmin, const unsigned *dcell
 	, const tdouble3 *pos, const tfloat4 *velrhop, const unsigned *idp, const typecode *code
 	, const float *press, const float *pore
@@ -2891,7 +2872,7 @@ void JSphSolidCpu::InteractionSimple_Forces_M(unsigned np, unsigned npb, unsigne
 	, tsymatrix3f *jautau, tsymatrix3f *jaugradvel, tsymatrix3f *jautaudot, tsymatrix3f *jauomega
 	, tfloat3 *shiftpos, float *shiftdetect)const
 {
-	tdouble3 *pos = NULL;
+	tfloat3 *pspos = NULL;
 	const bool psingle = false;
 	if (TKernel == KERNEL_Wendland) {
 		const TpKernel tker = KERNEL_Wendland;
@@ -3200,7 +3181,6 @@ void JSphSolidCpu::InteractionSimple_Forces_M(unsigned np, unsigned npb, unsigne
 		}
 	}
 }
-
 
 //==============================================================================
 /// Selection of template parameters for Interaction_ForcesX.
@@ -4170,9 +4150,8 @@ void JSphSolidCpu::Interaction_Forces(unsigned np, unsigned npb, unsigned npbok
 	}
 }
 
-
 //==============================================================================
-/// Selection of template parameters for Interaction_ForcesX. - V4
+/// Selection of template parameters for Interaction_ForcesX.
 /// Seleccion de parametros template para Interaction_ForcesX.
 //==============================================================================
 void JSphSolidCpu::InteractionSimple_Forces(unsigned np, unsigned npb, unsigned npbok
@@ -4492,7 +4471,6 @@ void JSphSolidCpu::InteractionSimple_Forces(unsigned np, unsigned npb, unsigned 
 		}
 	}
 }
-
 
 //==============================================================================
 // ===== PRESSURE 3D
@@ -5356,14 +5334,7 @@ template<bool shift> void JSphSolidCpu::ComputeVerletVarsSolMass_M(const tfloat4
 			velrhopnew[p] = velrhop1[p];
 			velrhopnew[p].w = (rhopnew<RhopZero ? RhopZero : rhopnew); //-Avoid fluid particles being absorved by floating ones. | Evita q las floating absorvan a las fluidas.
 		}
-		/*if (maxSigmaX < sigmanew[p].xx) maxSigmaX = sigmanew[p].xx;
-		if (minSigmaX > sigmanew[p].xx) minSigmaX = sigmanew[p].xx;
-		if (maxVelX < velrhopnew[p].x) maxVelX = velrhopnew[p].x;
-		if (minVelX > velrhopnew[p].x) minVelX = velrhopnew[p].x;*/
-		//if (pow(2,maxVel) < pow(2, velrhopnew[p].x)+ pow(2, velrhopnew[p].y)+ pow(2, velrhopnew[p].z)) maxVel = sqrt(pow(2, velrhopnew[p].x) + pow(2, velrhopnew[p].y) + pow(2, velrhopnew[p].z));
 	}
-	//printf("MaxSigmaX = %.3f, MinSigmaX = %.3f\n", maxSigmaX, minSigmaX);
-	//printf("MaxVel = %.3f, VelMax = %.3f\n", maxVel, VelMax);
 }
 
 //==============================================================================
@@ -5566,9 +5537,8 @@ void JSphSolidCpu::ComputeVerlet(double dt) {
 	// Update of LocDiv
 	//-New values are calculated en VelrhopM1c.
 	swap(Velrhopc, VelrhopM1c);     //-Swap Velrhopc & VelrhopM1c. | Intercambia Velrhopc y VelrhopM1c.
-	swap(JauTauc2_M, JauTauM1c2_M);
-	swap(Massc_M, MassM1c_M);     
-	swap(Sigma_M, SigmaM1c_M);
+	swap(JauTauc2_M, JauTauM1c2_M);     //-Swap Velrhopc & VelrhopM1c. | Intercambia Velrhopc y VelrhopM1c.
+	swap(Massc_M, MassM1c_M);     //-Swap Velrhopc & VelrhopM1c. | Intercambia Velrhopc y VelrhopM1c.
 	TmcStop(Timers, TMC_SuComputeStep);
 }
 
