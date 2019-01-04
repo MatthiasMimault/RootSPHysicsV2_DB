@@ -113,10 +113,12 @@ private:
   double MassFluid;       ///<Mass of a fluid particle.
 
   // Matthias
+  // Bord mirroir
+  double PlanMirror;
   // Extension domain
   double BordDomain;
   // Solid - anisotropic
-  double Ef, Et, Gf, nuf1, nuf2;
+  double Ef, Et, Gf, nuxy, nuyz;
   //double K;
   //double Mu;
   // Pore
@@ -162,7 +164,8 @@ public:
   int GetLatticeBound()const{ return(LatticeBound); }
   int GetLatticeFluid()const{ return(LatticeFluid); }
   tdouble3 GetGravity()const{ return(Gravity); }
-  double GetCFLnumber()const{ return(CFLnumber); }
+  double GetCFLnumber()const { return(CFLnumber); }
+  double GetPlanMirror()const { return(PlanMirror); }
   bool GetHSwlAuto()const{ return(HSwlAuto); }
   double GetHSwl()const{ return(HSwl); }
   bool GetSpeedSystemAuto()const{ return(SpeedSystemAuto); }
@@ -181,16 +184,12 @@ public:
 
   // Solid - anisotropic
   //double GetYoung()const { return(K); }
-  double GetYoung1()const { return(Ef); }
-  double GetYoung2()const { return(Et); }
+  double GetYoungX()const { return(Ef); }
+  double GetYoungY()const { return(Et); }
   double GetShear()const { return(Gf); }
-  double GetPoisson11()const { return nuf1; }
-  double GetPoisson12()const { return nuf2; }
+  double GetPoissonXY()const { return nuxy; }
+  double GetPoissonYZ()const { return nuyz; }
   //double GetShear()const { return(Mu); }
-<<<<<<< HEAD
-=======
-  
->>>>>>> master
   // Pore Pressure
   double GetPoreZero()const { return(PoreZero); }
   // Mass assimilation
@@ -226,16 +225,18 @@ public:
   void SetRhop0(double v){ Rhop0=v; }
   void SetEps(double v){ Eps=v; }
   // Matthias
+  // Plan mirroir
+  void SetPlanMirror(double v) { PlanMirror = v; }
   // Extension Domain
   void SetBordDomain(double v) { BordDomain = v; }
   // Solid - anisotropic
   //void SetYoung(double v) { K = v; };
   //void SetShear(double v) { Mu = v; };
-  void SetYoung1(double v) { Ef = v; };
-  void SetYoung2(double v) { Et = v; };
+  void SetYoungX(double v) { Ef = v; };
+  void SetYoungY(double v) { Et = v; };
   void SetShear(double v) { Gf = v; };
-  void SetPoisson11(double v) { nuf1 = v; };
-  void SetPoisson12(double v) { nuf2 = v; };
+  void SetPoissonXY(double v) { nuxy = v; };
+  void SetPoissonYZ(double v) { nuyz = v; };
 
   // Pore Pressure
   void SetPoreZero(double v) { PoreZero = v; };
