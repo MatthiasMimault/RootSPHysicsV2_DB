@@ -106,7 +106,7 @@ protected:
 
 						  //-Variables for computing forces [INTER_Forces,INTER_ForcesCorr] | Vars. derivadas para computo de fuerzas [INTER_Forces,INTER_ForcesCorr]
 	float *Pressc;       ///< Press[]=B*((Rhop/Rhop0)^gamma-1)
-	tfloat3 *Press3Dc;       ///< Press[]=B*((Rhop/Rhop0)^gamma-1)
+	tfloat3 *Press3Dc_M;       ///< Press[]=B*((Rhop/Rhop0)^gamma-1)
 
 	// Matthias - Pore pressure
 	bool *Divisionc_M;
@@ -175,6 +175,8 @@ protected:
 		, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, typecode *code);
 	unsigned GetParticlesData_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
 		, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, tfloat3 *press, float* mass, tsymatrix3f *tau, typecode *code);
+	unsigned GetParticlesData_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
+		, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, tfloat3 *press, float* mass, tsymatrix3f *gradvel, tsymatrix3f *tau, typecode *code);
 	void ConfigOmp(const JCfgRun *cfg);
 
 	void ConfigRunMode(const JCfgRun *cfg, std::string preinfo = "");
@@ -241,7 +243,7 @@ protected:
 		, const tdouble3 *pos, const tfloat3 *pspos, const tfloat4 *velrhop, const typecode *code, const unsigned *idp
 		, const tfloat3 *press, const float *pore, const float *mass
 		, float &viscdt, float *ar, tfloat3 *ace, float *delta
-		, TpShifting tshifting, tfloat3 *shiftpos, float *shiftdetect)const; 
+		, TpShifting tshifting, tfloat3 *shiftpos, float *shiftdetect)const;
 
 	template<bool psingle> void InteractionForcesDEM
 	(unsigned nfloat, tint4 nc, int hdiv, unsigned cellfluid
@@ -317,14 +319,6 @@ protected:
 		, float &viscdt, float* ar, tfloat3 *ace, float *delta
 		, tsymatrix3f *jautau, tsymatrix3f *jaugradvel, tsymatrix3f *jautaudot, tsymatrix3f *jauomega
 		, tfloat3 *shiftpos, float *shiftdetect)const;
-	
-	void Interaction_Forces_M(unsigned np, unsigned npb, unsigned npbok
-		, tuint3 ncells, const unsigned *begincell, tuint3 cellmin, const unsigned *dcell
-		, const tdouble3 *pos, const tfloat4 *velrhop, const unsigned *idp, const typecode *code
-		, const tfloat3 *press, const float *pore, const float *mass
-		, float &viscdt, float* ar, tfloat3 *ace, float *delta
-		, tsymatrix3f *jautau, tsymatrix3f *jaugradvel, tsymatrix3f *jautaudot, tsymatrix3f *jauomega
-		, tfloat3 *shiftpos, float *shiftdetect)const;
 
 	void InteractionSimple_Forces_M(unsigned np, unsigned npb, unsigned npbok
 		, tuint3 ncells, const unsigned *begincell, tuint3 cellmin, const unsigned *dcell
@@ -342,9 +336,18 @@ protected:
 		, tsymatrix3f *jautau, tsymatrix3f *jaugradvel, tsymatrix3f *jautaudot, tsymatrix3f *jauomega
 		, tfloat3 *shiftpos, float *shiftdetect)const;
 	
+	// Press3D
 	void InteractionSimple_Forces_M(unsigned np, unsigned npb, unsigned npbok
 		, tuint3 ncells, const unsigned *begincell, tuint3 cellmin, const unsigned *dcell
 		, const tfloat3 *pspos, const tfloat4 *velrhop, const unsigned *idp, const typecode *code
+		, const tfloat3 *press, const float *pore, const float *mass
+		, float &viscdt, float* ar, tfloat3 *ace, float *delta
+		, tsymatrix3f *jautau, tsymatrix3f *jaugradvel, tsymatrix3f *jautaudot, tsymatrix3f *jauomega
+		, tfloat3 *shiftpos, float *shiftdetect)const;
+
+	void Interaction_Forces_M(unsigned np, unsigned npb, unsigned npbok
+		, tuint3 ncells, const unsigned *begincell, tuint3 cellmin, const unsigned *dcell
+		, const tdouble3 *pos, const tfloat4 *velrhop, const unsigned *idp, const typecode *code
 		, const tfloat3 *press, const float *pore, const float *mass
 		, float &viscdt, float* ar, tfloat3 *ace, float *delta
 		, tsymatrix3f *jautau, tsymatrix3f *jaugradvel, tsymatrix3f *jautaudot, tsymatrix3f *jauomega
