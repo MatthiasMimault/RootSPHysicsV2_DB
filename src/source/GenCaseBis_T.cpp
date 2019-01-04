@@ -188,6 +188,7 @@ void GenCaseBis_T::loadCsv(int np, int *idp, double *vol, tdouble3 *pos) {
 
 		for (size_t i = 0; i < np; i++)
 		{
+			//printf("\n------------------\n");
 			getline(file, line);
 			tempo = split(line, ',');
 			//printf("\nString = %s\nString split = 1: %s 2: %s 3: %s 4: %s 5: %s  6: %s", line.c_str(), tempo[0].c_str(), tempo[1].c_str(), tempo[2].c_str(), tempo[3].c_str(), tempo[4].c_str(), tempo[5].c_str());
