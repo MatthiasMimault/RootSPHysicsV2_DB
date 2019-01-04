@@ -223,13 +223,17 @@ protected:
   float SpsSmag;             ///<Smagorinsky constant used in SPS turbulence model.
   float SpsBlin;             ///<Blin constant used in the SPS turbulence model.
   // Matthias
+  // Plan mirroir
+  float PlanMirror;
   // Extension Domain
   float BordDomain;
   // Solid
-  float Ef, Et, Gf, nuf1, nuf2;
+  float Ex, Ey, Gf, nuxy, nuyz;
   float C1, C2, C3, C12, C13, C23, C4, C5, C6;
-  float K;
+  float S1, S12, S13, S21, S2, S23, S31, S32, S3;
+  float K, Kani;
   tfloat3 K_M, CteB_M;
+
   //tfloat3 CteB3D;
   // Pore
   float PoreZero;

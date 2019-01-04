@@ -684,34 +684,55 @@ void JSph::LoadCaseConfig(){
   MassFluid=(float)ctes.GetMassFluid();
   MassBound=(float)ctes.GetMassBound();
   //Matthias
+  // Activation des conditions de bord
+  PlanMirror = (float)ctes.GetPlanMirror();
+
   // Extension domain
   BordDomain = (float)ctes.GetBordDomain();
   // Solid anisotropic
-  const float Ef = (float)ctes.GetYoung1();
-  const float Et = (float)ctes.GetYoung2();
-  const float nf = Et/Ef;
-  const float nuf1 = (float)ctes.GetPoisson11();
-  const float nuf2 = (float)ctes.GetPoisson12();
-  const float Gf = (float)ctes.GetShear();
+  Ex = (float)ctes.GetYoungX();
+  Ey = (float)ctes.GetYoungY();
+  const float  nf = Ey/Ex;
+  nuxy = (float)ctes.GetPoissonXY();
+  nuyz = (float)ctes.GetPoissonYZ();
+  Gf = (float)ctes.GetShear();
+
+  const float Delta = nf * Ex / (1.0f - nuyz - 2.0f*nf*nuxy*nuxy);
+  C1 = Delta * (1.0f - nuyz) / nf;
+  C2 = C3 = Delta * (1.0f - nf * nuxy*nuxy) / (1.0f + nuyz);
+  C12 = C13 = Delta * nuxy;
+  C23 = Delta * (nuyz + nf * nuxy*nuxy) / (1.0f + nuyz);
   
-  const float alpha1 = Ef * (1 - nuf1) / (nf*(1 - nuf1) - 2.0f*nuf2*nuf2);
-  const float alpha2 = Ef * nf / (2.0f*nf*(1 - nuf1) - 4.0f*nuf2*nuf2);
-  const float alpha3 = Ef * nuf2 / (nf*(1 - nuf1) - 2.0f*nuf2*nuf2);
+  /*const float alpha1 = Ey * (1 - nuyz) / (nf*(1 - nuyz) - 2.0f*nuxy*nuxy);
+  const float alpha2 = Ey * nf / (2.0f*nf*(1 - nuyz) - 4.0f*nuxy*nuxy);
+  const float alpha3 = Ey * nuyz / (nf*(1 - nuyz) - 2.0f*nuxy*nuxy);
   const float alpha4 = Gf;
-  const float alpha5 = Ef / (2.0f*(1 + nuf1));
+  const float alpha5 = Ey / (2.0f*(1 + nuyz));
+
+  printf("///\n");
+  printf("Gf = %.3f, Gt = %.3f, Gt' = %.3f\n", Gf, alpha5, Ey / (2.0f*(1 + nuyz)));
+  printf("///\n");
 
   C1 = alpha1; C12 = alpha3; C13 = alpha3;
   C2 = alpha2 + alpha5; C23 = alpha2 - alpha5; C3 = alpha2 + alpha5;
-  C4 = alpha5; C5 = alpha4; C6 = alpha4;
+  C4 = alpha5; C5 = alpha4; C6 = alpha4;*/
   //K = min(min(min(C1, C12), min(C13, C2)), min(C3, C23)) / 3.0f;
   K = (C1 + C2 + C3) / 3.0f;
-  K_M = TFloat3((C1 + C12 + C13) / 3.0f, (C2 + C12 + C23) / 3.0f, (C3 + C23 + C13) / 3.0f);
+  //K_M = TFloat3((C1 + C12 + C13) / 3.0f, (C2 + C12 + C23) / 3.0f, (C3 + C23 + C13) / 3.0f);
+  S1 = 1 / Ex; S12 = -nuxy / Ex; S13 = -nuxy / Ex;
+  S21 = -nuxy / Ex; S2 = 1 / Ey; S23 = -nuyz / Ey;
+  S31 = -nuxy / Ex; S32 = -nuyz / Ey; S3 = 1 / Ey;
+  Kani = 1 / (S1 + S12 + S13 + S21 + S2 + S23 + S31 + S32 + S3);
+  K_M = TFloat3(Kani, Kani, Kani);
 
   printf("///\n");
   printf("C1 = %.3f, C12 = %.3f, C13 = %.3f\n", C1, C12, C13);
   printf("C12 = %.3f, C2 = %.3f, C23 = %.3f\n", C12, C2, C23);
   printf("C13 = %.3f, C23 = %.3f, C3 = %.3f\n", C13, C23, C3);
   printf("K_M = (%.3f,%.3f,%.3f)\n", K_M.x, K_M.y, K_M.z);
+  printf("S1 = %.8f, S12 = %.8f, S13 = %.8f\n", S1, S12, S13);
+  printf("S12 = %.8f, S2 = %.8f, S23 = %.8f\n", S12, S2, S23);
+  printf("S13 = %.8f, S23 = %.8f, S3 = %.8f\n", S13, S23, S3);
 
   // New B for anisotropy
   CteB = K / ( Gamma ) ;
@@ -1003,24 +1024,34 @@ void JSph::LoadCaseConfig_T() {
 	// Extension domain
 	BordDomain = (float)ctes.GetBordDomain();
 	// Solid anisotropic
-	const float Ef = (float)ctes.GetYoung1();
-	const float Et = (float)ctes.GetYoung2();
-	const float nf = Et / Ef;
-	const float nuf1 = (float)ctes.GetPoisson11();
-	const float nuf2 = (float)ctes.GetPoisson12();
-	const float Gf = (float)ctes.GetShear();
-	const float alpha1 = Ef * (1 - nuf1) / (nf*(1 - nuf1) - 2.0f*nuf2*nuf2);
-	const float alpha2 = Ef * nf / (2.0f*nf*(1 - nuf1) - 4.0f*nuf2*nuf2);
-	const float alpha3 = Ef * nuf2 / (nf*(1 - nuf1) - 2.0f*nuf2*nuf2);
+	Ex = (float)ctes.GetYoungX();
+	Ey = (float)ctes.GetYoungY();
+	const float  nf = Ey / Ex;
+	nuxy = (float)ctes.GetPoissonXY();
+	nuyz = (float)ctes.GetPoissonYZ();
+	Gf = (float)ctes.GetShear();
+
+	const float alpha1 = Ex * (1 - nuxy) / (nf*(1 - nuxy) - 2.0f*nuyz*nuyz);
+	const float alpha2 = Ex * nf / (2.0f*nf*(1 - nuxy) - 4.0f*nuyz*nuyz);
+	const float alpha3 = Ex * nuyz / (nf*(1 - nuxy) - 2.0f*nuyz*nuyz);
 	const float alpha4 = Gf;
-	const float alpha5 = Ef / (2.0f*(1 + nuf1));
+	const float alpha5 = Ex / (2.0f*(1 + nuxy));
+
+	printf("///\n");
+	printf("Gf = %.3f, Gt = %.3f, Gt' = %.3f\n", Gf, alpha5, Ey / (2.0f*(1 + nuyz)));
+	printf("///\n");
 
 	C1 = alpha1; C12 = alpha3; C13 = alpha3;
 	C2 = alpha2 + alpha5; C23 = alpha2 - alpha5; C3 = alpha2 + alpha5;
 	C4 = alpha5; C5 = alpha4; C6 = alpha4;
 	//K = min(min(min(C1, C12), min(C13, C2)), min(C3, C23)) / 3.0f;
 	K = (C1 + C2 + C3) / 3.0f;
-	K_M = TFloat3((C1 + C12 + C13) / 3.0f, (C2 + C12 + C23) / 3.0f, (C3 + C23 + C13) / 3.0f);
+	//K_M = TFloat3((C1 + C12 + C13) / 3.0f, (C2 + C12 + C23) / 3.0f, (C3 + C23 + C13) / 3.0f);
+	S1 = 1 / Ex; S12 = -nuxy / Ex; S13 = -nuxy / Ex;
+	S21 = -nuxy / Ex; S2 = 1 / Ey; S23 = -nuyz / Ey;
+	S31 = -nuxy / Ex; S32 = -nuyz / Ey; S3 = 1 / Ey;
+	Kani = 1 / (S1 + S12 + S13 + S21 + S2 + S23 + S31 + S32 + S3);
+	K_M = TFloat3(Kani, Kani, Kani);
 
 	// New B for anisotropy
 	CteB = K / (Gamma);
@@ -1395,7 +1426,8 @@ void JSph::VisuConfig()const{
   Log->Print(fun::VarStr("Gamma",Gamma));
   Log->Print(fun::VarStr("RhopZero",RhopZero));
   Log->Print(fun::VarStr("Cs0",Cs0));
-  Log->Print(fun::VarStr("CFLnumber",CFLnumber));
+  Log->Print(fun::VarStr("CFLnumber", CFLnumber));
+  Log->Print(fun::VarStr("PlanMirror - X", PlanMirror));
   Log->Print(fun::VarStr("DtIni",DtIni));
   Log->Print(fun::VarStr("DtMin",DtMin));
   Log->Print(fun::VarStr("DtAllParticles",DtAllParticles));
@@ -1406,11 +1438,11 @@ void JSph::VisuConfig()const{
   Log->Print("SolidVariables");
   /*  Log->Print(fun::VarStr("Young modulus", K));
   Log->Print(fun::VarStr("Shear modulus", Mu));*/
-  Log->Print(fun::VarStr("Young modulus 1", Ef)); 
-  Log->Print(fun::VarStr("Young modulus 2", Et));
+  Log->Print(fun::VarStr("Young modulus x", Ex)); 
+  Log->Print(fun::VarStr("Young modulus y", Ey));
   Log->Print(fun::VarStr("Shear modulus", Gf));
-  Log->Print(fun::VarStr("Poisson modulus 11", nuf1));
-  Log->Print(fun::VarStr("Poisson modulus 12", nuf2));
+  Log->Print(fun::VarStr("Poisson modulus xy", nuxy));
+  Log->Print(fun::VarStr("Poisson modulus yz", nuyz));
 
 
   if(TKernel==KERNEL_Wendland){
@@ -2242,6 +2274,11 @@ void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, con
 				posf3 = GetPointerDataFloat3(npok, pos);
 				DataBi4->AddPartData(npok, idp, posf3, vel, rhop);
 			}
+			// Press
+			float *pressp = NULL;
+			pressp = new float[npok];
+			for (unsigned p = 0; p<npok; p++) pressp[p] = press[p].x;
+			DataBi4->AddPartData("Press", npok, pressp);
 			
 			// Mass
 			float *mass = NULL;
