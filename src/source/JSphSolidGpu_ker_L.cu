@@ -69,7 +69,7 @@ namespace cuSol {
 
 	//==============================================================================
 	/// Returns size of gridsize according to parameters.
-	/// Devuelve tamaÃ±o de gridsize segun parametros.
+	/// Devuelve tamaño de gridsize segun parametros.
 	//==============================================================================
 	dim3 GetGridSize(unsigned n, unsigned blocksize) {
 		dim3 sgrid;//=dim3(1,2,3);
@@ -119,7 +119,7 @@ namespace cuSol {
 	/// Returns the maximum of an array, using resu[] as auxiliar array.
 	/// Size of resu[] must be >= a (N/SPHBSIZE+1)+(N/(SPHBSIZE*SPHBSIZE)+SPHBSIZE)
 	///
-	/// Devuelve el maximo de un vector, usando resu[] como vector auxiliar. El tamaÃ±o
+	/// Devuelve el maximo de un vector, usando resu[] como vector auxiliar. El tamaño
 	/// de resu[] debe ser >= a (N/SPHBSIZE+1)+(N/(SPHBSIZE*SPHBSIZE)+SPHBSIZE)
 	//==============================================================================
 	float ReduMaxFloat(unsigned ndata, unsigned inidata, float* data, float* resu) {
@@ -188,7 +188,7 @@ namespace cuSol {
 	/// Size of resu[] must be >= a (N/SPHBSIZE+1)+(N/(SPHBSIZE*SPHBSIZE)+SPHBSIZE).
 	///
 	/// Devuelve el maximo de la componente w de un vector float4, usando resu[] como 
-	/// vector auxiliar. El tamaÃ±o de resu[] debe ser >= a (N/SPHBSIZE+1)+(N/(SPHBSIZE*SPHBSIZE)+SPHBSIZE).
+	/// vector auxiliar. El tamaño de resu[] debe ser >= a (N/SPHBSIZE+1)+(N/(SPHBSIZE*SPHBSIZE)+SPHBSIZE).
 	//==============================================================================
 	float ReduMaxFloat_w(unsigned ndata, unsigned inidata, float4* data, float* resu) {
 		unsigned n = ndata, ini = inidata;

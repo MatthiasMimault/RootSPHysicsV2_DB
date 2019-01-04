@@ -190,6 +190,7 @@ public:
   double GetPoissonXY()const { return nuxy; }
   double GetPoissonYZ()const { return nuyz; }
   //double GetShear()const { return(Mu); }
+
   // Pore Pressure
   double GetPoreZero()const { return(PoreZero); }
   // Mass assimilation

@@ -738,7 +738,6 @@ void JSph::LoadCaseConfig(){
   CteB = K / ( Gamma ) ;
   CteB_M = TFloat3(K_M.x / Gamma, K_M.y / Gamma, K_M.z / Gamma);
   //CteB3D = TFloat3((C1 + C12 + C13) / Gamma, (C2 + C12 + C23) / Gamma, (C3 + C13 + C23) / Gamma);
-  
   // Pore
   PoreZero = (float)ctes.GetPoreZero();
   // Mass
