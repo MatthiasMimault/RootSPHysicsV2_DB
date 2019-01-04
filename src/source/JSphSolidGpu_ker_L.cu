@@ -69,7 +69,7 @@ namespace cuSol {
 
 	//==============================================================================
 	/// Returns size of gridsize according to parameters.
-	/// Devuelve tamaño de gridsize segun parametros.
+	/// Devuelve tamaÃ±o de gridsize segun parametros.
 	//==============================================================================
 	dim3 GetGridSize(unsigned n, unsigned blocksize) {
 		dim3 sgrid;//=dim3(1,2,3);
@@ -119,7 +119,7 @@ namespace cuSol {
 	/// Returns the maximum of an array, using resu[] as auxiliar array.
 	/// Size of resu[] must be >= a (N/SPHBSIZE+1)+(N/(SPHBSIZE*SPHBSIZE)+SPHBSIZE)
 	///
-	/// Devuelve el maximo de un vector, usando resu[] como vector auxiliar. El tamaño
+	/// Devuelve el maximo de un vector, usando resu[] como vector auxiliar. El tamaÃ±o
 	/// de resu[] debe ser >= a (N/SPHBSIZE+1)+(N/(SPHBSIZE*SPHBSIZE)+SPHBSIZE)
 	//==============================================================================
 	float ReduMaxFloat(unsigned ndata, unsigned inidata, float* data, float* resu) {
@@ -188,7 +188,7 @@ namespace cuSol {
 	/// Size of resu[] must be >= a (N/SPHBSIZE+1)+(N/(SPHBSIZE*SPHBSIZE)+SPHBSIZE).
 	///
 	/// Devuelve el maximo de la componente w de un vector float4, usando resu[] como 
-	/// vector auxiliar. El tamaño de resu[] debe ser >= a (N/SPHBSIZE+1)+(N/(SPHBSIZE*SPHBSIZE)+SPHBSIZE).
+	/// vector auxiliar. El tamaÃ±o de resu[] debe ser >= a (N/SPHBSIZE+1)+(N/(SPHBSIZE*SPHBSIZE)+SPHBSIZE).
 	//==============================================================================
 	float ReduMaxFloat_w(unsigned ndata, unsigned inidata, float4* data, float* resu) {
 		unsigned n = ndata, ini = inidata;
@@ -3943,7 +3943,7 @@ __global__ void KerPressPoreC_L(
 
 		 /*float distance2x = posxy[p].x - LocDiv_M.x;
 		 float distance2y = posxy[p].y - LocDiv_M.y;
-		 float distance2z = posz[p] - LocDiv_M.z;*/  
+		 float distance2z = posz[p] - LocDiv_M.z;*/
 		 Porec_M[p] = PoreZero;
 		//Porec_M[p] = PoreZero / (1 + exp(-(TimeStep-2))) * exp(-(pow(distance2x,2) + pow(distance2.y, 2) + pow(distance2.z, 2)) / Spread_M);
 	//Porec_M[p] = PoreZero / sqrt(2 * Spread_M*PI) * exp(-(pow(distance2x, 2) + pow(distance2y, 2) + pow(distance2z, 2)) / Spread_M);
