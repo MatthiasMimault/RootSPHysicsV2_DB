@@ -223,17 +223,12 @@ protected:
   float SpsSmag;             ///<Smagorinsky constant used in SPS turbulence model.
   float SpsBlin;             ///<Blin constant used in the SPS turbulence model.
   // Matthias
-  // Plan mirroir
-  float PlanMirror;
   // Extension Domain
   float BordDomain;
   // Solid
-  float Ex, Ey, Gf, nuxy, nuyz;
+  float Ef, Et, Gf, nuf1, nuf2;
   float C1, C2, C3, C12, C13, C23, C4, C5, C6;
-  float S1, S12, S13, S21, S2, S23, S31, S32, S3;
-  float K, Kani;
-  tfloat3 K_M, CteB_M;
-
+  float K;
   //tfloat3 CteB3D;
   // Pore
   float PoreZero;
@@ -427,14 +422,9 @@ protected:
   void SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, const tdouble3 *pos, const tfloat3 *vel
 	  , const float *rhop, const float *pore, const tfloat3 *press, const float *mass, const tsymatrix3f *tau
 	  , unsigned ndom, const tdouble3 *vdom, const StInfoPartPlus *infoplus);
-  void SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, const tdouble3 *pos, const tfloat3 *vel
-	  , const float *rhop, const float *pore, const tfloat3 *press, const float *mass, const tsymatrix3f *gradvel, const tsymatrix3f *tau
-	  , unsigned ndom, const tdouble3 *vdom, const StInfoPartPlus *infoplus);
   void SaveData(unsigned npok,const unsigned *idp,const tdouble3 *pos,const tfloat3 *vel,const float *rhop,unsigned ndom,const tdouble3 *vdom,const StInfoPartPlus *infoplus);
   void SaveData_M(unsigned npok, const unsigned *idp, const tdouble3 *pos, const tfloat3 *vel, const float *rhop, const float *pore
 	  , const tfloat3 *press, const float *mass, const tsymatrix3f *tau, unsigned ndom, const tdouble3 *vdom, const StInfoPartPlus *infoplus);
-  void SaveData_M(unsigned npok, const unsigned *idp, const tdouble3 *pos, const tfloat3 *vel, const float *rhop, const float *pore
-	  , const tfloat3 *press, const float *mass, const tsymatrix3f *gradvel, const tsymatrix3f *tau, unsigned ndom, const tdouble3 *vdom, const StInfoPartPlus *infoplus);
 
   void SaveDomainVtk(unsigned ndom,const tdouble3 *vdom)const;
   void SaveInitialDomainVtk()const;
