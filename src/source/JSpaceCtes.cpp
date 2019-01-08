@@ -83,6 +83,7 @@ void JSpaceCtes::Reset(){
   LocalDiv_M = { 0,0,0 };
   Spread_M = 0;
   VelDivCoef_M = 0;
+
   // Anisotropy
   AnisotropyK_M = TDouble3(0);
   AnisotropyG_M = TSymatrix3f(0);
