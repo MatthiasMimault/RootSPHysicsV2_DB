@@ -34,6 +34,7 @@
 
 __constant__ StCteInteraction CTE;
 
+
 namespace cusph{
 #include "FunctionsMath_ker.cu"
 
@@ -347,6 +348,7 @@ __global__ void KerPreInteractionSingle(unsigned n,const double2 *posxy,const do
     //rendimiento del 6% o 15% (gtx480 o k20c) mejor se calcula en simple siempre.
     const float rrhop=velrhop[p].w;
     float press=cteb*(powf(rrhop*CTE.ovrhopzero,gamma)-1.0f);
+	printf("KPISingle Press: %.8f\n", press);
     double2 rpos=posxy[p];
     pospress[p]=make_float4(float(rpos.x),float(rpos.y),float(posz[p]),press);
   }
@@ -1578,28 +1580,28 @@ template<bool floating,bool shift> __global__ void KerComputeStepVerlet
   }
 }
 
-//==============================================================================
-/// Updates particles according to forces and dt using Verlet. 
-/// Actualizacion de particulas segun fuerzas y dt usando Verlet.
-//==============================================================================
-void ComputeStepVerlet(bool floating,bool shift,unsigned np,unsigned npb
-  ,const float4 *velrhop1,const float4 *velrhop2
-  ,const float *ar,const float3 *ace,const float3 *shiftpos
-  ,double dt,double dt2,float rhopoutmin,float rhopoutmax
-  ,typecode *code,double2 *movxy,double *movz,float4 *velrhopnew)
-{
-  double dt205=(0.5*dt*dt);
-  if(np){
-    dim3 sgrid=GetGridSize(np,SPHBSIZE);
-    if(shift){    const bool shift=true;
-      if(floating)KerComputeStepVerlet<true,shift>  <<<sgrid,SPHBSIZE>>> (np,npb,rhopoutmin,rhopoutmax,velrhop1,velrhop2,ar,ace,shiftpos,dt,dt205,dt2,movxy,movz,code,velrhopnew);
-      else        KerComputeStepVerlet<false,shift> <<<sgrid,SPHBSIZE>>> (np,npb,rhopoutmin,rhopoutmax,velrhop1,velrhop2,ar,ace,shiftpos,dt,dt205,dt2,movxy,movz,code,velrhopnew);
-    }else{        const bool shift=false;
-      if(floating)KerComputeStepVerlet<true,shift>  <<<sgrid,SPHBSIZE>>> (np,npb,rhopoutmin,rhopoutmax,velrhop1,velrhop2,ar,ace,shiftpos,dt,dt205,dt2,movxy,movz,code,velrhopnew);
-      else        KerComputeStepVerlet<false,shift> <<<sgrid,SPHBSIZE>>> (np,npb,rhopoutmin,rhopoutmax,velrhop1,velrhop2,ar,ace,shiftpos,dt,dt205,dt2,movxy,movz,code,velrhopnew);
-    }
-  }
-}
+	//==============================================================================
+	/// Updates particles according to forces and dt using Verlet. 
+	/// Actualizacion de particulas segun fuerzas y dt usando Verlet.
+	//==============================================================================
+	void ComputeStepVerlet(bool floating,bool shift,unsigned np,unsigned npb
+	  ,const float4 *velrhop1,const float4 *velrhop2
+	  ,const float *ar,const float3 *ace,const float3 *shiftpos
+	  ,double dt,double dt2,float rhopoutmin,float rhopoutmax
+	  ,typecode *code,double2 *movxy,double *movz,float4 *velrhopnew)
+	{
+	  double dt205=(0.5*dt*dt);
+	  if(np){
+		dim3 sgrid=GetGridSize(np,SPHBSIZE);
+		if(shift){    const bool shift=true;
+		  if(floating)KerComputeStepVerlet<true,shift>  <<<sgrid,SPHBSIZE>>> (np,npb,rhopoutmin,rhopoutmax,velrhop1,velrhop2,ar,ace,shiftpos,dt,dt205,dt2,movxy,movz,code,velrhopnew);
+		  else        KerComputeStepVerlet<false,shift> <<<sgrid,SPHBSIZE>>> (np,npb,rhopoutmin,rhopoutmax,velrhop1,velrhop2,ar,ace,shiftpos,dt,dt205,dt2,movxy,movz,code,velrhopnew);
+		}else{        const bool shift=false;
+		  if(floating)KerComputeStepVerlet<true,shift>  <<<sgrid,SPHBSIZE>>> (np,npb,rhopoutmin,rhopoutmax,velrhop1,velrhop2,ar,ace,shiftpos,dt,dt205,dt2,movxy,movz,code,velrhopnew);
+		  else        KerComputeStepVerlet<false,shift> <<<sgrid,SPHBSIZE>>> (np,npb,rhopoutmin,rhopoutmax,velrhop1,velrhop2,ar,ace,shiftpos,dt,dt205,dt2,movxy,movz,code,velrhopnew);
+		}
+	  }
+	}
 
 //------------------------------------------------------------------------------
 /// Computes new values for Pos, Check, Vel and Ros (used with Symplectic-Predictor).

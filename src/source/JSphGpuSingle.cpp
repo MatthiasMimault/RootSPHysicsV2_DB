@@ -195,7 +195,7 @@ void JSphGpuSingle::ConfigDomain(){
   memcpy(AuxPos,PartsLoaded->GetPos(),sizeof(tdouble3)*Np);
   memcpy(Idp,PartsLoaded->GetIdp(),sizeof(unsigned)*Np);
   memcpy(Velrhop,PartsLoaded->GetVelRhop(),sizeof(tfloat4)*Np);
-  for (int i = 0; i < Np; i++) { Mass[i] = MassFluid; }
+  for (unsigned i = 0; i < Np; i++) { Mass[i] = MassFluid; }
 
   //-Computes radius of floating bodies.
   if(CaseNfloat && PeriActive!=0 && !PartBegin)CalcFloatingRadius(Np,AuxPos,Idp);
@@ -466,7 +466,21 @@ void JSphGpuSingle::Interaction_Forces(TpInter tinter){
  //cusph::Interaction_Forces(Psingle,TKernel,WithFloating,UseDEM,lamsps,TDeltaSph,CellMode,Visco*ViscoBoundFactor,Visco,bsbound,bsfluid,Np,Npb,NpbOk,CellDivSingle->GetNcells(),CellDivSingle->GetBeginCell(),CellDivSingle->GetCellDomainMin(),Dcellg,Posxyg,Poszg,PsPospressg,Velrhopg,Codeg,Idpg,FtoMasspg,SpsTaug,SpsGradvelg,ViscDtg,Arg,Aceg,Deltag,TShifting,ShiftPosg,ShiftDetectg,Simulate2D,NULL,NULL);
 
   //-Interaction Lucas Sol .
- cuSol::Interaction_Forces_M(TKernel, WithFloating, TShifting, TVisco, TDeltaSph, UseDEM, CellMode, Visco*ViscoBoundFactor, Visco, bsbound, bsfluid, Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellg, Posxyg, Poszg, PsPospressg, Velrhopg, Idpg, Codeg, JauTauc2_M, JauGradvelc2_M, JauOmega_M, JauTauc2_M, JauGradvelc2_M, JauTauDot_M, JauOmega_M, ViscDtg, Arg, Aceg, Deltag, ShiftPosg, ShiftDetectg, Simulate2D, NULL, NULL, Pressg, Porec_M, Massc_M, AnisotropyG_M, Gf, FtoMasspg);
+  //cuSol::Interaction_Forces_M(TKernel, WithFloating, TShifting, TVisco, TDeltaSph, UseDEM, CellMode, Visco*ViscoBoundFactor, Visco, bsbound, bsfluid, Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellg, Posxyg, Poszg, PsPospressg, Velrhopg, Idpg, Codeg, JauTauc2_M, JauGradvelc2_M, JauOmega_M, JauTauc2_M, JauGradvelc2_M, JauTauDot_M, JauOmega_M, ViscDtg, Arg, Aceg, Deltag, ShiftPosg, ShiftDetectg, Simulate2D, NULL, NULL, Pressg, Porec_M, Massc_M, AnisotropyG_M, Gf, FtoMasspg);
+
+
+  // - Interaction Matthias SolMassP
+ cuSol::Interaction_Forces_M(TKernel, WithFloating, TShifting, TVisco, TDeltaSph, UseDEM
+	 , CellMode, Visco*ViscoBoundFactor, Visco, bsbound, bsfluid
+	 , Np, Npb, NpbOk
+	 , CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellg
+	 , Posxyg, Poszg, PsPospressg
+	 , Velrhopg, Idpg, Codeg
+	 , JauTauc2_M, JauGradvelc2_M, JauTauDot_M, JauOmega_M
+	 , ViscDtg, Arg, Aceg, Deltag
+	 , ShiftPosg, ShiftDetectg
+	 , Simulate2D, NULL, NULL
+	 , Porec_M, Massc_M, FtoMasspg);
 
   //-Interaction DEM Floating-Bound & Floating-Floating.//(DEM) ..
   if(UseDEM)cusph::Interaction_ForcesDem(Psingle,CellMode,BlockSizes.forcesdem,CaseNfloat,CellDivSingle->GetNcells(),CellDivSingle->GetBeginCell(),CellDivSingle->GetCellDomainMin(),Dcellg,FtRidpg,DemDatag,float(DemDtForce),Posxyg,Poszg,PsPospressg,Velrhopg,Codeg,Idpg,ViscDtg,Aceg,NULL);
@@ -515,6 +529,7 @@ double JSphGpuSingle::ComputeAceMax(float *auxmem){
 /// calculadas en la interaccion usando Verlet.
 //==============================================================================
 double JSphGpuSingle::ComputeStep_Ver(){
+	printf("ComputeStep_Ver\n");
   Interaction_Forces(INTER_Forces);    //-Interaction..
   const double dt=DtVariable(true);    //-Calculate new dt.
   DemDtForce=dt;                       //(DEM)

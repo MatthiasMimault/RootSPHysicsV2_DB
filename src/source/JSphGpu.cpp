@@ -504,9 +504,15 @@ void JSphGpu::ConstantDataUp(){
   ctes.zperincx=PeriZinc.x; ctes.zperincy=PeriZinc.y; ctes.zperincz=PeriZinc.z;
   ctes.cellcode=DomCellCode;
   ctes.domposminx=DomPosMin.x; ctes.domposminy=DomPosMin.y; ctes.domposminz=DomPosMin.z;
+
+  // Matthias constants
+  ctes.C1 = C1; ctes.C2 = C2; ctes.C3 = C3; ctes.C4 = C4; ctes.C5 = C5; ctes.C6 = C6; ctes.C12 = C12; ctes.C23 = C23; ctes.C13 = C13;
+  ctes.S1 = S1; ctes.S2 = S2; ctes.S3 = S3; ctes.S12 = S12; ctes.S23 = S23; ctes.S13 = S13;
+  ctes.lambdamass = LambdaMass;
+
   cusph::CteInteractionUp(&ctes);
   cuSol::CteInteractionUp(&ctes);
-  CheckCudaError("ConstantDataUp","Failed copying constants to GPU.");
+    CheckCudaError("ConstantDataUp","Failed copying constants to GPU.");
 }
 
 //==============================================================================
@@ -1000,7 +1006,7 @@ void JSphGpu::PreInteractionVars_Forces(TpInter tinter,unsigned np,unsigned npb)
   //-Apply the extra forces to the correct particle sets.
   if(AccInput)AddAccInput();
   const int n = int(np);
-  cuSol::PressPoreC_L(n, Velrhopg, RhopZero, Pressg, AnisotropyK_M, CteB, Gamma, Press3Dc, Posxyg, Poszg, LocDiv_M,PoreZero,Spread_M,Porec_M);
+  cuSol::PressPore_M(n, Velrhopg, RhopZero, Pressg, CteB, Gamma, Posxyg, Poszg, PoreZero, Porec_M);
   }
 
 
@@ -1080,6 +1086,7 @@ void JSphGpu::PosInteraction_Forces(){
 //==============================================================================
 void JSphGpu::ComputeVerlet(double dt){  
   TmgStart(Timers,TMG_SuComputeStep);
+  printf("ComputeVErlet\n");
   const bool shift=TShifting!=SHIFT_None;
   VerletStep++;
   //-Allocates memory to compute the displacement.
@@ -1089,15 +1096,15 @@ void JSphGpu::ComputeVerlet(double dt){
   //-Calcula desplazamiento, velocidad y densidad.
   if(VerletStep<VerletSteps){
     const double twodt=dt+dt;
-    cuSol::ComputeStepVerlet_L(WithFloating,shift,Np,Npb,Velrhopg,VelrhopM1g,Arg,Aceg,ShiftPosg,dt,twodt,RhopOutMin,RhopOutMax,Codeg,movxyg,movzg,VelrhopM1g, JauTauM1c2_M,JauTauDot_M, JauTauc2_M, Massc_M, MassM1c_M, MassM1c_M, LambdaMass, RhopZero);
+    cuSol::ComputeStepVerlet_M(WithFloating,shift,Np,Npb,Velrhopg,VelrhopM1g,Arg,Aceg,ShiftPosg,dt,twodt,RhopOutMin,RhopOutMax,Codeg,movxyg,movzg,VelrhopM1g, JauTauM1c2_M,JauTauDot_M, JauTauc2_M, Massc_M, MassM1c_M, MassM1c_M);
 	cuSol::ComputeVelrhopBound(Npb, VelrhopM1g, twodt, VelrhopM1g, Arg, RhopZero);
   }
   else{
-    cuSol::ComputeStepVerlet_L(WithFloating,shift,Np,Npb,Velrhopg,Velrhopg,Arg,Aceg,ShiftPosg,dt,dt,RhopOutMin,RhopOutMax,Codeg,movxyg,movzg,VelrhopM1g, JauTauc2_M, JauTauDot_M, JauTauc2_M, Massc_M,Massc_M, Massc_M, LambdaMass, RhopZero);
+    cuSol::ComputeStepVerlet_M(WithFloating,shift,Np,Npb,Velrhopg,Velrhopg,Arg,Aceg,ShiftPosg,dt,dt,RhopOutMin,RhopOutMax,Codeg,movxyg,movzg,VelrhopM1g, JauTauc2_M, JauTauDot_M, JauTauc2_M, Massc_M,Massc_M, Massc_M);
 	cuSol::ComputeVelrhopBound(Npb, Velrhopg, dt, VelrhopM1g, Arg, RhopZero);
 	VerletStep=0;
   }
-  LocDiv_M = LocDiv_M + VelDiv_M * dt;
+
   //-The new values are calculated in VelRhopM1g.
   //-Los nuevos valores se calculan en VelrhopM1g.
   swap(Velrhopg,VelrhopM1g);   //-Exchanges Velrhopg and VelrhopM1g. | Intercambia Velrhopg y VelrhopM1g.

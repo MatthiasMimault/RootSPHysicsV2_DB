@@ -735,7 +735,7 @@ void JSph::LoadCaseConfig(){
   printf("S13 = %.8f, S23 = %.8f, S3 = %.8f\n", S13, S23, S3);
 
   // New B for anisotropy
-  CteB = K / ( Gamma ) ;
+  CteB = Kani / ( Gamma ) ;
   CteB_M = TFloat3(K_M.x / Gamma, K_M.y / Gamma, K_M.z / Gamma);
   //CteB3D = TFloat3((C1 + C12 + C13) / Gamma, (C2 + C12 + C23) / Gamma, (C3 + C13 + C23) / Gamma);
   // Pore
@@ -1054,7 +1054,7 @@ void JSph::LoadCaseConfig_T() {
 	K_M = TFloat3(Kani, Kani, Kani);
 
 	// New B for anisotropy
-	CteB = K / (Gamma);
+	CteB = Kani / (Gamma);
 	CteB_M = TFloat3(K_M.x / Gamma, K_M.y / Gamma, K_M.z / Gamma);
 	//CteB3D = TFloat3((C1 + C12 + C13) / Gamma, (C2 + C12 + C23) / Gamma, (C3 + C13 + C23) / Gamma);
 

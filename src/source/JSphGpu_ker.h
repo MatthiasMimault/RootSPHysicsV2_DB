@@ -60,6 +60,14 @@ typedef struct{
   float agau,bgau;
   //-Ctes. of Cubic Spline kernel.
   float cubic_a1,cubic_a2,cubic_aa,cubic_a24,cubic_c1,cubic_d1,cubic_c2,cubic_odwdeltap;
+
+
+  // Matthias Constants
+  // Constantes tenseur elasticite
+  float C1, C2, C3, C12, C13, C23, C4, C5, C6;
+  float S1, S2, S3, S12, S13, S23, S4, S5, S6;
+  // Growth Constant
+  float lambdamass;
 }StCteInteraction; 
 
 /// Structure to collect kernel information.
