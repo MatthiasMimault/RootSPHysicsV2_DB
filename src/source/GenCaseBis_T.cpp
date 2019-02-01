@@ -144,9 +144,9 @@ vector<std::string> GenCaseBis_T::split(std::string line, char delim)
 
 	if (!line.empty())
 	{
-		int length = line.length();
-		int pointer = 0;
-		int pointerResult = 0;
+		size_t length = line.length();
+		size_t pointer = 0;
+		size_t pointerResult = 0;
 		current = string();
 
 		while (pointer < length)
@@ -192,7 +192,7 @@ void GenCaseBis_T::loadCsv(int np, int *idp, double *vol, tdouble3 *pos) {
 			tempo = split(line, ',');
 			//printf("\nString = %s\nString split = 1: %s 2: %s 3: %s 4: %s 5: %s  6: %s", line.c_str(), tempo[0].c_str(), tempo[1].c_str(), tempo[2].c_str(), tempo[3].c_str(), tempo[4].c_str(), tempo[5].c_str());
 			//idp[i] = (int)(::atof(tempo[0].c_str()));
-			idp[i] = i;
+			idp[i] = int(i);
 			vol[i] = ::atof(tempo[2].c_str()) * 0.000000000000000001;
 			pos[i].x = ::atof(tempo[3].c_str()) * 0.000001;
 			pos[i].y = ::atof(tempo[4].c_str()) * 0.000001;
@@ -222,7 +222,7 @@ double GenCaseBis_T::computeRayMax(int np, double *vol) {
 		
 	for ( int i = 0; i < np; i++)
 	{
-		float ray = pow((vol[i]*3.0/4.0/PI), 1.0/3.0);
+		double ray = pow((vol[i]*3.0/4.0/PI), 1.0/3.0);
 		res = ray > res ? ray : res;
 	}
 
@@ -236,7 +236,7 @@ void GenCaseBis_T::computeMassP(int np, double *vol, float *mp, float *rhop, flo
 
 	for (size_t i = 0; i < np; i++)
 	{
-		mp[i] = rhop0 * vol[i];
+		mp[i] = rhop0 * float(vol[i]);
 		rhop[i] = rhop0;
 	}
 

@@ -321,15 +321,15 @@ inline tdouble4 ToTDouble4(const tfloat4& v){ return(TDouble4(v.x,v.y,v.z,v.w));
 
 
 ///Matrix of 3x3 values of type float.
-/*typedef struct {
+typedef struct {
 	float a11, a12, a13;
 	float a21, a22, a23;
 	float a31, a32, a33;
-}tmatrix3f;*/
-// V2
-typedef struct {
-	float a11, a12, a13, a21, a22, a23, a31, a32, a33;
 }tmatrix3f;
+// V2
+/*typedef struct {
+	float a11, a12, a13, a21, a22, a23, a31, a32, a33;
+}tmatrix3f;*/
 
 ///Constructor of type \ref matrix3f.
 inline tmatrix3f TMatrix3f(float a11,float a12,float a13,float a21,float a22,float a23,float a31,float a32,float a33){ tmatrix3f m={a11,a12,a13,a21,a22,a23,a31,a32,a33}; return(m); }
@@ -352,8 +352,37 @@ inline bool operator ==(const tmatrix3d& a, const tmatrix3d& b){ return(a.a11==b
 inline bool operator !=(const tmatrix3d& a, const tmatrix3d& b){ return(a.a11!=b.a11 || a.a12!=b.a12 || a.a13!=b.a13 || a.a21!=b.a21 || a.a22!=b.a22 || a.a23!=b.a23 || a.a31!=b.a31 || a.a32!=b.a32 || a.a33!=b.a33); }
 
 ///Converts \ref matrix3d to \ref matrix3f.
-inline tmatrix3f ToTMatrix3f(const tmatrix3d& v){ return(TMatrix3f(float(v.a11),float(v.a12),float(v.a13),float(v.a21),float(v.a22),float(v.a23),float(v.a31),float(v.a32),float(v.a33))); }
+inline tmatrix3f ToTMatrix3f(const tmatrix3d& v) { return(TMatrix3f(float(v.a11), float(v.a12), float(v.a13), float(v.a21), float(v.a22), float(v.a23), float(v.a31), float(v.a32), float(v.a33))); }
+inline tmatrix3d ToTMatrix3d(const tmatrix3f& v) { return(TMatrix3d(double(v.a11), double(v.a12), double(v.a13), double(v.a21), double(v.a22), double(v.a23), double(v.a31), double(v.a32), double(v.a33))); }
 
+// Matrix 3x3 operators -- Matthias
+inline tmatrix3f operator *(const tmatrix3f& a, const tmatrix3f& b) {
+	return(TMatrix3f(a.a11*b.a11 + a.a12*b.a21 + a.a13*b.a31, a.a11*b.a12 + a.a12*b.a22 + a.a13*b.a32, a.a11*b.a13 + a.a12*b.a23 + a.a13*b.a33,
+		a.a21*b.a11 + a.a22*b.a21 + a.a23*b.a31, a.a21*b.a12 + a.a22*b.a22 + a.a23*b.a32, a.a21*b.a13 + a.a22*b.a23 + a.a23*b.a33,
+		a.a31*b.a11 + a.a32*b.a21 + a.a33*b.a31, a.a31*b.a12 + a.a32*b.a22 + a.a33*b.a32, a.a31*b.a13 + a.a32*b.a23 + a.a33*b.a33));
+}
+inline tmatrix3d operator *(const tmatrix3d& a, const tmatrix3d& b) {
+	return(TMatrix3d(a.a11*b.a11 + a.a12*b.a21 + a.a13*b.a31, a.a11*b.a12 + a.a12*b.a22 + a.a13*b.a32, a.a11*b.a13 + a.a12*b.a23 + a.a13*b.a33,
+		a.a21*b.a11 + a.a22*b.a21 + a.a23*b.a31, a.a21*b.a12 + a.a22*b.a22 + a.a23*b.a32, a.a21*b.a13 + a.a22*b.a23 + a.a23*b.a33,
+		a.a31*b.a11 + a.a32*b.a21 + a.a33*b.a31, a.a31*b.a12 + a.a32*b.a22 + a.a33*b.a32, a.a31*b.a13 + a.a32*b.a23 + a.a33*b.a33));
+}
+inline tmatrix3f operator *(const float& a, const tmatrix3f& b) { return(TMatrix3f(a*b.a11, a*b.a12, a*b.a13, a*b.a21, a*b.a22, a*b.a23, a*b.a31, a*b.a32, a*b.a33)); }
+inline tmatrix3d operator *(const float& a, const tmatrix3d& b) { return(TMatrix3d(a*b.a11, a*b.a12, a*b.a13, a*b.a21, a*b.a22, a*b.a23, a*b.a31, a*b.a32, a*b.a33)); }
+inline tmatrix3d operator *(const double& a, const tmatrix3d& b) { return(TMatrix3d(a*b.a11, a*b.a12, a*b.a13, a*b.a21, a*b.a22, a*b.a23, a*b.a31, a*b.a32, a*b.a33)); }
+inline tmatrix3f operator +(const tmatrix3f& a, const tmatrix3f& b) {
+	return(TMatrix3f(a.a11 + b.a11, a.a12 + b.a12, a.a13 + b.a13, a.a21 + b.a21, a.a22 + b.a22, a.a23 + b.a23, a.a31 + b.a31, a.a32 + b.a32, a.a33 + b.a33));
+}
+inline tmatrix3d operator +(const tmatrix3d& a, const tmatrix3d& b) {
+	return(TMatrix3d(a.a11 + b.a11, a.a12 + b.a12, a.a13 + b.a13, a.a21 + b.a21, a.a22 + b.a22, a.a23 + b.a23, a.a31 + b.a31, a.a32 + b.a32, a.a33 + b.a33));
+}
+inline tmatrix3f operator -(const tmatrix3f& a, const tmatrix3f& b) {
+	return(TMatrix3f(a.a11 - b.a11, a.a12 - b.a12, a.a13 - b.a13, a.a21 - b.a21, a.a22 - b.a22, a.a23 - b.a23, a.a31 - b.a31, a.a32 - b.a32, a.a33 - b.a33));
+}
+inline tmatrix3d operator -(const tmatrix3d& a, const tmatrix3d& b) {
+	return(TMatrix3d(a.a11 - b.a11, a.a12 - b.a12, a.a13 - b.a13, a.a21 - b.a21, a.a22 - b.a22, a.a23 - b.a23, a.a31 - b.a31, a.a32 - b.a32, a.a33 - b.a33));
+}
+inline tmatrix3f Ttransp(const tmatrix3f& a) { return TMatrix3f(a.a11, a.a21, a.a31, a.a12, a.a22, a.a32, a.a13, a.a23, a.a33); }
+inline tmatrix3d Ttransp(const tmatrix3d& a) { return TMatrix3d(a.a11, a.a21, a.a31, a.a12, a.a22, a.a32, a.a13, a.a23, a.a33); }
 
 ///Matrix of 4x4 values of type float.
 typedef struct{

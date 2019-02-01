@@ -123,6 +123,20 @@ void Interaction_Forces(bool psingle,TpKernel tkernel,bool floating,bool usedem,
   ,TpShifting tshifting,float3 *shiftpos,float *shiftdetect
   ,bool simulate2d,StKerInfo *kerinfo,JBlockSizeAuto *bsauto);
 
+//Matthias-Kernels for the force calculation with Solid, pore and mass (not yet quad)
+void Interaction_Forces_M(bool psingle, TpKernel tkernel, bool floating, bool usedem, bool lamsps
+	, TpDeltaSph tdelta, TpCellMode cellmode
+	, float viscob, float viscof, unsigned bsbound, unsigned bsfluid
+	, unsigned np, unsigned npb, unsigned npbok, tuint3 ncells
+	, const int2 *begincell, tuint3 cellmin, const unsigned *dcell
+	, const double2 *posxy, const double *posz, const float4 *pospress
+	, const float4 *velrhop, const typecode *code, const unsigned *idp
+	, const float *pore, const float *mass, const tsymatrix3f *tau
+	, tsymatrix3f *taudot, tsymatrix3f *straindot, tsymatrix3f *spin
+	, float *viscdt, float* ar, float3 *ace, float *delta
+	, TpShifting tshifting, float3 *shiftpos, float *shiftdetect
+	, bool simulate2d, StKerInfo *kerinfo, JBlockSizeAuto *bsauto);
+
 //-Kernels for the calculation of the DEM forces.
 void Interaction_ForcesDem(bool psingle,TpCellMode cellmode,unsigned bsize
   ,unsigned nfloat,tuint3 ncells,const int2 *begincell,tuint3 cellmin,const unsigned *dcell

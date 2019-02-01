@@ -189,7 +189,8 @@ void JBinaryDataArray::FreePointer(void* ptr)const{
     case JBinaryDataDef::DatInt3:     delete[] (tint3*)ptr;           break;  
     case JBinaryDataDef::DatUint3:    delete[] (tuint3*)ptr;          break;
     case JBinaryDataDef::DatFloat3:   delete[] (tfloat3*)ptr;         break;
-    case JBinaryDataDef::DatDouble3:  delete[] (tdouble3*)ptr;        break;
+	case JBinaryDataDef::DatDouble3:  delete[](tdouble3*)ptr;         break;
+	case JBinaryDataDef::DatSymMat:   delete[](tsymatrix3f*)ptr;      break;
     default: RunException("FreePointer","Type of array invalid.");
   }
 }
@@ -220,6 +221,7 @@ void* JBinaryDataArray::AllocPointer(unsigned size)const{
         case JBinaryDataDef::DatUint3:    ptr=new tuint3[size];          break;
         case JBinaryDataDef::DatFloat3:   ptr=new tfloat3[size];         break;
         case JBinaryDataDef::DatDouble3:  ptr=new tdouble3[size];        break;
+		case JBinaryDataDef::DatSymMat:   ptr=new tsymatrix3f[size];   break;
         default: RunException(met,"Type of array invalid.");
       }
     }
@@ -2058,6 +2060,14 @@ tdouble3 JBinaryData::GetvDouble3(const std::string &name,bool optional,tdouble3
 }
 
 //==============================================================================
+/// Devuelve el valor solicitado de tipo tsymatrix3f -- Matthias
+//==============================================================================
+tsymatrix3f JBinaryData::GetvSymatrix3(const std::string &name, bool optional, tsymatrix3f valdef)const {
+	int pos = CheckGetValue(name, optional, JBinaryDataDef::DatSymMat);
+	return(pos<0 ? valdef : Values[pos].vsymatrix3f);
+}
+
+//==============================================================================
 /// Crea o modifica un valor de tipo texto.
 /// Creates or modifies a text value.
 //==============================================================================
@@ -2181,8 +2191,13 @@ void JBinaryData::SetvFloat3(const std::string &name,tfloat3 v){
 /// Crea o modifica un valor de tipo tdouble3.
 /// Creates or modifies a value of type tdouble3.
 //==============================================================================
-void JBinaryData::SetvDouble3(const std::string &name,tdouble3 v){
-  Values[CheckSetValue(name,JBinaryDataDef::DatDouble3)].vdouble3=v;
+void JBinaryData::SetvDouble3(const std::string &name, tdouble3 v) {
+	Values[CheckSetValue(name, JBinaryDataDef::DatDouble3)].vdouble3 = v;
 }
 
-
+//==============================================================================
+/// Crea o modifica un valor de tipo tsymatrix3f
+//==============================================================================
+void JBinaryData::SetvSymatrix3(const std::string &name, tsymatrix3f v) {
+	Values[CheckSetValue(name, JBinaryDataDef::DatSymMat)].vsymatrix3f = v;
+}

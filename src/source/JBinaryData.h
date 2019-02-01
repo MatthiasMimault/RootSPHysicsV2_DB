@@ -69,6 +69,7 @@ class JBinaryDataDef
     ,DatShort=5,DatUshort=6,DatInt=7,DatUint=8,DatLlong=9,DatUllong=10
     ,DatFloat=11,DatDouble=12
     ,DatInt3=20,DatUint3=21,DatFloat3=22,DatDouble3=23 
+	,DatSymMat = 24
   }TpData; 
 
   static std::string TypeToStr(TpData type);
@@ -192,6 +193,8 @@ class JBinaryData : protected JObject
       tuint3 vuint3;
       tfloat3 vfloat3;
       tdouble3 vdouble3;   //- Elemento de mayor tamaño utilizado para poner a Zero. Large item used to zero elements.
+	  // Mt
+	  tsymatrix3f vsymatrix3f;
     };
   }StValue;
 
@@ -238,6 +241,8 @@ class JBinaryData : protected JObject
   void InUint3  (unsigned &count,unsigned size,byte *ptr,tuint3 v)const{          InData(count,size,ptr,(byte*)&v,sizeof(tuint3));          }  ///<Introduce tuint3 en ptr. Introduces tuint3 in ptr
   void InFloat3 (unsigned &count,unsigned size,byte *ptr,tfloat3 v)const{         InData(count,size,ptr,(byte*)&v,sizeof(tfloat3));         }  ///<Introduce tfloat3 en ptr. Introduces tfloat3 in ptr
   void InDouble3(unsigned &count,unsigned size,byte *ptr,tdouble3 v)const{        InData(count,size,ptr,(byte*)&v,sizeof(tdouble3));        }  ///<Introduce tdouble3 en ptr. Introduces tdouble3 in ptr
+  // Mt
+  void InSymatrix3(unsigned &count, unsigned size, byte *ptr, tsymatrix3f v)const { InData(count, size, ptr, (byte*)&v, sizeof(tsymatrix3f)); }
 
   void           OutData   (unsigned &count,unsigned size,const byte *ptr,byte *dat,unsigned sdat)const;
   std::string    OutStr    (unsigned &count,unsigned size,const byte *ptr)const;
@@ -256,6 +261,7 @@ class JBinaryData : protected JObject
   tuint3         OutUint3  (unsigned &count,unsigned size,const byte *ptr)const{  tuint3 v;         OutData(count,size,ptr,(byte*)&v,sizeof(tuint3));         return(v);  }  /// Extrae tuint3 de ptr. Extracts tuint3 of ptr.
   tfloat3        OutFloat3 (unsigned &count,unsigned size,const byte *ptr)const{  tfloat3 v;        OutData(count,size,ptr,(byte*)&v,sizeof(tfloat3));        return(v);  }  /// Extrae tfloat3 de ptr. Extracts tfloat3 of ptr.
   tdouble3       OutDouble3(unsigned &count,unsigned size,const byte *ptr)const{  tdouble3 v;       OutData(count,size,ptr,(byte*)&v,sizeof(tdouble3));       return(v);  }  /// Extrae tdouble3 de ptr. Extracts tdouble3 of ptr.
+  tsymatrix3f    OutSymatrix3(unsigned &count, unsigned size, const byte *ptr)const { tsymatrix3f v;OutData(count, size, ptr, (byte*)&v, sizeof(tsymatrix3f));return(v);  }  
 
   void InValue(unsigned &count,unsigned size,byte *ptr,const StValue &v)const;
   void OutValue(unsigned &count,unsigned size,const byte *ptr);
@@ -387,7 +393,8 @@ class JBinaryData : protected JObject
   tint3          GetvInt3   (const std::string &name,bool optional=false,tint3 valdef=TInt3(0))const;
   tuint3         GetvUint3  (const std::string &name,bool optional=false,tuint3 valdef=TUint3(0))const;
   tfloat3        GetvFloat3 (const std::string &name,bool optional=false,tfloat3 valdef=TFloat3(0))const;
-  tdouble3       GetvDouble3(const std::string &name,bool optional=false,tdouble3 valdef=TDouble3(0))const;
+  tdouble3       GetvDouble3(const std::string &name, bool optional = false, tdouble3 valdef = TDouble3(0))const;
+  tsymatrix3f    GetvSymatrix3(const std::string &name, bool optional = false, tsymatrix3f valdef = TSymatrix3f(0))const;
 
   void SetvText   (const std::string &name,const std::string &v);
   void SetvBool   (const std::string &name,bool v);
@@ -404,7 +411,8 @@ class JBinaryData : protected JObject
   void SetvInt3   (const std::string &name,tint3 v);
   void SetvUint3  (const std::string &name,tuint3 v);
   void SetvFloat3 (const std::string &name,tfloat3 v);
-  void SetvDouble3(const std::string &name,tdouble3 v);
+  void SetvDouble3(const std::string &name, tdouble3 v);
+  void SetvSymatrix3(const std::string &name, tsymatrix3f v);
 };
 
 /*

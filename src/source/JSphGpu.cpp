@@ -639,7 +639,10 @@ void JSphGpu::ConfigBlockSizes(bool usezone,bool useperi){
     //-Collects kernel information.
     StKerInfo kerinfo;
     memset(&kerinfo,0,sizeof(StKerInfo));
+
+	printf("CudaDev-IF-BsMode:");
     #ifndef DISABLE_BSMODES
+	  printf(" Yes\n");
       cusph::Interaction_Forces(Psingle,TKernel,(CaseNfloat>0),UseDEM,lamsps,TDeltaSph,CellMode,0,0,0,0,100,50,20,TUint3(0),NULL,TUint3(0),NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,TShifting,NULL,NULL,Simulate2D,&kerinfo,NULL);
       if(UseDEM)cusph::Interaction_ForcesDem(Psingle,CellMode,BlockSizes.forcesdem,CaseNfloat,TUint3(0),NULL,TUint3(0),NULL,NULL,NULL,0,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,&kerinfo);
     #endif

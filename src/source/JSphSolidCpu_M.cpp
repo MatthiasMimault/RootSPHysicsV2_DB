@@ -91,7 +91,7 @@ void JSphSolidCpu::InitVars() {
 	Porec_M = NULL;
 	Massc_M = NULL;
 	Divisionc_M = NULL;
-	//Amassc_M = NULL;
+	QuadFormc_M = NULL;	QuadFormM1c_M = NULL;
 	//Voluc_M = NULL;
 
 	RidpMove = NULL;
@@ -152,6 +152,7 @@ void JSphSolidCpu::FreeCpuMemoryParticles() {
 //==============================================================================
 void JSphSolidCpu::AllocCpuMemoryParticles(unsigned np, float over) {
 	const char* met = "AllocCpuMemoryParticles";
+	printf("AllocCpuMemPart\n");
 	FreeCpuMemoryParticles();
 	//-Calculate number of partices with reserved memory | Calcula numero de particulas para las que se reserva memoria.
 	const unsigned np2 = (over>0 ? unsigned(over*np) : np);
@@ -175,7 +176,7 @@ void JSphSolidCpu::AllocCpuMemoryParticles(unsigned np, float over) {
 	}
 	if (TStep == STEP_Verlet) {
 		ArraysCpu->AddArrayCount(JArraysCpu::SIZE_16B, 1); //-velrhopm1
-		ArraysCpu->AddArrayCount(JArraysCpu::SIZE_24B, 1); //-JauTauM12
+		ArraysCpu->AddArrayCount(JArraysCpu::SIZE_24B, 2); //-JauTauM12, QuadFormM1
 	}
 	else if (TStep == STEP_Symplectic) {
 		ArraysCpu->AddArrayCount(JArraysCpu::SIZE_24B, 1); //-pospre
@@ -193,7 +194,7 @@ void JSphSolidCpu::AllocCpuMemoryParticles(unsigned np, float over) {
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_4B, 1); // Pore
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_4B, 1); // Mass
 	//ArraysCpu->AddArrayCount(JArraysCpu::SIZE_36B, 1); //-JauGradvel, JauTau
-	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_24B, 3); //-JauGradvel, JauTau2, Omega and Taudot
+	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_24B, 4); //-JauGradvel, JauTau2, Omega and Taudot, QuadForm
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_4B, 4); // SaveFields
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_12B, 1); // Press3D
 
@@ -226,6 +227,8 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	//tmatrix3f *jautau = SaveArrayCpu(Np, JauTauc_M);
 	tsymatrix3f *jautau2 = SaveArrayCpu(Np, JauTauc2_M);
 	tsymatrix3f *jautaum12 = SaveArrayCpu(Np, JauTauM1c2_M);
+	tsymatrix3f *quadform = SaveArrayCpu(Np, QuadFormc_M);
+	tsymatrix3f *quadformm1 = SaveArrayCpu(Np, QuadFormM1c_M);
 
 	//-Frees pointers.
 	ArraysCpu->Free(Idpc);
@@ -246,6 +249,8 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	//ArraysCpu->Free(JauTauc_M);
 	ArraysCpu->Free(JauTauc2_M);
 	ArraysCpu->Free(JauTauM1c2_M);
+	ArraysCpu->Free(QuadFormc_M);
+	ArraysCpu->Free(QuadFormM1c_M);
 
 	//-Resizes CPU memory allocation.
 	const double mbparticle = (double(MemCpuParticles) / (1024 * 1024)) / CpuParticlesSize; //-MB por particula.
@@ -271,6 +276,8 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	//JauTauc_M = ArraysCpu->ReserveMatrix3f_M();
 	JauTauc2_M = ArraysCpu->ReserveSymatrix3f();
 	if (velrhopm1) JauTauM1c2_M = ArraysCpu->ReserveSymatrix3f();
+	QuadFormc_M = ArraysCpu->ReserveSymatrix3f();
+	if (quadformm1) QuadFormM1c_M = ArraysCpu->ReserveSymatrix3f();
 
 	//-Restore data in CPU memory.
 	RestoreArrayCpu(Np, idp, Idpc);
@@ -291,6 +298,8 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	//RestoreArrayCpu(Np, jautau, JauTauc_M);
 	RestoreArrayCpu(Np, jautau2, JauTauc2_M);
 	RestoreArrayCpu(Np, jautaum12, JauTauM1c2_M);
+	RestoreArrayCpu(Np, quadform, QuadFormc_M);
+	RestoreArrayCpu(Np, quadformm1, QuadFormM1c_M);
 	//-Updates values.
 	CpuParticlesSize = npnew;
 	MemCpuParticles = ArraysCpu->GetAllocMemoryCpu();
@@ -335,6 +344,7 @@ void JSphSolidCpu::ReserveBasicArraysCpu() {
 		VelrhopM1c = ArraysCpu->ReserveFloat4();
 		MassM1c_M = ArraysCpu->ReserveFloat();
 		JauTauM1c2_M = ArraysCpu->ReserveSymatrix3f();
+		QuadFormM1c_M = ArraysCpu->ReserveSymatrix3f();
 	}
 	if (TVisco == VISCO_LaminarSPS)SpsTauc = ArraysCpu->ReserveSymatrix3f();
 
@@ -344,6 +354,7 @@ void JSphSolidCpu::ReserveBasicArraysCpu() {
 	Massc_M = ArraysCpu->ReserveFloat();
 	//JauTauc_M = ArraysCpu->ReserveMatrix3f_M();
 	JauTauc2_M = ArraysCpu->ReserveSymatrix3f();
+	QuadFormc_M = ArraysCpu->ReserveSymatrix3f();
 }
 
 //==============================================================================
@@ -526,16 +537,149 @@ unsigned JSphSolidCpu::GetParticlesData_M(unsigned n, unsigned pini, bool cellor
 	// Matthias
 	if (pore)memcpy(pore, Porec_M + pini, sizeof(float)*n);
 	if (press) {
-	for (unsigned p = 0; p<n; p++) {
-	//tfloat3 pre = AnisotropyK_M * TFloat3(CteB * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f));
-	tfloat3 pre = CteB_M * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f);
-	press[p] = TFloat3(pre.x, pre.y, pre.z);
-	}
+		for (unsigned p = 0; p<n; p++) {
+			//tfloat3 pre = AnisotropyK_M * TFloat3(CteB * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f));
+			tfloat3 pre = CteB_M * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f);
+			press[p] = TFloat3(pre.x, pre.y, pre.z);
+		}
 	}
 	//if (press)memcpy(press, Press3Dc + pini, sizeof(tfloat3)*n); // Not used, but Pressure seems to be recorded anyway, as well for tau
 	if (mass)memcpy(mass, Massc_M + pini, sizeof(float)*n);
 	if (tau)memcpy(tau, JauTauc2_M + pini, sizeof(tsymatrix3f)*n);
 	if (gradvel)memcpy(tau, JauTauc2_M + pini, sizeof(tsymatrix3f)*n);
+	//if (gradvel)memcpy(gradvel, JauGradvelc2_M + pini, sizeof(tsymatrix3f)*n);
+
+	//-Eliminate non-normal particles (periodic & others). | Elimina particulas no normales (periodicas y otras).
+	if (onlynormal) {
+		if (!idp || !pos || !vel || !rhop)RunException(met, "Pointers without data.");
+		typecode *code2 = code;
+		if (!code2) {
+			code2 = ArraysCpu->ReserveTypeCode();
+			memcpy(code2, Codec + pini, sizeof(typecode)*n);
+		}
+		unsigned ndel = 0;
+		for (unsigned p = 0; p<n; p++) {
+			bool normal = CODE_IsNormal(code2[p]);
+			if (ndel && normal) {
+				const unsigned pdel = p - ndel;
+				idp[pdel] = idp[p];
+				pos[pdel] = pos[p];
+				vel[pdel] = vel[p];
+				rhop[pdel] = rhop[p];
+				code2[pdel] = code2[p];
+			}
+			if (!normal)ndel++;
+		}
+		num -= ndel;
+		if (!code)ArraysCpu->Free(code2);
+	}
+	//-Reorder components in their original order. | Reordena componentes en su orden original.
+	if (cellorderdecode)DecodeCellOrder(n, pos, vel);
+	return(num);
+}
+
+//////////////////////////////////////
+// Surcharge of GetParticlesData_M with Qf -- Matthias
+//////////////////////////////////////
+unsigned JSphSolidCpu::GetParticlesData_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
+	, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, float *press, float* mass, tsymatrix3f *qf, typecode *code)
+{
+	const char met[] = "GetParticlesData";
+	unsigned num = n;
+	//-Copy selected values.
+	if (code)memcpy(code, Codec + pini, sizeof(typecode)*n);
+	if (idp)memcpy(idp, Idpc + pini, sizeof(unsigned)*n);
+	if (pos)memcpy(pos, Posc + pini, sizeof(tdouble3)*n);
+	if (vel && rhop) {
+		for (unsigned p = 0; p<n; p++) {
+			tfloat4 vr = Velrhopc[p + pini];
+			vel[p] = TFloat3(vr.x, vr.y, vr.z);
+			rhop[p] = vr.w;
+		}
+	}
+	else {
+		if (vel) for (unsigned p = 0; p<n; p++) { tfloat4 vr = Velrhopc[p + pini]; vel[p] = TFloat3(vr.x, vr.y, vr.z); }
+		if (rhop)for (unsigned p = 0; p<n; p++)rhop[p] = Velrhopc[p + pini].w;
+	}
+
+	// Matthias
+	if (pore)memcpy(pore, Porec_M + pini, sizeof(float)*n);
+	if (press) {
+		for (unsigned p = 0; p<n; p++) {
+			press[p] = CteB * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f);
+		}
+	}
+	if (mass)memcpy(mass, Massc_M + pini, sizeof(float)*n);
+	if (qf)memcpy(qf, QuadFormc_M + pini, sizeof(tsymatrix3f)*n);
+
+	//-Eliminate non-normal particles (periodic & others). | Elimina particulas no normales (periodicas y otras).
+	if (onlynormal) {
+		if (!idp || !pos || !vel || !rhop)RunException(met, "Pointers without data.");
+		typecode *code2 = code;
+		if (!code2) {
+			code2 = ArraysCpu->ReserveTypeCode();
+			memcpy(code2, Codec + pini, sizeof(typecode)*n);
+		}
+		unsigned ndel = 0;
+		for (unsigned p = 0; p<n; p++) {
+			bool normal = CODE_IsNormal(code2[p]);
+			if (ndel && normal) {
+				const unsigned pdel = p - ndel;
+				idp[pdel] = idp[p];
+				pos[pdel] = pos[p];
+				vel[pdel] = vel[p];
+				rhop[pdel] = rhop[p];
+				code2[pdel] = code2[p];
+			}
+			if (!normal)ndel++;
+		}
+		num -= ndel;
+		if (!code)ArraysCpu->Free(code2);
+	}
+	//-Reorder components in their original order. | Reordena componentes en su orden original.
+	if (cellorderdecode)DecodeCellOrder(n, pos, vel);
+	return(num);
+}
+
+
+//==============================================================================
+/// ParticleData_M including Ellipsoid quadratic Form -- Matthias
+//==============================================================================
+unsigned JSphSolidCpu::GetParticlesData_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
+	, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, tfloat3 *press, float* mass, tsymatrix3f *gradvel, tsymatrix3f *tau, tsymatrix3f *qf, typecode *code)
+{
+	const char met[] = "GetParticlesData";
+	unsigned num = n;
+	//-Copy selected values.
+	if (code)memcpy(code, Codec + pini, sizeof(typecode)*n);
+	if (idp)memcpy(idp, Idpc + pini, sizeof(unsigned)*n);
+	if (pos)memcpy(pos, Posc + pini, sizeof(tdouble3)*n);
+	if (vel && rhop) {
+		for (unsigned p = 0; p<n; p++) {
+			tfloat4 vr = Velrhopc[p + pini];
+			vel[p] = TFloat3(vr.x, vr.y, vr.z);
+			rhop[p] = vr.w;
+		}
+	}
+	else {
+		if (vel) for (unsigned p = 0; p<n; p++) { tfloat4 vr = Velrhopc[p + pini]; vel[p] = TFloat3(vr.x, vr.y, vr.z); }
+		if (rhop)for (unsigned p = 0; p<n; p++)rhop[p] = Velrhopc[p + pini].w;
+	}
+
+	// Matthias
+	if (pore)memcpy(pore, Porec_M + pini, sizeof(float)*n);
+	if (press) {
+		for (unsigned p = 0; p<n; p++) {
+			//tfloat3 pre = AnisotropyK_M * TFloat3(CteB * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f));
+			tfloat3 pre = CteB_M * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f);
+			press[p] = TFloat3(pre.x, pre.y, pre.z);
+		}
+	}
+	//if (press)memcpy(press, Press3Dc + pini, sizeof(tfloat3)*n); // Not used, but Pressure seems to be recorded anyway, as well for tau
+	if (mass)memcpy(mass, Massc_M + pini, sizeof(float)*n);
+	if (tau)memcpy(tau, JauTauc2_M + pini, sizeof(tsymatrix3f)*n);
+	if (gradvel)memcpy(tau, JauGradvelc2_M + pini, sizeof(tsymatrix3f)*n);
+	if (qf)memcpy(tau, QuadFormc_M + pini, sizeof(tsymatrix3f)*n);
 	//if (gradvel)memcpy(gradvel, JauGradvelc2_M + pini, sizeof(tsymatrix3f)*n);
 
 	//-Eliminate non-normal particles (periodic & others). | Elimina particulas no normales (periodicas y otras).
@@ -624,6 +768,10 @@ void JSphSolidCpu::InitRun() {
 		memcpy(VelrhopM1c, Velrhopc, sizeof(tfloat4)*Np);
 		memset(JauTauM1c2_M, 0, sizeof(tsymatrix3f)*Np);
 		VerletStep = 0;
+		for (unsigned p = 0; p < Np; p++) {
+			MassM1c_M[p] = MassFluid;
+			QuadFormM1c_M[p] = TSymatrix3f(4 / float(pow(Dp, 2)), 0, 0, 4 / float(pow(Dp, 2)), 0, 4 / float(pow(Dp, 2)));
+		}
 	}
 	else if (TStep == STEP_Symplectic)DtPre = DtIni;
 	if (TVisco == VISCO_LaminarSPS)memset(SpsTauc, 0, sizeof(tsymatrix3f)*Np);
@@ -631,13 +779,13 @@ void JSphSolidCpu::InitRun() {
 	// Matthias
 	//memset(JauTauc_M, 0, sizeof(tmatrix3f)*Np);
 	memset(JauTauc2_M, 0, sizeof(tsymatrix3f)*Np);
+	//memset(QuadFormc_M, 0, sizeof(tsymatrix3f)*Np);
 	memset(Divisionc_M, 0, sizeof(bool)*Np);
 	for (unsigned p = 0; p < Np; p++) {
-		Massc_M[p] = MassFluid;
-		MassM1c_M[p] = MassFluid;	
+		Massc_M[p] = MassFluid;	
+		QuadFormc_M[p] = TSymatrix3f(4 / float(pow(Dp, 2)), 0, 0, 4 / float(pow(Dp, 2)), 0, 4 / float(pow(Dp, 2)));
 	}
 	  
-
 	if (UseDEM)DemDtForce = DtIni; //(DEM)
 	if (CaseNfloat)InitFloating();
 
@@ -719,7 +867,11 @@ void JSphSolidCpu::InitRun_T(JPartsLoad4 *pl) {
 	if (TStep == STEP_Verlet) {
 		memcpy(VelrhopM1c, Velrhopc, sizeof(tfloat4)*Np);
 		memset(JauTauM1c2_M, 0, sizeof(tsymatrix3f)*Np);
+		memset(QuadFormM1c_M, 0, sizeof(tsymatrix3f)*Np);
 		VerletStep = 0;
+		for (unsigned p = 0; p < Np; p++) {
+			MassM1c_M[p] = MassFluid;
+		}
 	}
 	else if (TStep == STEP_Symplectic)DtPre = DtIni;
 	if (TVisco == VISCO_LaminarSPS)memset(SpsTauc, 0, sizeof(tsymatrix3f)*Np);
@@ -727,14 +879,11 @@ void JSphSolidCpu::InitRun_T(JPartsLoad4 *pl) {
 	// Matthias
 	//memset(JauTauc_M, 0, sizeof(tmatrix3f)*Np);
 	memset(JauTauc2_M, 0, sizeof(tsymatrix3f)*Np);
+	memset(QuadFormc_M, 0, sizeof(tsymatrix3f)*Np);
 	memset(Divisionc_M, 0, sizeof(bool)*Np);
 	for (unsigned p = 0; p < Np; p++) {
-		Massc_M[p] = pl->GetMass()[p];
-		MassM1c_M[p] = pl->GetMass()[p];
-
-
+		Massc_M[p] = MassFluid;
 	}
-
 
 	if (UseDEM)DemDtForce = DtIni; //(DEM)
 	if (CaseNfloat)InitFloating();
@@ -893,13 +1042,13 @@ void JSphSolidCpu::PreInteractionVars_Forces(TpInter tinter, unsigned np, unsign
 		Pressc[p] = CteB * (pow(rhop_r0, Gamma) - 1.0f);
 		// Matthias
 		Press3Dc_M[p] = CteB_M * (pow(rhop_r0, Gamma) - 1.0f);
-		if ((abs(Posc[p].x) < 0.5f) && (abs(Posc[p].y) < 0.5f) && (abs(Posc[p].z) < 0.5f)) {
+		/*if ((abs(Posc[p].x) < 0.5f) && (abs(Posc[p].y) < 0.5f) && (abs(Posc[p].z) < 0.5f)) {
 			Porec_M[p] = PoreZero;
 		}
 		else {
 			Porec_M[p] = 0.0f;
-		}
-		/*Porec_M[p] = PoreZero;*/
+		}*/
+		Porec_M[p] = PoreZero;
 		//printf("Pore = %.8f\n", Porec_M[p]);
 		
 		//Porec_M[p] = PoreZero * pow(1 - Massc_M[p] / MassFluid, 3);
@@ -2099,6 +2248,8 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 	for (int th = 0; th<OmpThreads; th++)if (viscdt<viscth[th*OMP_STRIDE])viscdt = viscth[th*OMP_STRIDE];
 }
 
+
+
 //==============================================================================
 /// Perform DEM interaction between particles Floating-Bound & Floating-Floating //(DEM)
 /// Realiza interaccion DEM entre particulas Floating-Bound & Floating-Floating //(DEM)
@@ -2537,6 +2688,45 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 }
 
 
+
+//==============================================================================
+/// Surcharche solide, press1D et quad de IntForceT - Matthias
+//==============================================================================
+template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph tdelta, bool shift> void JSphSolidCpu::Interaction_ForcesT
+(unsigned np, unsigned npb, unsigned npbok
+	, tuint3 ncells, const unsigned *begincell, tuint3 cellmin, const unsigned *dcell
+	, const tdouble3 *pos, const tfloat3 *pspos, const tfloat4 *velrhop, const typecode *code, const unsigned *idp
+	, const float *press, const float *pore, const float *mass
+	, float &viscdt, float* ar, tfloat3 *ace, float *delta
+	, tsymatrix3f *jautau, tsymatrix3f *jaugradvel, tsymatrix3f *jautaudot, tsymatrix3f *jauomega, tsymatrix3f *qf
+	, TpShifting tshifting, tfloat3 *shiftpos, float *shiftdetect)const
+{
+	const unsigned npf = np - npb;
+	const tint4 nc = TInt4(int(ncells.x), int(ncells.y), int(ncells.z), int(ncells.x*ncells.y));
+	const tint3 cellzero = TInt3(cellmin.x, cellmin.y, cellmin.z);
+	const unsigned cellfluid = nc.w*nc.z + 1;
+	const int hdiv = (CellMode == CELLMODE_H ? 2 : 1);
+
+	if (npf) {
+		//-Interaction Fluid-Fluid.
+		InteractionForcesSolMass_M<psingle, tker, ftmode, lamsps, tdelta, shift>(npf, npb, nc, hdiv, cellfluid, Visco, begincell, cellzero, dcell, jautau, jaugradvel, jauomega, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);
+		//-Interaction Fluid-Bound.
+		InteractionForcesSolMass_M<psingle, tker, ftmode, lamsps, tdelta, shift>(npf, npb, nc, hdiv, 0, Visco*ViscoBoundFactor, begincell, cellzero, dcell, jautau, jaugradvel, jauomega, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);
+
+		//-Interaction of DEM Floating-Bound & Floating-Floating. //(DEM)
+		if (USE_DEM)InteractionForcesDEM<psingle>(CaseNfloat, nc, hdiv, cellfluid, begincell, cellzero, dcell, FtRidp, DemData, pos, pspos, velrhop, code, idp, viscdt, ace);
+
+		//-Computes tau for Laminar+SPS.
+		//if (lamsps)ComputeSpsTau(npf, npb, velrhop, spsgradvel, spstau);
+
+		// Compute Sdot
+		ComputeJauTauDot_M(npf, npb, jaugradvel, jautau, jautaudot, jauomega);
+	}
+	if (npbok) {
+		//-Interaction Bound-Fluid.
+		InteractionForcesBound      <psingle, tker, ftmode>(npbok, 0, nc, hdiv, cellfluid, begincell, cellzero, dcell, pos, pspos, velrhop, code, idp, viscdt, ar);
+	}
+}
 
 //==============================================================================
 /// Selection of template parameters for Interaction_ForcesX.
@@ -5111,6 +5301,648 @@ void JSphSolidCpu::Interaction_Forces_M(unsigned np, unsigned npb, unsigned npbo
 	}
 }
 
+
+
+//==============================================================================
+// ===== Press 1D / Quadratic form -- Matthias
+//==============================================================================
+void JSphSolidCpu::InteractionSimple_Forces_M(unsigned np, unsigned npb, unsigned npbok
+	, tuint3 ncells, const unsigned *begincell, tuint3 cellmin, const unsigned *dcell
+	, const tfloat3 *pspos, const tfloat4 *velrhop, const unsigned *idp, const typecode *code
+	, const float *press, const float *pore, const float *mass
+	, float &viscdt, float* ar, tfloat3 *ace, float *delta
+	, tsymatrix3f *jautau, tsymatrix3f *jaugradvel, tsymatrix3f *jautaudot, tsymatrix3f *jauomega, tsymatrix3f *qf
+	, tfloat3 *shiftpos, float *shiftdetect)const
+{
+	tdouble3 *pos = NULL;
+	const bool psingle = true;
+	if (TKernel == KERNEL_Wendland) {
+		const TpKernel tker = KERNEL_Wendland;
+		if (!WithFloating) {
+			const TpFtMode ftmode = FTMODE_None;
+			if (TShifting) {
+				const bool tshift = true;
+				if (TVisco == VISCO_LaminarSPS) {
+					const bool lamsps = true;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+				else {
+					const bool lamsps = false;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+			}
+			else {
+				const bool tshift = false;
+				if (TVisco == VISCO_LaminarSPS) {
+					const bool lamsps = true;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+				else {
+					const bool lamsps = false;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+			}
+		}
+		else if (!UseDEM) {
+			const TpFtMode ftmode = FTMODE_Sph;
+			if (TShifting) {
+				const bool tshift = true;
+				if (TVisco == VISCO_LaminarSPS) {
+					const bool lamsps = true;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+				else {
+					const bool lamsps = false;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+			}
+			else {
+				const bool tshift = false;
+				if (TVisco == VISCO_LaminarSPS) {
+					const bool lamsps = true;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+				else {
+					const bool lamsps = false;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+			}
+		}
+		else {
+			const TpFtMode ftmode = FTMODE_Dem;
+			if (TShifting) {
+				const bool tshift = true;
+				if (TVisco == VISCO_LaminarSPS) {
+					const bool lamsps = true;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+				else {
+					const bool lamsps = false;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+			}
+			else {
+				const bool tshift = false;
+				if (TVisco == VISCO_LaminarSPS) {
+					const bool lamsps = true;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+				else {
+					const bool lamsps = false;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+			}
+		}
+	}
+	else if (TKernel == KERNEL_Gaussian) {
+		const TpKernel tker = KERNEL_Gaussian;
+		if (!WithFloating) {
+			const TpFtMode ftmode = FTMODE_None;
+			if (TShifting) {
+				const bool tshift = true;
+				if (TVisco == VISCO_LaminarSPS) {
+					const bool lamsps = true;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+				else {
+					const bool lamsps = false;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+			}
+			else {
+				const bool tshift = false;
+				if (TVisco == VISCO_LaminarSPS) {
+					const bool lamsps = true;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+				else {
+					const bool lamsps = false;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+			}
+		}
+		else if (!UseDEM) {
+			const TpFtMode ftmode = FTMODE_Sph;
+			if (TShifting) {
+				const bool tshift = true;
+				if (TVisco == VISCO_LaminarSPS) {
+					const bool lamsps = true;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+				else {
+					const bool lamsps = false;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+			}
+			else {
+				const bool tshift = false;
+				if (TVisco == VISCO_LaminarSPS) {
+					const bool lamsps = true;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+				else {
+					const bool lamsps = false;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+			}
+		}
+		else {
+			const TpFtMode ftmode = FTMODE_Dem;
+			if (TShifting) {
+				const bool tshift = true;
+				if (TVisco == VISCO_LaminarSPS) {
+					const bool lamsps = true;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+				else {
+					const bool lamsps = false;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+			}
+			else {
+				const bool tshift = false;
+				if (TVisco == VISCO_LaminarSPS) {
+					const bool lamsps = true;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+				else {
+					const bool lamsps = false;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+			}
+		}
+	}
+	else if (TKernel == KERNEL_Cubic) {
+		const TpKernel tker = KERNEL_Cubic;
+		if (!WithFloating) {
+			const TpFtMode ftmode = FTMODE_None;
+			if (TShifting) {
+				const bool tshift = true;
+				if (TVisco == VISCO_LaminarSPS) {
+					const bool lamsps = true;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+				else {
+					const bool lamsps = false;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+			}
+			else {
+				const bool tshift = false;
+				if (TVisco == VISCO_LaminarSPS) {
+					const bool lamsps = true;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+				else {
+					const bool lamsps = false;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+			}
+		}
+		else if (!UseDEM) {
+			const TpFtMode ftmode = FTMODE_Sph;
+			if (TShifting) {
+				const bool tshift = true;
+				if (TVisco == VISCO_LaminarSPS) {
+					const bool lamsps = true;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+				else {
+					const bool lamsps = false;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+			}
+			else {
+				const bool tshift = false;
+				if (TVisco == VISCO_LaminarSPS) {
+					const bool lamsps = true;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+				else {
+					const bool lamsps = false;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+			}
+		}
+		else {
+			const TpFtMode ftmode = FTMODE_Dem;
+			if (TShifting) {
+				const bool tshift = true;
+				if (TVisco == VISCO_LaminarSPS) {
+					const bool lamsps = true;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+				else {
+					const bool lamsps = false;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+			}
+			else {
+				const bool tshift = false;
+				if (TVisco == VISCO_LaminarSPS) {
+					const bool lamsps = true;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+				else {
+					const bool lamsps = false;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+			}
+		}
+	}
+}
+
+
+void JSphSolidCpu::Interaction_Forces_M(unsigned np, unsigned npb, unsigned npbok
+	, tuint3 ncells, const unsigned *begincell, tuint3 cellmin, const unsigned *dcell
+	, const tdouble3 *pos, const tfloat4 *velrhop, const unsigned *idp, const typecode *code
+	, const float *press, const float *pore, const float *mass
+	, float &viscdt, float* ar, tfloat3 *ace, float *delta
+	, tsymatrix3f *jautau, tsymatrix3f *jaugradvel, tsymatrix3f *jautaudot, tsymatrix3f *jauomega, tsymatrix3f *qf
+	, tfloat3 *shiftpos, float *shiftdetect)const
+{
+	tfloat3 *pspos = NULL;
+	const bool psingle = true;
+	if (TKernel == KERNEL_Wendland) {
+		const TpKernel tker = KERNEL_Wendland;
+		if (!WithFloating) {
+			const TpFtMode ftmode = FTMODE_None;
+			if (TShifting) {
+				const bool tshift = true;
+				if (TVisco == VISCO_LaminarSPS) {
+					const bool lamsps = true;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+				else {
+					const bool lamsps = false;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+			}
+			else {
+				const bool tshift = false;
+				if (TVisco == VISCO_LaminarSPS) {
+					const bool lamsps = true;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+				else {
+					const bool lamsps = false;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+			}
+		}
+		else if (!UseDEM) {
+			const TpFtMode ftmode = FTMODE_Sph;
+			if (TShifting) {
+				const bool tshift = true;
+				if (TVisco == VISCO_LaminarSPS) {
+					const bool lamsps = true;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+				else {
+					const bool lamsps = false;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+			}
+			else {
+				const bool tshift = false;
+				if (TVisco == VISCO_LaminarSPS) {
+					const bool lamsps = true;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+				else {
+					const bool lamsps = false;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+			}
+		}
+		else {
+			const TpFtMode ftmode = FTMODE_Dem;
+			if (TShifting) {
+				const bool tshift = true;
+				if (TVisco == VISCO_LaminarSPS) {
+					const bool lamsps = true;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+				else {
+					const bool lamsps = false;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+			}
+			else {
+				const bool tshift = false;
+				if (TVisco == VISCO_LaminarSPS) {
+					const bool lamsps = true;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+				else {
+					const bool lamsps = false;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+			}
+		}
+	}
+	else if (TKernel == KERNEL_Gaussian) {
+		const TpKernel tker = KERNEL_Gaussian;
+		if (!WithFloating) {
+			const TpFtMode ftmode = FTMODE_None;
+			if (TShifting) {
+				const bool tshift = true;
+				if (TVisco == VISCO_LaminarSPS) {
+					const bool lamsps = true;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+				else {
+					const bool lamsps = false;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+			}
+			else {
+				const bool tshift = false;
+				if (TVisco == VISCO_LaminarSPS) {
+					const bool lamsps = true;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+				else {
+					const bool lamsps = false;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+			}
+		}
+		else if (!UseDEM) {
+			const TpFtMode ftmode = FTMODE_Sph;
+			if (TShifting) {
+				const bool tshift = true;
+				if (TVisco == VISCO_LaminarSPS) {
+					const bool lamsps = true;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+				else {
+					const bool lamsps = false;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+			}
+			else {
+				const bool tshift = false;
+				if (TVisco == VISCO_LaminarSPS) {
+					const bool lamsps = true;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+				else {
+					const bool lamsps = false;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+			}
+		}
+		else {
+			const TpFtMode ftmode = FTMODE_Dem;
+			if (TShifting) {
+				const bool tshift = true;
+				if (TVisco == VISCO_LaminarSPS) {
+					const bool lamsps = true;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+				else {
+					const bool lamsps = false;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+			}
+			else {
+				const bool tshift = false;
+				if (TVisco == VISCO_LaminarSPS) {
+					const bool lamsps = true;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+				else {
+					const bool lamsps = false;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+			}
+		}
+	}
+	else if (TKernel == KERNEL_Cubic) {
+		const TpKernel tker = KERNEL_Cubic;
+		if (!WithFloating) {
+			const TpFtMode ftmode = FTMODE_None;
+			if (TShifting) {
+				const bool tshift = true;
+				if (TVisco == VISCO_LaminarSPS) {
+					const bool lamsps = true;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+				else {
+					const bool lamsps = false;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+			}
+			else {
+				const bool tshift = false;
+				if (TVisco == VISCO_LaminarSPS) {
+					const bool lamsps = true;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+				else {
+					const bool lamsps = false;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+			}
+		}
+		else if (!UseDEM) {
+			const TpFtMode ftmode = FTMODE_Sph;
+			if (TShifting) {
+				const bool tshift = true;
+				if (TVisco == VISCO_LaminarSPS) {
+					const bool lamsps = true;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+				else {
+					const bool lamsps = false;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+			}
+			else {
+				const bool tshift = false;
+				if (TVisco == VISCO_LaminarSPS) {
+					const bool lamsps = true;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+				else {
+					const bool lamsps = false;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+			}
+		}
+		else {
+			const TpFtMode ftmode = FTMODE_Dem;
+			if (TShifting) {
+				const bool tshift = true;
+				if (TVisco == VISCO_LaminarSPS) {
+					const bool lamsps = true;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+				else {
+					const bool lamsps = false;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+			}
+			else {
+				const bool tshift = false;
+				if (TVisco == VISCO_LaminarSPS) {
+					const bool lamsps = true;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+				else {
+					const bool lamsps = false;
+					if (TDeltaSph == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+					if (TDeltaSph == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, tshift>(np, npb, npbok, ncells, begincell, cellmin, dcell, pos, pspos, velrhop, code, idp, press, pore, mass, viscdt, ar, ace, delta, jautau, jaugradvel, jautaudot, jauomega, qf, TShifting, shiftpos, shiftdetect);
+				}
+			}
+		}
+	}
+}
+
 //==============================================================================
 /// Update pos, dcell and code to move with indicated displacement.
 /// The value of outrhop indicates is it outside of the density limits.
@@ -5337,6 +6169,98 @@ template<bool shift> void JSphSolidCpu::ComputeVerletVarsSolMass_M(const tfloat4
 	}
 }
 
+
+//==============================================================================
+/// Verlet update with Solid, pore, mass and quadratic form - Matthias
+//==============================================================================
+template<bool shift> void JSphSolidCpu::ComputeVerletVarsQuad_M(const tfloat4 *velrhop1, const tfloat4 *velrhop2
+	, const tsymatrix3f *tau1, const tsymatrix3f *tau2, const tsymatrix3f *qf1, const tsymatrix3f *qf2, const float *mass1, const float *mass2
+	, double dt, double dt2, tdouble3 *pos, unsigned *dcell, typecode *code, tfloat4 *velrhopnew, tsymatrix3f *taunew, tsymatrix3f *qfnew, float *massnew)const
+{
+	const double dt205 = 0.5*dt*dt;
+	const int pini = int(Npb), pfin = int(Np), npf = int(Np - Npb);
+#ifdef OMP_USE
+#pragma omp parallel for schedule (static) if(npf>OMP_LIMIT_COMPUTESTEP)
+#endif
+	for (int p = pini; p<pfin; p++) {
+		//-Calculate density. | Calcula densidad.
+		float rhopnew = float(double(velrhop2[p].w) + dt2 * Arc[p]);
+
+		if (!WithFloating || CODE_IsFluid(code[p])) {//-Fluid Particles.
+													 //-Calculate displacement and update position. | Calcula desplazamiento y actualiza posicion.
+			double dx = double(velrhop1[p].x)*dt + double(Acec[p].x)*dt205;
+			double dy = double(velrhop1[p].y)*dt + double(Acec[p].y)*dt205;
+			double dz = double(velrhop1[p].z)*dt + double(Acec[p].z)*dt205;
+
+			if (shift) {
+				dx += double(ShiftPosc[p].x);
+				dy += double(ShiftPosc[p].y);
+				dz += double(ShiftPosc[p].z);
+			}
+			bool outrhop = (rhopnew<RhopOutMin || rhopnew>RhopOutMax);
+			//	printf("rvell ,race = %f,%f,%f,%f,%f,%f", velrhop1[p].x, velrhop1[p].y, velrhop1[p].z, Acec[p].x, Acec[p].y, Acec[p].z);
+			UpdatePos(pos[p], dx, dy, dz, outrhop, p, pos, dcell, code);
+
+			//-Update velocity & NOT density. | Actualiza velocidad y densidad.
+			velrhopnew[p].x = float(double(velrhop2[p].x) + double(Acec[p].x)*dt2);
+			velrhopnew[p].y = float(double(velrhop2[p].y) + double(Acec[p].y)*dt2);
+			velrhopnew[p].z = float(double(velrhop2[p].z) + double(Acec[p].z)*dt2);
+			// Update with growth momentum change
+
+			// Update Shear stress
+			taunew[p].xx = float(double(tau2[p].xx) + double(JauTauDot_M[p].xx)*dt2);
+			taunew[p].xy = float(double(tau2[p].xy) + double(JauTauDot_M[p].xy)*dt2);
+			taunew[p].xz = float(double(tau2[p].xz) + double(JauTauDot_M[p].xz)*dt2);
+			taunew[p].yy = float(double(tau2[p].yy) + double(JauTauDot_M[p].yy)*dt2);
+			taunew[p].yz = float(double(tau2[p].yz) + double(JauTauDot_M[p].yz)*dt2);
+			taunew[p].zz = float(double(tau2[p].zz) + double(JauTauDot_M[p].zz)*dt2);
+
+			// Update Quadratic form -- //Should include GradVel
+			tmatrix3f Q = TMatrix3f(qf2[p].xx, qf2[p].xy, qf2[p].xz, qf2[p].xy, qf2[p].yy, qf2[p].yz, qf2[p].xz, qf2[p].yz, qf2[p].zz);
+			tmatrix3f GdVel = 0.5* TMatrix3f(JauGradvelc2_M[p].xx, JauGradvelc2_M[p].xy, JauGradvelc2_M[p].xz
+				, JauGradvelc2_M[p].xy, JauGradvelc2_M[p].yy, JauGradvelc2_M[p].yz
+				, JauGradvelc2_M[p].xz, JauGradvelc2_M[p].yz, JauGradvelc2_M[p].zz) - 0.5f* TMatrix3f(JauOmega_M[p].xx, JauOmega_M[p].xy, JauOmega_M[p].xz
+					, -JauOmega_M[p].xy, JauOmega_M[p].yy, JauOmega_M[p].yz
+					, -JauOmega_M[p].xz, -JauOmega_M[p].yz, JauOmega_M[p].zz);
+			tmatrix3f DQD = ToTMatrix3f((TMatrix3d(1, 0, 0, 0, 1, 0, 0, 0, 1) - dt2
+				* ToTMatrix3d(Ttransp(GdVel))) * ToTMatrix3d(Q) * (TMatrix3d(1, 0, 0, 0, 1, 0, 0, 0, 1) - dt2 * ToTMatrix3d(GdVel)));
+			//tmatrix3f Pe = DQD;
+			//printf("MatProd: %.5f, %.5f, %.5f, %.5f, %.5f, %.5f, %.5f, %.5f, %.5f\n", Pe.a11, Pe.a12, Pe.a13, Pe.a21, Pe.a22, Pe.a23, Pe.a31, Pe.a32, Pe.a33);
+
+			qfnew[p].xx = float(DQD.a11);
+			qfnew[p].xy = float(DQD.a12);
+			qfnew[p].xz = float(DQD.a13);
+			qfnew[p].yy = float(DQD.a22);
+			qfnew[p].yz = float(DQD.a23);
+			qfnew[p].zz = float(DQD.a33);
+			//printf("Q: %.5f, %.5f, %.5f, %.5f, %.5f, %.5f, %.5f, %.5f, %.5f\n", Q.a11, Q.a12, Q.a13, Q.a21, Q.a22, Q.a23, Q.a31, Q.a32, Q.a33);
+			//printf("DQD: %.5f, %.5f, %.5f, %.5f, %.5f, %.5f, %.5f, %.5f, %.5f\n", DQD.a11, DQD.a12, DQD.a13, DQD.a21, DQD.a22, DQD.a23, DQD.a31, DQD.a32, DQD.a33);
+
+			// Source Density and Mass
+			//const float volu = float(double(mass2[p]) / double(velrhop2[p].w));
+			const float volu = float(double(mass2[p]) / double(rhopnew));
+			//printf("M2: %.6f, Rho2: %.6f, V2: %.6f, ", mass2[p], velrhop2[p].w, volu);
+
+			//float adens = float(LambdaMass * (1.0f - rhopnew / RhopZero));
+			float adens = float(LambdaMass * (RhopZero / rhopnew - 1));
+			rhopnew = float(rhopnew + dt2 * adens);
+			//printf("Rho: %.6f, Drho2: %.6f, ", rhopnew, adens);
+
+			// Update mass, velocity and density
+			massnew[p] = float(double(mass2[p]) + dt2 * double(adens*volu));
+			// There is justifications to DO NOT take into account momentum change due to mass growth [Chapman2012]
+			/*velrhopnew[p].x = float(double(velrhop2[p].x) + double(Acec[p].x + adens * velrhop2[p].x / rhopnew)*dt2);
+			velrhopnew[p].y = float(double(velrhop2[p].y) + double(Acec[p].y + adens * velrhop2[p].y / rhopnew)*dt2);
+			velrhopnew[p].z = float(double(velrhop2[p].z) + double(Acec[p].z + adens * velrhop2[p].z / rhopnew)*dt2);*/
+			velrhopnew[p].w = rhopnew;
+		}
+		else {//-Floating Particles.
+			velrhopnew[p] = velrhop1[p];
+			velrhopnew[p].w = (rhopnew<RhopZero ? RhopZero : rhopnew); //-Avoid fluid particles being absorved by floating ones. | Evita q las floating absorvan a las fluidas.
+		}
+	}
+}
+
 //==============================================================================
 /// Calculate new values of position, velocity & density for fluid (using Euler)
 /// Matthias
@@ -5521,7 +6445,7 @@ void JSphSolidCpu::ComputeVerlet(double dt) {
 		ComputeVelrhopBound(Velrhopc, dt, VelrhopM1c);
 		VerletStep = 0;
 	}*/
-	if (VerletStep<VerletSteps) {
+	/*if (VerletStep<VerletSteps) {
 		const double twodt = dt + dt;
 		if (TShifting)ComputeVerletVarsSolMass_M<true>(Velrhopc, VelrhopM1c, JauTauc2_M, JauTauM1c2_M, Massc_M, MassM1c_M, dt, twodt, Posc, Dcellc, Codec, VelrhopM1c, JauTauM1c2_M, MassM1c_M);
 		else         ComputeVerletVarsSolMass_M<false>(Velrhopc, VelrhopM1c, JauTauc2_M, JauTauM1c2_M, Massc_M, MassM1c_M, dt, twodt, Posc, Dcellc, Codec, VelrhopM1c, JauTauM1c2_M, MassM1c_M);
@@ -5532,12 +6456,25 @@ void JSphSolidCpu::ComputeVerlet(double dt) {
 		else         ComputeVerletVarsSolMass_M<false>(Velrhopc, Velrhopc, JauTauc2_M, JauTauc2_M, Massc_M, Massc_M, dt, dt, Posc, Dcellc, Codec, VelrhopM1c, JauTauM1c2_M, MassM1c_M);
 		ComputeVelrhopBound(Velrhopc, dt, VelrhopM1c);
 		VerletStep = 0;
+	}*/
+
+	if (VerletStep<VerletSteps) {
+		const double twodt = dt + dt;
+		if (TShifting)ComputeVerletVarsQuad_M<true>(Velrhopc, VelrhopM1c, JauTauc2_M, JauTauM1c2_M, QuadFormc_M, QuadFormM1c_M, Massc_M, MassM1c_M, dt, twodt, Posc, Dcellc, Codec, VelrhopM1c, JauTauM1c2_M, QuadFormM1c_M, MassM1c_M);
+		else         ComputeVerletVarsQuad_M<false>(Velrhopc, VelrhopM1c, JauTauc2_M, JauTauM1c2_M, QuadFormc_M, QuadFormM1c_M, Massc_M, MassM1c_M, dt, twodt, Posc, Dcellc, Codec, VelrhopM1c, JauTauM1c2_M, QuadFormM1c_M, MassM1c_M);
+		ComputeVelrhopBound(VelrhopM1c, twodt, VelrhopM1c);
 	}
-	LocDiv_M = LocDiv_M + VelDiv_M * dt;
-	// Update of LocDiv
+	else {
+		if (TShifting)ComputeVerletVarsQuad_M<true>(Velrhopc, Velrhopc, JauTauc2_M, JauTauc2_M, QuadFormc_M, QuadFormc_M, Massc_M, Massc_M, dt, dt, Posc, Dcellc, Codec, VelrhopM1c, JauTauM1c2_M, QuadFormM1c_M, MassM1c_M);
+		else         ComputeVerletVarsQuad_M<false>(Velrhopc, Velrhopc, JauTauc2_M, JauTauc2_M, QuadFormc_M, QuadFormc_M, Massc_M, Massc_M, dt, dt, Posc, Dcellc, Codec, VelrhopM1c, JauTauM1c2_M, QuadFormM1c_M, MassM1c_M);
+		ComputeVelrhopBound(Velrhopc, dt, VelrhopM1c);
+		VerletStep = 0;
+	}
+
 	//-New values are calculated en VelrhopM1c.
 	swap(Velrhopc, VelrhopM1c);     //-Swap Velrhopc & VelrhopM1c. | Intercambia Velrhopc y VelrhopM1c.
 	swap(JauTauc2_M, JauTauM1c2_M);     //-Swap Velrhopc & VelrhopM1c. | Intercambia Velrhopc y VelrhopM1c.
+	swap(QuadFormc_M, QuadFormM1c_M);     //-Swap Velrhopc & VelrhopM1c. | Intercambia Velrhopc y VelrhopM1c.
 	swap(Massc_M, MassM1c_M);     //-Swap Velrhopc & VelrhopM1c. | Intercambia Velrhopc y VelrhopM1c.
 	TmcStop(Timers, TMC_SuComputeStep);
 }

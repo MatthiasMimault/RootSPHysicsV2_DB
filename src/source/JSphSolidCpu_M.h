@@ -127,6 +127,9 @@ protected:
 	tsymatrix3f *JauTauDot_M;
 	tsymatrix3f *JauOmega_M;
 
+	tsymatrix3f *QuadFormc_M;
+	tsymatrix3f *QuadFormM1c_M;
+
 	TimersCpu Timers;
 
 
@@ -177,6 +180,11 @@ protected:
 		, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, tfloat3 *press, float* mass, tsymatrix3f *tau, typecode *code);
 	unsigned GetParticlesData_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
 		, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, tfloat3 *press, float* mass, tsymatrix3f *gradvel, tsymatrix3f *tau, typecode *code);
+	unsigned GetParticlesData_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
+		, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, tfloat3 *press, float* mass, tsymatrix3f *gradvel, tsymatrix3f *tau, tsymatrix3f *qf, typecode *code);
+	unsigned GetParticlesData_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
+		, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, float *press, float* mass, tsymatrix3f *qf, typecode *code);
+
 	void ConfigOmp(const JCfgRun *cfg);
 
 	void ConfigRunMode(const JCfgRun *cfg, std::string preinfo = "");
@@ -288,6 +296,15 @@ protected:
 		, tsymatrix3f *jautau, tsymatrix3f *jaugradvel, tsymatrix3f *jautaudot, tsymatrix3f *jauomega
 		, TpShifting tshifting, tfloat3 *shiftpos, float *shiftdetect)const;
 
+	template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph tdelta, bool shift> void Interaction_ForcesT
+	(unsigned np, unsigned npb, unsigned npbok
+		, tuint3 ncells, const unsigned *begincell, tuint3 cellmin, const unsigned *dcell
+		, const tdouble3 *pos, const tfloat3 *pspos, const tfloat4 *velrhop, const typecode *code, const unsigned *idp
+		, const float *press, const float *pore, const float *mass
+		, float &viscdt, float* ar, tfloat3 *ace, float *delta
+		, tsymatrix3f *jautau, tsymatrix3f *jaugradvel, tsymatrix3f *jautaudot, tsymatrix3f *jauomega, tsymatrix3f *qf
+		, TpShifting tshifting, tfloat3 *shiftpos, float *shiftdetect)const;
+
 	void Interaction_Forces(unsigned np, unsigned npb, unsigned npbok
 		, tuint3 ncells, const unsigned *begincell, tuint3 cellmin, const unsigned *dcell
 		, const tdouble3 *pos, const tfloat4 *velrhop, const unsigned *idp, const typecode *code
@@ -353,6 +370,23 @@ protected:
 		, tsymatrix3f *jautau, tsymatrix3f *jaugradvel, tsymatrix3f *jautaudot, tsymatrix3f *jauomega
 		, tfloat3 *shiftpos, float *shiftdetect)const;
 
+	// Press1D + QuadForm
+	void InteractionSimple_Forces_M(unsigned np, unsigned npb, unsigned npbok
+		, tuint3 ncells, const unsigned *begincell, tuint3 cellmin, const unsigned *dcell
+		, const tfloat3 *pspos, const tfloat4 *velrhop, const unsigned *idp, const typecode *code
+		, const float *press, const float *pore, const float *mass
+		, float &viscdt, float* ar, tfloat3 *ace, float *delta
+		, tsymatrix3f *jautau, tsymatrix3f *jaugradvel, tsymatrix3f *jautaudot, tsymatrix3f *jauomega, tsymatrix3f *qf
+		, tfloat3 *shiftpos, float *shiftdetect)const;
+
+	void Interaction_Forces_M(unsigned np, unsigned npb, unsigned npbok
+		, tuint3 ncells, const unsigned *begincell, tuint3 cellmin, const unsigned *dcell
+		, const tdouble3 *pos, const tfloat4 *velrhop, const unsigned *idp, const typecode *code
+		, const float *press, const float *pore, const float *mass
+		, float &viscdt, float* ar, tfloat3 *ace, float *delta
+		, tsymatrix3f *jautau, tsymatrix3f *jaugradvel, tsymatrix3f *jautaudot, tsymatrix3f *jauomega, tsymatrix3f *qf
+		, tfloat3 *shiftpos, float *shiftdetect)const;
+
 
 	void ComputeSpsTau(unsigned n, unsigned pini, const tfloat4 *velrhop, const tsymatrix3f *gradvel, tsymatrix3f *tau)const;
 	void ComputeJauTauDot_M(unsigned n, unsigned pini, const tsymatrix3f *gradvel, tsymatrix3f *tau, tsymatrix3f *taudot, tsymatrix3f *omega)const;
@@ -365,7 +399,12 @@ protected:
 	template<bool shift> void ComputeVerletVarsSolMass_M(const tfloat4 *velrhop1, const tfloat4 *velrhop2
 		, const tsymatrix3f *tau1, const tsymatrix3f *tau2, const float *mass1, const float *mass2
 		, double dt, double dt2, tdouble3 *pos, unsigned *dcell, typecode *code, tfloat4 *velrhopnew, tsymatrix3f *taunew, float *massnew)const;
+	template<bool shift> void ComputeVerletVarsQuad_M(const tfloat4 *velrhop1, const tfloat4 *velrhop2
+		, const tsymatrix3f *tau1, const tsymatrix3f *tau2, const tsymatrix3f *qf1, const tsymatrix3f *qf2, const float *mass1, const float *mass2
+		, double dt, double dt2, tdouble3 *pos, unsigned *dcell, typecode *code, tfloat4 *velrhopnew, tsymatrix3f *taunew, tsymatrix3f *qfnew, float *massnew)const;
+
 	void ComputeVelrhopBound(const tfloat4* velrhopold, double armul, tfloat4* velrhopnew)const;
+
 	// Matthias
 	template<bool shift> void ComputeEulerVarsFluid_M(tfloat4 *velrhop, double dt, tdouble3 *pos, unsigned *dcell, word *code)const;
 	template<bool shift> void ComputeEulerVarsSolid_M(tfloat4 *velrhop, double dt, tdouble3 *pos, tsymatrix3f *tau, unsigned *dcell, word *code)const;
