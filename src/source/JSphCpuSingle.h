@@ -73,6 +73,10 @@ protected:
   void MarkedDivision_M(unsigned countMax, unsigned np, unsigned pini, tuint3 cellmax
 	  , unsigned *idp, typecode *code, unsigned *dcell, tdouble3 *pos, tfloat4 *velrhop, tsymatrix3f *taup
 	  , bool *divisionp, float *porep, float *massp, tfloat4 *velrhopm1, tsymatrix3f *taupm1, float *masspm1)const;
+  void MarkedDivision_M(unsigned countMax, unsigned np, unsigned pini, tuint3 cellmax
+	  , unsigned *idp, typecode *code, unsigned *dcell
+	  , bool *divisionp, tdouble3 *pos, tfloat4 *velrhop, tsymatrix3f *taup, float *porep, float *massp, tsymatrix3f *qfp
+	  , tfloat4 *velrhopm1, tsymatrix3f *taupm1, float *masspm1, tsymatrix3f *qfpm1)const;
 
   void AbortBoundOut();
 

@@ -121,7 +121,7 @@ protected:
   //-Variables for compute step: VERLET.
   float4 *VelrhopM1g;  ///<Verlet: in order to keep previous values. | Verlet: para guardar valores anteriores.
   int VerletStep;
-  float *MassM1c_M;
+  float *MassM1g_M;
 
   //-Variables for compute step: SYMPLECTIC.
   double2 *PosxyPreg;  ///<Sympletic: in order to keep previous values. | Sympletic: para guardar valores en predictor.
@@ -174,18 +174,18 @@ protected:
 							  // Matthias - Pore pressure
   bool *Divisionc_M;
   float *Porec_M;
-  float *Massc_M; // Mass, Delta mass
+  float *Massg_M; // Mass, Delta mass
 				  //float TimeGoing;
 
 
 							  // Matthias - Solid
 							  //tmatrix3f *JauTauc_M;
-  tsymatrix3f *JauTauc2_M;
-  tsymatrix3f *JauTauM1c2_M;
+  tsymatrix3f *Taug_M;
+  tsymatrix3f *TauM1g_M;
   //tmatrix3f *JauGradvelc_M;
-  tsymatrix3f *JauGradvelc2_M;
-  tsymatrix3f *JauTauDot_M;
-  tsymatrix3f *JauOmega_M;
+  tsymatrix3f *StrainDotg_M;
+  tsymatrix3f *TauDotg_M;
+  tsymatrix3f *Sping_M;
   float *Pressg;
   float3 *Press3Dc;
 
