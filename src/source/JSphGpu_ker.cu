@@ -1246,9 +1246,9 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 {
 	//-Collects kernel information.
 #ifndef DISABLE_BSMODES
-	if (kerinfo)Interaction_ForcesT_KerInfo<psingle, tker, ftmode, lamsps, tdelta, shift>(kerinfo);
-	else if (bsauto)Interaction_ForcesT_BsAuto<psingle, tker, ftmode, lamsps, tdelta, shift>(cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, ftomassp, tau, gradvel, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, bsauto);
-	else {
+	//if (kerinfo)Interaction_ForcesT_KerInfo<psingle, tker, ftmode, lamsps, tdelta, shift>(kerinfo);
+	//else if (bsauto)Interaction_ForcesT_BsAuto<psingle, tker, ftmode, lamsps, tdelta, shift>(cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, ftomassp, tau, gradvel, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, bsauto);
+	//else {
 #endif
 		//-Executes particle interactions.
 		const unsigned npf = np - npb;
@@ -1260,16 +1260,16 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 		if (npf) {
 			dim3 sgridf = GetGridSize(npf, bsfluid);
 			//printf("---->bsfluid:%u   ",bsfluid);
-			KerInteractionForcesFluid<psingle, tker, ftmode, lamsps, tdelta, shift> << <sgridf, bsfluid >> > (npf, npb, hdiv, nc, cellfluid, viscob, viscof, begincell, cellzero, dcell, ftomassp, (const float2*)tau, (float2*)gradvel, posxy, posz, pospress, velrhop, code, idp, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);
+			//KerInteractionForcesFluid<psingle, tker, ftmode, lamsps, tdelta, shift> << <sgridf, bsfluid >> > (npf, npb, hdiv, nc, cellfluid, viscob, viscof, begincell, cellzero, dcell, ftomassp, (const float2*)tau, (float2*)gradvel, posxy, posz, pospress, velrhop, code, idp, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);
 		}
 		//-Interaction Boundary-Fluid.
 		if (npbok) {
 			dim3 sgridb = GetGridSize(npbok, bsbound);
 			//printf("bsbound:%u\n",bsbound);
-			KerInteractionForcesBound<psingle, tker, ftmode> << <sgridb, bsbound >> > (npbok, hdiv, nc, begincell, cellzero, dcell, ftomassp, posxy, posz, pospress, velrhop, code, idp, viscdt, ar);
+			//KerInteractionForcesBound<psingle, tker, ftmode> << <sgridb, bsbound >> > (npbok, hdiv, nc, begincell, cellzero, dcell, ftomassp, posxy, posz, pospress, velrhop, code, idp, viscdt, ar);
 		}
 #ifndef DISABLE_BSMODES
-	}
+	//}
 #endif
 }
 
