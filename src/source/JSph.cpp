@@ -2527,13 +2527,12 @@ void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, con
 		if (idp) { fields[nfields] = JFormatFiles2::DefineField("Idp", JFormatFiles2::UInt32, 1, idp);   nfields++; }
 		if (vel) { fields[nfields] = JFormatFiles2::DefineField("Vel", JFormatFiles2::Float32, 3, vel);   nfields++; }
 		if (rhop) { fields[nfields] = JFormatFiles2::DefineField("Rhop", JFormatFiles2::Float32, 1, rhop);  nfields++; }
-		if (pore) { fields[nfields] = JFormatFiles2::DefineField("Porep", JFormatFiles2::Float32, 1, pore);  nfields++; }
-		if (massp) { fields[nfields] = JFormatFiles2::DefineField("Massp", JFormatFiles2::Float32, 1, massp);  nfields++; }
-		if (press) { fields[nfields] = JFormatFiles2::DefineField("Pressp", JFormatFiles2::Float32, 1, press);  nfields++; }
+		//if (pore) { fields[nfields] = JFormatFiles2::DefineField("Porep", JFormatFiles2::Float32, 1, pore);  nfields++; }
+		//if (massp) { fields[nfields] = JFormatFiles2::DefineField("Massp", JFormatFiles2::Float32, 1, massp);  nfields++; }
 		if (type) { fields[nfields] = JFormatFiles2::DefineField("Type", JFormatFiles2::UChar8, 1, type);  nfields++; }
 
 		if (SvData&SDAT_Vtk)JFormatFiles2::SaveVtk(DirDataOut + fun::FileNameSec("PartVtk.vtk", Part), npok, posf3, nfields, fields);
-		if (SvData&SDAT_Csv)JFormatFiles2::SaveCsv(DirDataOut + fun::FileNameSec("PartCsv.csv", Part), CsvSepComa, npok, posf3, nfields, fields);
+		//if (SvData&SDAT_Csv)JFormatFiles2::SaveCsv(DirDataOut + fun::FileNameSec("PartCsv.csv", Part), CsvSepComa, npok, posf3, nfields, fields);
 
 		//-libera memoria.
 		//-release of memory.

@@ -147,17 +147,25 @@ int main(int argc, char** argv){
 
 
       if(cfg.Cpu){
-        JSphCpuSingle sph;
-        sph.Run(appname,&cfg,&log);
+		  if(true){
+			  JSphCpuSingle sph;
+			  sph.Run(appname, &cfg, &log);
+			  printf("EndCPU\n");
+		  }
+		  printf("EndCPU2\n");
       }
-      #ifdef _WITHGPU
-     else{
+      //#ifdef _WITHGPU
+      else{
+		printf("BegGPU\n");
         JSphGpuSingle sph;
         sph.Run(appname,&cfg,&log);
-      }
-#endif
+	    printf("EndGPU\n");
+	  }
+	  //#endif
+	  printf("End1\n");
     }
     errcode=0;
+	printf("End2\n");
   }
   catch(const char *cad){
     string tx=string("\n*** Exception: ")+cad+"\n";
@@ -174,7 +182,9 @@ int main(int argc, char** argv){
   catch(...){
     printf("\n*** Attention: Unknown exception...\n");
   }
+  printf("End3\n");
   return(errcode);
+  printf("End4\n");
 }
 
 

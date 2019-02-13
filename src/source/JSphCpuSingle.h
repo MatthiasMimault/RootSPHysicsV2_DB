@@ -59,6 +59,7 @@ protected:
   void RunPeriodic();
 
   void RunCellDivide(bool updateperiodic);
+
   // Matthias - Cell division
   void RunRandomDivision_M();
   void RunSizeDivision_M();
