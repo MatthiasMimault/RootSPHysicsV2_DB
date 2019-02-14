@@ -652,8 +652,8 @@ void JSphCpuSingle::RunSizeDivision_M() {
 	//printf("RuSizeDivn0\n");
 
 	for (unsigned p = Npb; p < Np; p++) {
-		//if ((Massc_M[p] / Velrhopc[p].w) > (SizeDivision_M*MassFluid / RhopZero)) {
-		if(false){
+		if ((Massc_M[p] / Velrhopc[p].w) > (SizeDivision_M*MassFluid / RhopZero)) {
+		//if(false){
 		Divisionc_M[p] = true;
 			count++;
 			//printf("DivisionMarquee\n");
@@ -1123,7 +1123,7 @@ void JSphCpuSingle::Interaction_Forces(TpInter tinter){
     #endif
     for(int p=ini;p<fin;p++)if(Deltac[p]!=FLT_MAX)Arc[p]+=Deltac[p];
   }
- 
+
   //-Calculates maximum value of ViscDt.
   ViscDtMax=viscdt;
   //-Calculates maximum value of Ace.
@@ -1209,6 +1209,7 @@ template<bool checkcodenormal> double JSphCpuSingle::ComputeAceMaxOmp(unsigned n
 double JSphCpuSingle::ComputeStep_Ver() {
 
 	Interaction_Forces(INTER_Forces);    //-Interaction.
+
 	const double dt = DtVariable(true);    //-Calculate new dt.
 	DemDtForce = dt;                       //(DEM)
 	if (TShifting)RunShifting(dt);        //-Shifting.
@@ -1541,8 +1542,11 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
 	// Control of step - Matthias
     double stepdt=ComputeStep();
 	RunGaugeSystem(TimeStep+stepdt);
+
     if(PartDtMin>stepdt)PartDtMin=stepdt; if(PartDtMax<stepdt)PartDtMax=stepdt;
+
     if(CaseNmoving)RunMotion(stepdt);
+
 
 
 	// Matthias - Cell division
@@ -1550,8 +1554,6 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
 	//RunDivisionDisplacement_M();
 	RunCellDivide(true);
 
-
-	//printf("---Loop2---");
     TimeStep+=stepdt;
 	partoutstop=(Np<NpMinimum || !Np);
     if(TimeStep>=TimePartNext || partoutstop){
@@ -1566,7 +1568,7 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
       TimePartNext=TimeOut->GetNextTime(TimeStep);
       TimerPart.Start();
     }
-	//printf("---Loop3--");
+
     UpdateMaxValues();
     Nstep++;
     if(Part<=PartIni+1 && tc.CheckTime())Log->Print(string("  ")+tc.GetInfoFinish((TimeStep-TimeStepIni)/(TimeMax-TimeStepIni)));
@@ -1576,9 +1578,7 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
 
   //-End of Simulation.
   //--------------------
-  printf("PreEnd\n");
   FinishRun(partoutstop);
-  printf("End\n");
 }
 
 //==============================================================================
@@ -1682,8 +1682,8 @@ void JSphCpuSingle::SaveData_M() {
 
 	//-Stores particle data. | Graba datos de particulas.
 	const tdouble3 vdom[2] = { OrderDecode(CellDivSingle->GetDomainLimits(true)),OrderDecode(CellDivSingle->GetDomainLimits(false)) };
-	//JSph::SaveData_M(npsave, idp, pos, vel, rhop, pore, press, mass, qf, 1, vdom, &infoplus);
-	JSph::SaveData(npsave, idp, pos, vel, rhop, 1, vdom, &infoplus);
+	JSph::SaveData_M(npsave, idp, pos, vel, rhop, pore, press, mass, qf, 1, vdom, &infoplus);
+	//JSph::SaveData(npsave, idp, pos, vel, rhop, 1, vdom, &infoplus);
 	//-Free auxiliary memory for particle data. | Libera memoria auxiliar para datos de particulas.
 	ArraysCpu->Free(idp);
 	ArraysCpu->Free(pos);

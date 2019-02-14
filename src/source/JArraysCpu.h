@@ -147,9 +147,9 @@ public:
   void Free(double      *pointer){ Arrays8b->Free(pointer);  }
   void Free(tdouble2    *pointer){ Arrays16b->Free(pointer); }
   void Free(tdouble3    *pointer){ Arrays24b->Free(pointer); }
-  void Free(tsymatrix3f *pointer) { Arrays24b->Free(pointer); }
+  void Free(tsymatrix3f *pointer){ Arrays24b->Free(pointer); }
   // Matthias
-  void Free(tmatrix3f *pointer) { Arrays36b->Free(pointer); }
+  void Free(tmatrix3f *pointer)  { Arrays36b->Free(pointer); }
 };
 #endif
 

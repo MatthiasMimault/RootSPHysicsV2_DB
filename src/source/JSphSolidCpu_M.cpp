@@ -155,7 +155,6 @@ void JSphSolidCpu::FreeCpuMemoryParticles() {
 void JSphSolidCpu::AllocCpuMemoryParticles(unsigned np, float over) {
 	const char* met = "AllocCpuMemoryParticles";
 	printf("AllocCpuMemPart\n");
-	FreeCpuMemoryParticles();
 	//-Calculate number of partices with reserved memory | Calcula numero de particulas para las que se reserva memoria.
 	const unsigned np2 = (over>0 ? unsigned(over*np) : np);
 	CpuParticlesSize = np2 + PARTICLES_OVERMEMORY_MIN;
@@ -197,8 +196,8 @@ void JSphSolidCpu::AllocCpuMemoryParticles(unsigned np, float over) {
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_4B, 1); // Mass
 	//ArraysCpu->AddArrayCount(JArraysCpu::SIZE_36B, 1); //-JauGradvel, JauTau
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_24B, 4); //-JauGradvel, JauTau2, Omega and Taudot, QuadForm
-	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_36B, 1); // Matrix3f L_M
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_4B, 4); // SaveFields
+	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_36B, 1); // Matrix3f L_M
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_12B, 1); // Press3D
 
 	//-Shows the allocated memory.
@@ -1104,7 +1103,7 @@ void JSphSolidCpu::PreInteraction_Forces(TpInter tinter) {
 #endif
 		for (int p = 0; p<np; p++) { PsPosc[p] = ToTFloat3(Posc[p]); }
 	}
-	//-Initialize Arrays.
+	//-Initialize Arrays
 	PreInteractionVars_Forces(tinter, Np, Npb);
 
 	//-Calculate VelMax: Floating object particles are included and do not affect use of periodic condition.
@@ -1184,10 +1183,10 @@ void JSphSolidCpu::PosInteraction_Forces() {
 	// Matthias
 	//ArraysCpu->Free(Porec_M);       Porec_M = NULL; // Pending suppression of this line - Matthias
 	//ArraysCpu->Free(JauGradvelc_M);  JauGradvelc_M = NULL;
-	ArraysCpu->Free(StrainDotc_M);  StrainDotc_M = NULL;
-	ArraysCpu->Free(TauDotc_M);  TauDotc_M = NULL;
-	ArraysCpu->Free(Spinc_M);  Spinc_M = NULL;
-	ArraysCpu->Free(L_M);  L_M = NULL;
+	ArraysCpu->Free(StrainDotc_M); StrainDotc_M = NULL;
+	ArraysCpu->Free(TauDotc_M);    TauDotc_M = NULL;
+	ArraysCpu->Free(Spinc_M);	   Spinc_M = NULL;
+	ArraysCpu->Free(L_M);		   L_M = NULL;
 
 }
 
