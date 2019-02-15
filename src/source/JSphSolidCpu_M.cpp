@@ -2057,6 +2057,7 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 	for (int th = 0; th<OmpThreads; th++)viscth[th*OMP_STRIDE] = 0;
 	//-Initialise execution with OpenMP. | Inicia ejecucion con OpenMP..
 	const int pfin = int(pinit + n);
+	
 #ifdef OMP_USE
 #pragma omp parallel for schedule (guided)
 #endif
@@ -2097,15 +2098,15 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 		GetInteractionCells(dcell[p1], hdiv, nc, cellzero, cxini, cxfin, yini, yfin, zini, zfin);
 
 		//-Search for neighbours in adjacent cells.
-		for (int z = zini; z<zfin; z++) {
+		for (int z = zini; z < zfin; z++) {
 			const int zmod = (nc.w)*z + cellinitial; //-Sum from start of fluid or boundary cells. | Le suma donde empiezan las celdas de fluido o bound.
-			for (int y = yini; y<yfin; y++) {
+			for (int y = yini; y < yfin; y++) {
 				int ymod = zmod + nc.x*y;
 				const unsigned pini = beginendcell[cxini + ymod];
 				const unsigned pfin = beginendcell[cxfin + ymod];
 
 				// Mp1 reinitialisation
-				Mp1 = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+				//Mp1 = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
 				// Computation of Lp1
 				for (unsigned p2 = pini; p2 < pfin; p2++) {
@@ -2116,7 +2117,7 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 					float massp2 = mass[p2]; //-Contiene masa de particula segun sea bound o fluid.
 
 					if (rr2 <= Fourh2 && rr2 >= ALMOSTZERO) {
-						float frx, fry, frz; 
+						float frx, fry, frz;
 						if (tker == KERNEL_Wendland)GetKernelWendland(rr2, drx, dry, drz, frx, fry, frz);
 						else if (tker == KERNEL_Gaussian)GetKernelGaussian(rr2, drx, dry, drz, frx, fry, frz);
 						else if (tker == KERNEL_Cubic)GetKernelCubic(rr2, drx, dry, drz, frx, fry, frz);
@@ -2137,17 +2138,30 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 						}
 					}
 				}
+			}
+		}
+		/*if (idp[p1] == 0)   printf("M(%d) = (%.4f, %.4f, %.4f, %.4f, %.4f, %.4f, %.4f, %.4f, %.4f)\n", idp[p1], Mp1.a11, Mp1.a12, Mp1.a13, Mp1.a21, Mp1.a22, Mp1.a23, Mp1.a31, Mp1.a32, Mp1.a33);
 
-				L[p1].a11 += Mp1.a11;
-				L[p1].a12 += Mp1.a12;
-				L[p1].a13 += Mp1.a13;
-				L[p1].a21 += Mp1.a21;
-				L[p1].a22 += Mp1.a22;
-				L[p1].a23 += Mp1.a23;
-				L[p1].a31 += Mp1.a31;
-				L[p1].a32 += Mp1.a32;
-				L[p1].a33 += Mp1.a33;
+		if (idp[p1] == 600) printf("M(%d) = (%.4f, %.4f, %.4f, %.4f, %.4f, %.4f, %.4f, %.4f, %.4f)\n", idp[p1], Mp1.a11, Mp1.a12, Mp1.a13, Mp1.a21, Mp1.a22, Mp1.a23, Mp1.a31, Mp1.a32, Mp1.a33);
 
+		if (idp[p1] == 786) printf("M(%d) = (%.4f, %.4f, %.4f, %.4f, %.4f, %.4f, %.4f, %.4f, %.4f)\n", idp[p1], Mp1.a11, Mp1.a12, Mp1.a13, Mp1.a21, Mp1.a22, Mp1.a23, Mp1.a31, Mp1.a32, Mp1.a33);*/
+
+		//tmatrix3f Imp1 = Inv3f(Mp1);
+		L[p1] = Inv3f(Mp1);
+		/*if (idp[p1] == 0)   printf("M-1(%d) = (%.4f, %.4f, %.4f, %.4f, %.4f, %.4f, %.4f, %.4f, %.4f)\n", idp[p1], Imp1.a11, Imp1.a12, Imp1.a13, Imp1.a21, Imp1.a22, Imp1.a23, Imp1.a31, Imp1.a32, Imp1.a33);
+
+		if (idp[p1] == 600) printf("M-1(%d) = (%.4f, %.4f, %.4f, %.4f, %.4f, %.4f, %.4f, %.4f, %.4f)\n", idp[p1], Imp1.a11, Imp1.a12, Imp1.a13, Imp1.a21, Imp1.a22, Imp1.a23, Imp1.a31, Imp1.a32, Imp1.a33);
+
+		if (idp[p1] == 786) printf("M-1(%d) = (%.4f, %.4f, %.4f, %.4f, %.4f, %.4f, %.4f, %.4f, %.4f)\n", idp[p1], Imp1.a11, Imp1.a12, Imp1.a13, Imp1.a21, Imp1.a22, Imp1.a23, Imp1.a31, Imp1.a32, Imp1.a33);
+*/
+
+
+		for (int z = zini; z<zfin; z++) {
+			const int zmod = (nc.w)*z + cellinitial; //-Sum from start of fluid or boundary cells. | Le suma donde empiezan las celdas de fluido o bound.
+			for (int y = yini; y<yfin; y++) {
+				int ymod = zmod + nc.x*y;
+				const unsigned pini = beginendcell[cxini + ymod];
+				const unsigned pfin = beginendcell[cxfin + ymod];
 
 				//-Interaction of Fluid with type Fluid or Bound. | Interaccion de Fluid con varias Fluid o Bound.
 				//------------------------------------------------------------------------------------------------
@@ -2201,14 +2215,19 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 								-prs.yy*massp2*ftmassp1, -prs.yz*massp2*ftmassp1, -prs.zz*massp2*ftmassp1
 							};
 
-							acep1.x += p_vpm3.xx*frx + p_vpm3.xy*fry + p_vpm3.xz*frz;
+							/*acep1.x += p_vpm3.xx*frx + p_vpm3.xy*fry + p_vpm3.xz*frz;
 							acep1.y += p_vpm3.xy*frx + p_vpm3.yy*fry + p_vpm3.yz*frz;
-							acep1.z += p_vpm3.xz*frx + p_vpm3.yz*fry + p_vpm3.zz*frz;
+							acep1.z += p_vpm3.xz*frx + p_vpm3.yz*fry + p_vpm3.zz*frz;*/
+
+							// Velocity NSPH
+							acep1.x += p_vpm3.xx*frx*L[p1].a11 + p_vpm3.xy*fry*L[p1].a12 + p_vpm3.xz*frz*L[p1].a13;
+							acep1.y += p_vpm3.xy*frx*L[p1].a21 + p_vpm3.yy*fry*L[p1].a22 + p_vpm3.yz*frz*L[p1].a23;
+							acep1.z += p_vpm3.xz*frx*L[p1].a31 + p_vpm3.yz*fry*L[p1].a32 + p_vpm3.zz*frz*L[p1].a33;
 						}
 
 						//-Density derivative.
 						const float dvx = velp1.x - velrhop[p2].x, dvy = velp1.y - velrhop[p2].y, dvz = velp1.z - velrhop[p2].z;
-						if (compute)arp1 += massp2 * (dvx*frx + dvy * fry + dvz * frz);
+						if (compute)arp1 += massp2 * (dvx*frx*L[p1].a11 + dvy * fry*L[p1].a22 + dvz * frz*L[p1].a33);
 
 						const float cbar = (float)Cs0;
 						//-Density derivative (DeltaSPH Molteni).
@@ -2249,7 +2268,7 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 						if (compute) {
 							if (!ftp1) {//-When p1 is a fluid particle / Cuando p1 es fluido. 
 								const float volp2 = -massp2 / velrhop[p2].w;
-								float dv = dvx * volp2;
+								/*float dv = dvx * volp2;
 								gradvelp1.xx += dv * frx; gradvelp1.xy += 0.5f*dv*fry; gradvelp1.xz += 0.5f*dv*frz;
 								omegap1.xy += 0.5f*dv*fry; omegap1.xz += 0.5f*dv*frz;
 
@@ -2259,13 +2278,27 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 
 								dv = dvz * volp2;
 								gradvelp1.xz += 0.5f*dv*frx; gradvelp1.yz += 0.5f*dv*fry; gradvelp1.zz += dv * frz;
-								omegap1.xz -= 0.5f*dv*frx; omegap1.yz -= 0.5f*dv*fry;
+								omegap1.xz -= 0.5f*dv*frx; omegap1.yz -= 0.5f*dv*fry;*/
+
+								// Velocity gradient NSPH
+								float dv = dvx * volp2;
+								gradvelp1.xx += dv * frx*L[p1].a11; gradvelp1.xy += 0.5f*dv*fry*L[p1].a12; gradvelp1.xz += 0.5f*dv*frz*L[p1].a13;
+								omegap1.xy += 0.5f*dv*fry*L[p1].a12; omegap1.xz += 0.5f*dv*frz*L[p1].a13;
+
+								dv = dvy * volp2;
+								gradvelp1.xy += 0.5f*dv*frx*L[p1].a21; gradvelp1.yy += dv * fry*L[p1].a22; gradvelp1.yz += 0.5f*dv*frz*L[p1].a23;
+								omegap1.xy -= 0.5f*dv*frx*L[p1].a21; omegap1.yz += 0.5f*dv*frz*L[p1].a23;
+
+								dv = dvz * volp2;
+								gradvelp1.xz += 0.5f*dv*frx*L[p1].a31; gradvelp1.yz += 0.5f*dv*fry*L[p1].a32; gradvelp1.zz += dv * frz*L[p1].a33;
+								omegap1.xz -= 0.5f*dv*frx*L[p1].a31; omegap1.yz -= 0.5f*dv*fry*L[p1].a32;
 							}
 						}
 					}
 				}
 			}
 		}
+		
 		//-Sum results together.
 		if (shift || arp1 || acep1.x || acep1.y || acep1.z || visc) {
 			if (tdelta == DELTA_Dynamic && deltap1 != FLT_MAX)arp1 += deltap1;
@@ -2296,6 +2329,9 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 			omega[p1].zz += omegap1.zz;
 
 		}
+
+		//if (idp[p1] == 786) printf("M(%d) = (%.4f, %.4f, %.4f, %.4f, %.4f, %.4f, %.4f, %.4f, %.4f)\n", idp[p1], Mp1.a11, Mp1.a12, Mp1.a13, Mp1.a21, Mp1.a22, Mp1.a23, Mp1.a31, Mp1.a32, Mp1.a33);
+
 		//printf("Mp1 = (%.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f)\n"
 		//	, L[p1].a11, L[p1].a12, L[p1].a13, L[p1].a21, L[p1].a22, L[p1].a23, L[p1].a31, L[p1].a32, L[p1].a33);
 	}
@@ -2826,7 +2862,7 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 		InteractionForcesNSPH_M<psingle, tker, ftmode, lamsps, tdelta, shift>(npf, npb, nc, hdiv, cellfluid, Visco, begincell, cellzero, dcell, jautau, jaugradvel, jauomega, pos, pspos, velrhop, code, idp, press, pore, mass, L, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);
 
 		//-Interaction Fluid-Bound.
-		InteractionForcesNSPH_M<psingle, tker, ftmode, lamsps, tdelta, shift>(npf, npb, nc, hdiv, 0, Visco*ViscoBoundFactor, begincell, cellzero, dcell, jautau, jaugradvel, jauomega, pos, pspos, velrhop, code, idp, press, pore, mass, L, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);
+		//InteractionForcesNSPH_M<psingle, tker, ftmode, lamsps, tdelta, shift>(npf, npb, nc, hdiv, 0, Visco*ViscoBoundFactor, begincell, cellzero, dcell, jautau, jaugradvel, jauomega, pos, pspos, velrhop, code, idp, press, pore, mass, L, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);
 			
 		//-Interaction of DEM Floating-Bound & Floating-Floating. //(DEM)
 		if (USE_DEM)InteractionForcesDEM<psingle>(CaseNfloat, nc, hdiv, cellfluid, begincell, cellzero, dcell, FtRidp, DemData, pos, pspos, velrhop, code, idp, viscdt, ace);

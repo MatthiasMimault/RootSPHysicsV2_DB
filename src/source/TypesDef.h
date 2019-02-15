@@ -384,6 +384,17 @@ inline tmatrix3d operator -(const tmatrix3d& a, const tmatrix3d& b) {
 inline tmatrix3f Ttransp(const tmatrix3f& a) { return TMatrix3f(a.a11, a.a21, a.a31, a.a12, a.a22, a.a32, a.a13, a.a23, a.a33); }
 inline tmatrix3d Ttransp(const tmatrix3d& a) { return TMatrix3d(a.a11, a.a21, a.a31, a.a12, a.a22, a.a32, a.a13, a.a23, a.a33); }
 
+// Determinant and Inverse - Matthias
+inline float Det3f(tmatrix3f a) { return a.a11*a.a22*a.a33 + a.a12*a.a23*a.a31 + a.a21*a.a32*a.a13 - a.a13*a.a22*a.a31 - a.a23*a.a32*a.a11 - a.a33*a.a12*a.a21; }
+inline tmatrix3f Inv3f(tmatrix3f a) {
+	float Idet = 1.0f / Det3f(a);
+	return Idet * TMatrix3f(
+		  a.a22*a.a33 - a.a23*a.a32, a.a13*a.a32 - a.a12*a.a33, a.a12*a.a23 - a.a13*a.a22
+		, a.a23*a.a31 - a.a21*a.a33, a.a11*a.a33 - a.a13*a.a31, a.a13*a.a21 - a.a11*a.a23
+		, a.a21*a.a32 - a.a22*a.a31, a.a12*a.a31 - a.a11*a.a32, a.a11*a.a22 - a.a12*a.a21);
+}
+
+
 ///Matrix of 4x4 values of type float.
 typedef struct{
   float a11,a12,a13,a14;
