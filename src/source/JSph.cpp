@@ -2277,7 +2277,10 @@ void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, con
 			// Press
 			float *pressp = NULL;
 			pressp = new float[npok];
-			for (unsigned p = 0; p<npok; p++) pressp[p] = press[p].x;
+			for (unsigned p = 0; p < npok; p++) {
+				pressp[p] = press[p].x;
+				printf("P: %.3f, %.3f, %.3f\n", press[p].x, press[p].y, press[p].z);
+			}
 			DataBi4->AddPartData("Press", npok, pressp);
 			
 			// Mass
@@ -2491,6 +2494,7 @@ void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, con
 			DataBi4->AddPartData("Qfxy", npok, qfxy);
 
 			DataBi4->SaveFilePart();
+			delete[] pressp; pressp = NULL;//-Memory must to be deallocated after saving file because DataBi4 uses this memory space.
 			delete[] mass; mass = NULL;
 			delete[] qfxx; qfxx = NULL;
 			delete[] qfyy; qfyy = NULL;
@@ -2498,7 +2502,6 @@ void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, con
 			delete[] qfyz; qfyz = NULL;
 			delete[] qfxz; qfxz = NULL;
 			delete[] qfxy; qfxy = NULL;
-			delete[] pressp; pressp = NULL;//-Memory must to be deallocated after saving file because DataBi4 uses this memory space.
 										   //delete[] gradvelSave; gradvelSave = NULL;				
 
 		}
@@ -2524,12 +2527,12 @@ void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, con
 		if (idp) { fields[nfields] = JFormatFiles2::DefineField("Idp", JFormatFiles2::UInt32, 1, idp);   nfields++; }
 		if (vel) { fields[nfields] = JFormatFiles2::DefineField("Vel", JFormatFiles2::Float32, 3, vel);   nfields++; }
 		if (rhop) { fields[nfields] = JFormatFiles2::DefineField("Rhop", JFormatFiles2::Float32, 1, rhop);  nfields++; }
-		if (pore) { fields[nfields] = JFormatFiles2::DefineField("Porep", JFormatFiles2::Float32, 1, pore);  nfields++; }
-		if (massp) { fields[nfields] = JFormatFiles2::DefineField("Massp", JFormatFiles2::Float32, 1, massp);  nfields++; }
-		if (press) { fields[nfields] = JFormatFiles2::DefineField("Pressp", JFormatFiles2::Float32, 3, press);  nfields++; }
+		//if (pore) { fields[nfields] = JFormatFiles2::DefineField("Porep", JFormatFiles2::Float32, 1, pore);  nfields++; }
+		//if (massp) { fields[nfields] = JFormatFiles2::DefineField("Massp", JFormatFiles2::Float32, 1, massp);  nfields++; }
 		if (type) { fields[nfields] = JFormatFiles2::DefineField("Type", JFormatFiles2::UChar8, 1, type);  nfields++; }
+
 		if (SvData&SDAT_Vtk)JFormatFiles2::SaveVtk(DirDataOut + fun::FileNameSec("PartVtk.vtk", Part), npok, posf3, nfields, fields);
-		if (SvData&SDAT_Csv)JFormatFiles2::SaveCsv(DirDataOut + fun::FileNameSec("PartCsv.csv", Part), CsvSepComa, npok, posf3, nfields, fields);
+		//if (SvData&SDAT_Csv)JFormatFiles2::SaveCsv(DirDataOut + fun::FileNameSec("PartCsv.csv", Part), CsvSepComa, npok, posf3, nfields, fields);
 
 		//-libera memoria.
 		//-release of memory.
@@ -2553,7 +2556,6 @@ void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, con
 
 	//-Vacia almacen de particulas excluidas.
 	//-Empties stock of excluded particles.
-
 	PartsOut->Clear();
 }
 

@@ -18,7 +18,7 @@ You should have received a copy of the GNU Lesser General Public License along w
 
 /// \file JSphSolidGpu_ker_L.cu \brief Implements functions and CUDA kernels to compute operations for solids particles.
 #include <stdio.h>
-#include "JSphSolidGpu_ker_L.h"
+//#include "JSphSolidGpu_ker_L.h"
 #include "JSph.h"
 #include "JCellDivGpu_ker.h"
 #include "Types.h"
@@ -744,7 +744,7 @@ namespace cuSol {
 	/// Interaction of a particle with a set of particles. (Fluid/Float-Fluid/Float/Bound)
 	/// Realiza la interaccion de una particula con un conjunto de ellas. (Fluid/Float-Fluid/Float/Bound)
 	//------------------------------------------------------------------------------
-	template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph tdelta, bool shift> __device__ void KerInteractionForcesFluidBox
+	/*template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph tdelta, bool shift> __device__ void KerInteractionForcesFluidBox
 	(bool boundp2, unsigned p1, const unsigned &pini, const unsigned &pfin, float visco
 		, const float *ftomassp, const float2 *tauff
 		, const double2 *posxy, const double *posz, const float4 *pospress, const float4 *velrhop, const typecode *code, const unsigned *idp
@@ -865,7 +865,7 @@ namespace cuSol {
 				}
 			}
 		}
-	}
+	}*/
 
 	//------------------------------------------------------------------------------
 	/// Interaction of a particle with a set of particles. (Fluid/Float-Fluid/Float/Bound) with Pore pressure - Lucas
@@ -1568,7 +1568,7 @@ namespace cuSol {
 							pfin = cbeg.y;
 						}
 					}
-					if (pfin)KerInteractionForcesFluidBox<psingle, tker, ftmode, lamsps, tdelta, shift>(false, p1, pini, pfin, viscof, ftomassp, tauff, posxy, posz, pospress, velrhop, code, idp, CTE.massf, ftmassp1, ftp1, posdp1, posp1, velp1, pressp1, rhopp1, taup1_xx_xy, taup1_xz_yy, taup1_yz_zz, grap1_xx_xy, grap1_xz_yy, grap1_yz_zz, acep1, arp1, visc, deltap1, tshifting, shiftposp1, shiftdetectp1);
+					//if (pfin)KerInteractionForcesFluidBox<psingle, tker, ftmode, lamsps, tdelta, shift>(false, p1, pini, pfin, viscof, ftomassp, tauff, posxy, posz, pospress, velrhop, code, idp, CTE.massf, ftmassp1, ftp1, posdp1, posp1, velp1, pressp1, rhopp1, taup1_xx_xy, taup1_xz_yy, taup1_yz_zz, grap1_xx_xy, grap1_xz_yy, grap1_yz_zz, acep1, arp1, visc, deltap1, tshifting, shiftposp1, shiftdetectp1);
 				}
 			}
 			//-Interaction with boundaries.
@@ -1584,7 +1584,7 @@ namespace cuSol {
 							pfin = cbeg.y;
 						}
 					}
-					if (pfin)KerInteractionForcesFluidBox<psingle, tker, ftmode, lamsps, tdelta, shift>(true, p1, pini, pfin, viscob, ftomassp, tauff, posxy, posz, pospress, velrhop, code, idp, CTE.massb, ftmassp1, ftp1, posdp1, posp1, velp1, pressp1, rhopp1, taup1_xx_xy, taup1_xz_yy, taup1_yz_zz, grap1_xx_xy, grap1_xz_yy, grap1_yz_zz, acep1, arp1, visc, deltap1, tshifting, shiftposp1, shiftdetectp1);
+					//if (pfin)KerInteractionForcesFluidBox<psingle, tker, ftmode, lamsps, tdelta, shift>(true, p1, pini, pfin, viscob, ftomassp, tauff, posxy, posz, pospress, velrhop, code, idp, CTE.massb, ftmassp1, ftp1, posdp1, posp1, velp1, pressp1, rhopp1, taup1_xx_xy, taup1_xz_yy, taup1_yz_zz, grap1_xx_xy, grap1_xz_yy, grap1_yz_zz, acep1, arp1, visc, deltap1, tshifting, shiftposp1, shiftdetectp1);
 				}
 			}
 
@@ -2033,12 +2033,12 @@ namespace cuSol {
 					//velrhopnew[p] = rvelrhop2;
 
 					// Update Shear stress
-					taunew[p].xx = float(double(tau2[p].xx) + double(JauTauDot_M[p].xx)*dt2);
+					/*taunew[p].xx = float(double(tau2[p].xx) + double(JauTauDot_M[p].xx)*dt2);
 					taunew[p].xy = float(double(tau2[p].xy) + double(JauTauDot_M[p].xy)*dt2);
 					taunew[p].xz = float(double(tau2[p].xz) + double(JauTauDot_M[p].xz)*dt2);
 					taunew[p].yy = float(double(tau2[p].yy) + double(JauTauDot_M[p].yy)*dt2);
 					taunew[p].yz = float(double(tau2[p].yz) + double(JauTauDot_M[p].yz)*dt2);
-					taunew[p].zz = float(double(tau2[p].zz) + double(JauTauDot_M[p].zz)*dt2);
+					taunew[p].zz = float(double(tau2[p].zz) + double(JauTauDot_M[p].zz)*dt2);*/
 
 					// Source Density and Mass
 					const float volu = float(double(mass2[p]) / double(rvelrhop2.w));
@@ -2057,22 +2057,24 @@ namespace cuSol {
 	}
 
 
-	void ComputeStepVerlet_M(bool floating, bool shift, unsigned np, unsigned npb, const float4 * velrhop1, const float4 * velrhop2, const float * ar, const float3 * ace, const float3 * shiftpos, double dt, double dt2, float rhopoutmin, float rhopoutmax, typecode * code, double2 * movxy, double * movz, float4 * velrhopnew, const tsymatrix3f * tau2, tsymatrix3f * JauTauDot_M, tsymatrix3f * taunew, const float * mass1, const float * mass2, float * massnew)
+	void ComputeStepVerlet_M(bool floating, bool shift, unsigned np, unsigned npb, const float4 * velrhop1, const float4 * velrhop2, const float * ar, const float3 * ace, const float3 * shiftpos, double dt, double dt2, float rhopoutmin, float rhopoutmax, typecode * code, double2 * movxy, double * movz, float4 * velrhopnew, const tsymatrix3f * tau2, tsymatrix3f * 
+		, tsymatrix3f * taunew, const float * mass1, const float * mass2, float * massnew)
 	{
-		double dt205 = (0.5*dt*dt);
-		if (np) {
+		//double dt205 = (0.5*dt*dt);
+		/*if (np) {
 			dim3 sgrid = cuSol::GetGridSize(np, SPHBSIZE);
 			if (shift) {
 				const bool shift = true;
-				if (floating)cuSol::KerComputeStepVerlet_M<true, shift> << <sgrid, SPHBSIZE >> > (np, npb, rhopoutmin, rhopoutmax, velrhop1, velrhop2, ar, ace, shiftpos, dt, dt205, dt2, movxy, movz, code, velrhopnew, tau2, JauTauDot_M, taunew, mass1, mass2, massnew);
-				else         cuSol::KerComputeStepVerlet_M<false, shift> << <sgrid, SPHBSIZE >> > (np, npb, rhopoutmin, rhopoutmax, velrhop1, velrhop2, ar, ace, shiftpos, dt, dt205, dt2, movxy, movz, code, velrhopnew, tau2, JauTauDot_M, taunew, mass1, mass2, massnew);
+				//if (floating)cuSol::KerComputeStepVerlet_M<true, shift> << <sgrid, SPHBSIZE >> > (np, npb, rhopoutmin, rhopoutmax, velrhop1, velrhop2, ar, ace, shiftpos, dt, dt205, dt2, movxy, movz, code, velrhopnew, tau2, JauTauDot_M, taunew, mass1, mass2, massnew);
+				//else         cuSol::KerComputeStepVerlet_M<false, shift> << <sgrid, SPHBSIZE >> > (np, npb, rhopoutmin, rhopoutmax, velrhop1, velrhop2, ar, ace, shiftpos, dt, dt205, dt2, movxy, movz, code, velrhopnew, tau2, JauTauDot_M, taunew, mass1, mass2, massnew);
 			}
 			else {
 				const bool shift = false;
-				if (floating)cuSol::KerComputeStepVerlet_M<true, shift> << <sgrid, SPHBSIZE >> > (np, npb, rhopoutmin, rhopoutmax, velrhop1, velrhop2, ar, ace, shiftpos, dt, dt205, dt2, movxy, movz, code, velrhopnew, tau2, JauTauDot_M, taunew, mass1, mass2, massnew);
-				else         cuSol::KerComputeStepVerlet_M<false, shift> << <sgrid, SPHBSIZE >> > (np, npb, rhopoutmin, rhopoutmax, velrhop1, velrhop2, ar, ace, shiftpos, dt, dt205, dt2, movxy, movz, code, velrhopnew, tau2, JauTauDot_M, taunew, mass1, mass2, massnew);
+				//if (floating)cuSol::KerComputeStepVerlet_M<true, shift> << <sgrid, SPHBSIZE >> > (np, npb, rhopoutmin, rhopoutmax, velrhop1, velrhop2, ar, ace, shiftpos, dt, dt205, dt2, movxy, movz, code, velrhopnew, tau2, JauTauDot_M, taunew, mass1, mass2, massnew);
+				//else         cuSol::KerComputeStepVerlet_M<false, shift> << <sgrid, SPHBSIZE >> > (np, npb, rhopoutmin, rhopoutmax, velrhop1, velrhop2, ar, ace, shiftpos, dt, dt205, dt2, movxy, movz, code, velrhopnew, tau2, JauTauDot_M, taunew, mass1, mass2, massnew);
 			}
-		}
+		}*/
+		printf("\n");
 	}
 	
 
@@ -4855,24 +4857,6 @@ __global__ void KerPressPore_M(
 	}
 
 
-	void ComputeVelrhopBound(unsigned n, const float4* velrhopold, double armul, float4* velrhopnew, const float* Arg, float RhopZero)
-	{
-		if (n) {
-			dim3 sgrid = cuSol::GetGridSize(n, SPHBSIZE);
-			KerComputeVelrhopBound << <sgrid, SPHBSIZE >> > (n, velrhopold, armul, velrhopnew, Arg, RhopZero);
-		}
-
-	}
-	__global__ void KerComputeVelrhopBound(unsigned n,const float4* velrhopold, double armul, float4* velrhopnew,const float* Arg,float RhopZero)
-	{
-		unsigned p = blockIdx.y*gridDim.x*blockDim.x + blockIdx.x*blockDim.x + threadIdx.x; //-Number of particle.
-		if (p < n) {
-			const float rhopnew = float(double(velrhopold[p].w) + armul * Arg[p]);
-			velrhopnew[p].x = 0;
-			velrhopnew[p].y = 0;
-			velrhopnew[p].z = 0;
-			velrhopnew[p].w = (rhopnew < RhopZero ? RhopZero : rhopnew);
-		}
-	}
+	/**/
 
 }
