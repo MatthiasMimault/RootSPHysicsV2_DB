@@ -222,7 +222,6 @@ void JSphCpuSingle::LoadCaseParticles_T() {
 //==============================================================================
 void JSphCpuSingle::ConfigDomain(){
   const char* met="ConfigDomain";
-  printf("ConfigDomain\n");
   //-Calculate number of particles. | Calcula numero de particulas.
   Np=PartsLoaded->GetCount(); Npb=CaseNpb; NpbOk=Npb;
   //-Allocates fixed memory for moving & floating particles. | Reserva memoria fija para moving y floating.
@@ -533,7 +532,7 @@ void JSphCpuSingle::RunCellDivide(bool updateperiodic){
   if(TStep==STEP_Verlet){
     CellDivSingle->SortArray(VelrhopM1c);
 	// Matthias
-	CellDivSingle->SortArray(JauTauM1c2_M);
+	CellDivSingle->SortArray(TauM1c_M);
 	CellDivSingle->SortArray(MassM1c_M);
 	CellDivSingle->SortArray(QuadFormM1c_M);
   }
@@ -545,8 +544,7 @@ void JSphCpuSingle::RunCellDivide(bool updateperiodic){
   if(TVisco==VISCO_LaminarSPS)CellDivSingle->SortArray(SpsTauc);
   
   // Matthias
-  //CellDivSingle->SortArray(JauTauc_M);
-  CellDivSingle->SortArray(JauTauc2_M);
+  CellDivSingle->SortArray(Tauc_M);
   CellDivSingle->SortArray(Massc_M); 
   CellDivSingle->SortArray(Divisionc_M);
   CellDivSingle->SortArray(Porec_M);
@@ -634,7 +632,7 @@ void JSphCpuSingle::RunRandomDivision_M() {
 			// Divide the selected particles in X direction
 			//SourceSelectedParticles_M(count, Np, Npb, DomCells, Idpc, Codec, Dcellc, Posc, Velrhopc, JauTauc2_M, Porec_M, Massc_M, VelrhopM1c, JauTauM1c2_M);
 			RandomDivDistance_M(count, Np, Npb, DomCells, Idpc, Codec, Dcellc, 
-				Posc, Velrhopc, JauTauc2_M, Porec_M, Massc_M, VelrhopM1c, JauTauM1c2_M,
+				Posc, Velrhopc, Tauc_M, Porec_M, Massc_M, VelrhopM1c, StrainDotc_M,
 				LocDiv_M, RateBirth_M, Spread_M);
 			Np += count;
 		}
@@ -690,7 +688,7 @@ void JSphCpuSingle::RunSizeDivision_M() {
 			run = false;
 			// Divide the selected particles in X direction
 			MarkedDivision_M(count, Np, Npb, DomCells, Idpc, Codec, Dcellc,
-				Posc, Velrhopc, JauTauc2_M, Divisionc_M, Porec_M, Massc_M, QuadFormc_M, VelrhopM1c, JauTauM1c2_M, MassM1c_M, QuadFormM1c_M);
+				Posc, Velrhopc, Tauc_M, Divisionc_M, Porec_M, Massc_M, QuadFormc_M, VelrhopM1c, StrainDotc_M, MassM1c_M, QuadFormM1c_M);
 			Np += count;
 		}
 	}
@@ -1152,8 +1150,8 @@ void JSphCpuSingle::Interaction_Forces(TpInter tinter){
   //else JSphSolidCpu::Interaction_Forces(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, Posc, Velrhopc, Idpc, Codec, Pressc, viscdt, Arc, Acec, Deltac, SpsTauc, SpsGradvelc, ShiftPosc, ShiftDetectc);
  
   // Matthias - No quadform, but press 1D
-  if (Psingle)JSphSolidCpu::InteractionSimple_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, PsPosc, Velrhopc, Idpc, Codec, Pressc, Porec_M, Massc_M, viscdt, Arc, Acec, Deltac, JauTauc2_M, JauGradvelc2_M, JauTauDot_M, JauOmega_M, ShiftPosc, ShiftDetectc);
-               else JSphSolidCpu::Interaction_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc,   Posc, Velrhopc, Idpc, Codec, Pressc, Porec_M, Massc_M, viscdt, Arc, Acec, Deltac, JauTauc2_M, JauGradvelc2_M, JauTauDot_M, JauOmega_M, ShiftPosc, ShiftDetectc);
+  if (Psingle)JSphSolidCpu::InteractionSimple_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, PsPosc, Velrhopc, Idpc, Codec, Pressc, Porec_M, Massc_M, viscdt, Arc, Acec, Deltac, Tauc_M, StrainDotc_M, TauDotc_M, Spinc_M, ShiftPosc, ShiftDetectc);
+               else JSphSolidCpu::Interaction_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc,   Posc, Velrhopc, Idpc, Codec, Pressc, Porec_M, Massc_M, viscdt, Arc, Acec, Deltac, Tauc_M, StrainDotc_M, TauDotc_M, Spinc_M, ShiftPosc, ShiftDetectc);
 
 //-For 2-D simulations zero the 2nd component. | Para simulaciones 2D anula siempre la 2º componente.
   if(Simulate2D){

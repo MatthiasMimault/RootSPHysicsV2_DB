@@ -1099,13 +1099,13 @@ void JSphGpu::ComputeVerlet(double dt){
   //-Calcula desplazamiento, velocidad y densidad.
   if(VerletStep<VerletSteps){
     const double twodt=dt+dt;
-	cusph::ComputeStepVerlet_M(WithFloating, shift, Np, Npb, Velrhopg, VelrhopM1g, Taug_M, TauM1g_M, Massg_M, MassM1g_M
-		, Arg, Aceg, ShiftPosg, TauDotg_M, dt, twodt, RhopOutMin, RhopOutMax, Codeg, movxyg, movzg, VelrhopM1g, TauM1g_M, MassM1g_M);
+	//cusph::ComputeStepVerlet_M(WithFloating, shift, Np, Npb, Velrhopg, VelrhopM1g, Taug_M, TauM1g_M, Massg_M, MassM1g_M
+	//	, Arg, Aceg, ShiftPosg, TauDotg_M, dt, twodt, RhopOutMin, RhopOutMax, Codeg, movxyg, movzg, VelrhopM1g, TauM1g_M, MassM1g_M);
 
   }
   else{
-	  cusph::ComputeStepVerlet_M(WithFloating, shift, Np, Npb, Velrhopg, VelrhopM1g, Taug_M, TauM1g_M, Massg_M, MassM1g_M
-		  , Arg, Aceg, ShiftPosg, TauDotg_M, dt, dt, RhopOutMin, RhopOutMax, Codeg, movxyg, movzg, VelrhopM1g, TauM1g_M, MassM1g_M);
+	  //cusph::ComputeStepVerlet_M(WithFloating, shift, Np, Npb, Velrhopg, VelrhopM1g, Taug_M, TauM1g_M, Massg_M, MassM1g_M
+		//  , Arg, Aceg, ShiftPosg, TauDotg_M, dt, dt, RhopOutMin, RhopOutMax, Codeg, movxyg, movzg, VelrhopM1g, TauM1g_M, MassM1g_M);
 	VerletStep=0;
   }
 

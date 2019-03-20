@@ -1252,9 +1252,9 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 #endif
 		//-Executes particle interactions.
 		const unsigned npf = np - npb;
-		const int hdiv = (cellmode == CELLMODE_H ? 2 : 1);
+		//const int hdiv = (cellmode == CELLMODE_H ? 2 : 1);
 		const int4 nc = make_int4(int(ncells.x), int(ncells.y), int(ncells.z), int(ncells.x*ncells.y));
-		const unsigned cellfluid = nc.w*nc.z + 1;
+		//const unsigned cellfluid = nc.w*nc.z + 1;
 		const int3 cellzero = make_int3(cellmin.x, cellmin.y, cellmin.z);
 		//-Interaction Fluid-Fluid & Fluid-Bound.
 		if (npf) {

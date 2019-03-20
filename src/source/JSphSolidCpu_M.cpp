@@ -780,9 +780,7 @@ void JSphSolidCpu::InitRun() {
 	if (TVisco == VISCO_LaminarSPS)memset(SpsTauc, 0, sizeof(tsymatrix3f)*Np);
 
 	// Matthias
-	//memset(JauTauc_M, 0, sizeof(tmatrix3f)*Np);
 	memset(Tauc_M, 0, sizeof(tsymatrix3f)*Np);
-	//memset(QuadFormc_M, 0, sizeof(tsymatrix3f)*Np);
 	memset(Divisionc_M, 0, sizeof(bool)*Np);
 	for (unsigned p = 0; p < Np; p++) {
 		Massc_M[p] = MassFluid;	
@@ -866,6 +864,7 @@ void JSphSolidCpu::InitRun() {
 //==============================================================================
 void JSphSolidCpu::InitRun_T(JPartsLoad4 *pl) {
 	const char met[] = "InitRun";
+
 	WithFloating = (CaseNfloat>0);
 	if (TStep == STEP_Verlet) {
 		memcpy(VelrhopM1c, Velrhopc, sizeof(tfloat4)*Np);
@@ -874,18 +873,18 @@ void JSphSolidCpu::InitRun_T(JPartsLoad4 *pl) {
 		VerletStep = 0;
 		for (unsigned p = 0; p < Np; p++) {
 			MassM1c_M[p] = MassFluid;
+			QuadFormM1c_M[p] = TSymatrix3f(4 / float(pow(Dp, 2)), 0, 0, 4 / float(pow(Dp, 2)), 0, 4 / float(pow(Dp, 2)));
 		}
 	}
 	else if (TStep == STEP_Symplectic)DtPre = DtIni;
 	if (TVisco == VISCO_LaminarSPS)memset(SpsTauc, 0, sizeof(tsymatrix3f)*Np);
 
 	// Matthias
-	//memset(JauTauc_M, 0, sizeof(tmatrix3f)*Np);
 	memset(Tauc_M, 0, sizeof(tsymatrix3f)*Np);
-	memset(QuadFormc_M, 0, sizeof(tsymatrix3f)*Np);
 	memset(Divisionc_M, 0, sizeof(bool)*Np);
 	for (unsigned p = 0; p < Np; p++) {
 		Massc_M[p] = MassFluid;
+		QuadFormc_M[p] = TSymatrix3f(4 / float(pow(Dp, 2)), 0, 0, 4 / float(pow(Dp, 2)), 0, 4 / float(pow(Dp, 2)));
 	}
 
 	if (UseDEM)DemDtForce = DtIni; //(DEM)
