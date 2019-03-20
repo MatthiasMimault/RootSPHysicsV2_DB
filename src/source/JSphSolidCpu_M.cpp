@@ -6258,7 +6258,9 @@ template<bool shift> void JSphSolidCpu::ComputeVerletVarsQuad_M(const tfloat4 *v
 			velrhopnew[p] = velrhop1[p];
 			velrhopnew[p].w = (rhopnew<RhopZero ? RhopZero : rhopnew); //-Avoid fluid particles being absorved by floating ones. | Evita q las floating absorvan a las fluidas.
 		}
+
 	}
+
 }
 
 //==============================================================================
@@ -6471,6 +6473,7 @@ void JSphSolidCpu::ComputeVerlet(double dt) {
 		VerletStep = 0;
 	}
 
+
 	//-New values are calculated en VelrhopM1c.
 	swap(Velrhopc, VelrhopM1c);     //-Swap Velrhopc & VelrhopM1c. | Intercambia Velrhopc y VelrhopM1c.
 	swap(JauTauc2_M, JauTauM1c2_M);     //-Swap Velrhopc & VelrhopM1c. | Intercambia Velrhopc y VelrhopM1c.
@@ -6621,6 +6624,7 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT(double dt) {
 			double dy = (double(VelrhopPrec[p].y) + double(Velrhopc[p].y)) * dt05;
 			double dz = (double(VelrhopPrec[p].z) + double(Velrhopc[p].z)) * dt05;
 			if (shift) {
+
 				dx += double(ShiftPosc[p].x);
 				dy += double(ShiftPosc[p].y);
 				dz += double(ShiftPosc[p].z);
