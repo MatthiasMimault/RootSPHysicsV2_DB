@@ -147,15 +147,15 @@ int main(int argc, char** argv){
 
 
       if(cfg.Cpu){
-        JSphCpuSingle sph;
-        sph.Run(appname,&cfg,&log);
+		JSphCpuSingle sph;
+		sph.Run(appname, &cfg, &log);
       }
       #ifdef _WITHGPU
-     else{
+      else{
         JSphGpuSingle sph;
         sph.Run(appname,&cfg,&log);
-      }
-#endif
+	  }
+	  #endif
     }
     errcode=0;
   }

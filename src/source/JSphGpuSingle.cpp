@@ -18,7 +18,7 @@
 
 /// \file JSphGpuSingle.cpp \brief Implements the class \ref JSphGpuSingle.
 
-#include "JSphSolidGpu_ker_L.h"
+#//include "JSphSolidGpu_ker_L.h"
 #include "JSphGpuSingle.h"
 #include "JCellDivGpuSingle.h"
 #include "JArraysGpu.h"
@@ -466,31 +466,27 @@ void JSphGpuSingle::Interaction_Forces(TpInter tinter){
   
  //-Interaction Fluid-Fluid/Bound & Bound-Fluid..
 	 printf("FluidFluid, FluidBound, ");
-   cusph::Interaction_Forces(Psingle,TKernel,WithFloating,UseDEM,lamsps,TDeltaSph,CellMode,Visco*ViscoBoundFactor,Visco,bsbound,bsfluid,Np,Npb,NpbOk,CellDivSingle->GetNcells(),CellDivSingle->GetBeginCell(),CellDivSingle->GetCellDomainMin(),Dcellg,Posxyg,Poszg,PsPospressg,Velrhopg,Codeg,Idpg,FtoMasspg,SpsTaug,SpsGradvelg,ViscDtg,Arg,Aceg,Deltag,TShifting,ShiftPosg,ShiftDetectg,Simulate2D,NULL,NULL);
+   //cusph::Interaction_Forces(Psingle,TKernel,WithFloating,UseDEM,lamsps,TDeltaSph,CellMode,Visco*ViscoBoundFactor,Visco,bsbound,bsfluid,Np,Npb,NpbOk,CellDivSingle->GetNcells(),CellDivSingle->GetBeginCell(),CellDivSingle->GetCellDomainMin(),Dcellg,Posxyg,Poszg,PsPospressg,Velrhopg,Codeg,Idpg,FtoMasspg,SpsTaug,SpsGradvelg,ViscDtg,Arg,Aceg,Deltag,TShifting,ShiftPosg,ShiftDetectg,Simulate2D,NULL,NULL);
 
-  //-Interaction Lucas Sol .
-  //cuSol::Interaction_Forces_M(TKernel, WithFloating, TShifting, TVisco, TDeltaSph, UseDEM, CellMode, Visco*ViscoBoundFactor, Visco, bsbound, bsfluid, Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellg, Posxyg, Poszg, PsPospressg, Velrhopg, Idpg, Codeg, JauTauc2_M, JauGradvelc2_M, JauOmega_M, JauTauc2_M, JauGradvelc2_M, JauTauDot_M, JauOmega_M, ViscDtg, Arg, Aceg, Deltag, ShiftPosg, ShiftDetectg, Simulate2D, NULL, NULL, Pressg, Porec_M, Massc_M, AnisotropyG_M, Gf, FtoMasspg);
-
-
-  // - Interaction Matthias SolMassP
-   cuSol::Interaction_Forces_M(TKernel, WithFloating, TShifting, TVisco, TDeltaSph, UseDEM
-	 , CellMode, Visco*ViscoBoundFactor, Visco, bsbound, bsfluid
-	 , Np, Npb, NpbOk
-	 , CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellg
-	 , Posxyg, Poszg, PsPospressg
-	 , Velrhopg, Idpg, Codeg
-	 , JauTauc2_M, JauGradvelc2_M, JauTauDot_M, JauOmega_M
-	 , ViscDtg, Arg, Aceg, Deltag
-	 , ShiftPosg, ShiftDetectg
-	 , Simulate2D, NULL, NULL
-	 , Porec_M, Massc_M, FtoMasspg);
+   // Solid interaction - Matthias
+   printf("SolidSolid, SolidBound, ");
+   cusph::Interaction_Forces_M(Psingle, TKernel, WithFloating, UseDEM, lamsps
+	   , TDeltaSph, CellMode
+	   , Visco*ViscoBoundFactor, Visco, bsbound, bsfluid
+	   , Np, Npb, NpbOk, CellDivSingle->GetNcells()
+	   , CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellg
+	   , Posxyg, Poszg, PsPospressg
+	   , Velrhopg, Codeg, Idpg
+	   , Porec_M, Massg_M, Taug_M
+	   , StrainDotg_M, Sping_M
+	   , ViscDtg, Arg, Aceg, Deltag
+	   , TShifting, ShiftPosg, ShiftDetectg
+	   , Simulate2D, NULL, NULL);
 
   //-Interaction DEM Floating-Bound & Floating-Floating.//(DEM) ..
   printf("DEM\n");
   if(UseDEM)cusph::Interaction_ForcesDem(Psingle,CellMode,BlockSizes.forcesdem,CaseNfloat,CellDivSingle->GetNcells(),CellDivSingle->GetBeginCell(),CellDivSingle->GetCellDomainMin(),Dcellg,FtRidpg,DemDatag,float(DemDtForce),Posxyg,Poszg,PsPospressg,Velrhopg,Codeg,Idpg,ViscDtg,Aceg,NULL);
-
-  // fin de la modif
-
+  
 
   //-For 2D simulations always overrides the 2nd component (Y axis).
   //-Para simulaciones 2D anula siempre la 2º componente.
@@ -498,6 +494,10 @@ void JSphGpuSingle::Interaction_Forces(TpInter tinter){
 
   //-Computes Tau for Laminar+SPS.
   if(lamsps)cusph::ComputeSpsTau(Np,Npb,SpsSmag,SpsBlin,Velrhopg,SpsGradvelg,SpsTaug);
+
+  // Compute TauDot for Solid dynamics
+  cusph::ComputeJauTauDot(Np, Npb, Velrhopg, Taug_M, TauDotg_M, StrainDotg_M, Sping_M);
+  //ComputeJauTauDot()
 
   if(Deltag)cusph::AddDelta(Np-Npb,Deltag+Npb,Arg+Npb);//-Adds the Delta-SPH correction for the density. | Añade correccion de Delta-SPH a Arg[]. 
   CheckCudaError(met,"Failed while executing kernels of interaction.");

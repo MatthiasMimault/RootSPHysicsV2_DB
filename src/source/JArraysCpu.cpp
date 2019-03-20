@@ -71,6 +71,7 @@ void JArraysCpuSize::FreeMemory(){
 void* JArraysCpuSize::AllocPointer(unsigned size)const{
   void* pointer=NULL;
   try{
+	  //printf("AllocPointer - %d\n", ElementSize);
     switch(ElementSize){
       case 1:   pointer=new char[size];      break;
       case 2:   pointer=new word[size];      break;
@@ -80,7 +81,7 @@ void* JArraysCpuSize::AllocPointer(unsigned size)const{
       case 16:  pointer=new int[size*4];     break;
       case 24:  pointer=new double[size*3];  break;
 	  case 32:  pointer = new double[size * 4];  break;
-	  case 36:  pointer = new double[size * 4];  break;
+	  case 36:  pointer = new int[size * 9];  break;
     }
   }
   catch(const std::bad_alloc){
@@ -95,6 +96,7 @@ void* JArraysCpuSize::AllocPointer(unsigned size)const{
 /// Frees memory allocated to pointers.
 //==============================================================================
 void JArraysCpuSize::FreePointer(void* pointer)const{
+	//printf("FreePointer - %d\n", ElementSize);
   switch(ElementSize){
     case 1:   delete[] ((char*)pointer);    pointer=NULL;   break;
     case 2:   delete[] ((word*)pointer);    pointer=NULL;   break;
@@ -103,8 +105,8 @@ void JArraysCpuSize::FreePointer(void* pointer)const{
     case 12:  delete[] ((int*)pointer);     pointer=NULL;   break;
     case 16:  delete[] ((int*)pointer);     pointer=NULL;   break;
     case 24:  delete[] ((double*)pointer);  pointer=NULL;   break;
-	case 32:  delete[]((double*)pointer);  pointer = NULL;   break;
-	case 36:  delete[]((double*)pointer);  pointer = NULL;   break;
+	case 32:  delete[] ((double*)pointer);  pointer = NULL; break;
+	case 36:  delete[]((int*)pointer);      pointer = NULL; break;
   }
   if(pointer)RunException("FreePointer","The elementsize value is invalid.");
 }
