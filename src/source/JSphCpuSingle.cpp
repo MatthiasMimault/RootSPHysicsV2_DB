@@ -688,7 +688,7 @@ void JSphCpuSingle::RunSizeDivision_M() {
 			run = false;
 			// Divide the selected particles in X direction
 			MarkedDivision_M(count, Np, Npb, DomCells, Idpc, Codec, Dcellc,
-				Posc, Velrhopc, Tauc_M, Divisionc_M, Porec_M, Massc_M, QuadFormc_M, VelrhopM1c, StrainDotc_M, MassM1c_M, QuadFormM1c_M);
+				Posc, Velrhopc, Tauc_M, Divisionc_M, Porec_M, Massc_M, QuadFormc_M, VelrhopM1c, TauM1c_M, MassM1c_M, QuadFormM1c_M);
 			Np += count;
 		}
 	}
@@ -958,12 +958,7 @@ void JSphCpuSingle::MarkedDivision_M(unsigned countMax, unsigned np, unsigned pi
 			// Eigen resolution of qf[p], defintion of V, D
 			//printf("Eigen resolution\n");
 			Matrix3f Qg;
-			/*Qg << qfp[p].xx, qfp[p].xy, qfp[p].xz, qfp[p].xy, qfp[p].yy, qfp[p].yz, qfp[p].xz, qfp[p].yz, qfp[p].zz;
-			printf("Qg %d - %d = \n(%.3f, %.3f, %.3f)\n(%.3f, %.3f, %.3f)\n(%.3f, %.3f, %.3f)\n", idp[p], pnew
-				, Qg(0, 0), Qg(0, 1), Qg(0, 2), Qg(1, 0), Qg(1, 1), Qg(1, 2), Qg(2, 0), Qg(2, 1), Qg(2, 2));*/
 			Qg << qfpm1[p].xx, qfpm1[p].xy, qfpm1[p].xz, qfpm1[p].xy, qfpm1[p].yy, qfpm1[p].yz, qfpm1[p].xz, qfpm1[p].yz, qfpm1[p].zz;
-			printf("Qg %d - %d = \n(%.3f, %.3f, %.3f)\n(%.3f, %.3f, %.3f)\n(%.3f, %.3f, %.3f)\n", idp[p], pnew
-				, Qg(0, 0), Qg(0, 1), Qg(0, 2), Qg(1, 0), Qg(1, 1), Qg(1, 2), Qg(2, 0), Qg(2, 1), Qg(2, 2));
 			EigenSolver<Matrix3f> es(Qg);
 			//printf("Qg = (%.3f, %.3f, %.3f, %.3f, %.3f, %.3f)\n", qfp[p].xx, qfp[p].xy, qfp[p].xz, qfp[p].yy, qfp[p].yz, qfp[p].zz);
 
@@ -999,16 +994,7 @@ void JSphCpuSingle::MarkedDivision_M(unsigned countMax, unsigned np, unsigned pi
 			//qfp[p] = TSymatrix3f(Qt(0, 0), Qt(0, 1), Qt(0, 2), Qt(1, 1), Qt(1, 2), Qt(2, 2));
 
 			// Update Pos
-			printf("Es %d - %d = (%.3f, %.3f, %.3f)\n", idp[p], pnew, l0, l1, l2);
-			printf("Df %d - %d = (%.3f, %.3f, %.3f)\n", idp[p], pnew, D(0, 0), D(1, 1), D(2, 2));
-			printf("Vf %d - %d = \n(%.3f, %.3f, %.3f)\n(%.3f, %.3f, %.3f)\n(%.3f, %.3f, %.3f)\n", idp[p], pnew, V(0, 0), V(0, 1), V(0, 2), V(1, 0), V(1, 1), V(1, 2), V(2, 0), V(2, 1), V(2, 2));
-			
-			printf("Qt %d - %d = \n(%.3f, %.3f, %.3f)\n(%.3f, %.3f, %.3f)\n(%.3f, %.3f, %.3f)\n", idp[p], pnew
-				, Qt(0, 0), Qt(0, 1), Qt(0, 2), Qt(1, 0), Qt(1, 1), Qt(1, 2), Qt(2, 0), Qt(2, 1), Qt(2, 2));
-			//printf("UpdatePos\n");
 			orientation = TDouble3(V(0, i) / sqrt(D(i, i)), V(1, i) / sqrt(D(i, i)), V(2, i) / sqrt(D(i, i)));
-			printf("Ori %d = (%.3f, %.3f, %.3f)\n", i, orientation.x, orientation.y, orientation.z);
-			printf("End current division\n\n");
 
 			/*// QFPM1
 			// Eigen resolution of qf[p], defintion of V, D
@@ -1066,8 +1052,8 @@ void JSphCpuSingle::MarkedDivision_M(unsigned countMax, unsigned np, unsigned pi
 			massp[pnew] = massp[p] / 2;
 			qfp[pnew] = qfpm1[p];
 			qfp[p] = qfpm1[p];
-			velrhopm1[pnew] = velrhopm1[p];
 			taupm1[pnew] = taupm1[p];
+			velrhopm1[pnew] = velrhopm1[p];
 			masspm1[pnew] = masspm1[p] / 2;
 			qfpm1[pnew] = qfpm1[p];
 			divisionp[pnew] = false;
@@ -1150,8 +1136,8 @@ void JSphCpuSingle::Interaction_Forces(TpInter tinter){
   //else JSphSolidCpu::Interaction_Forces(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, Posc, Velrhopc, Idpc, Codec, Pressc, viscdt, Arc, Acec, Deltac, SpsTauc, SpsGradvelc, ShiftPosc, ShiftDetectc);
  
   // Matthias - No quadform, but press 1D
-  if (Psingle)JSphSolidCpu::InteractionSimple_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, PsPosc, Velrhopc, Idpc, Codec, Pressc, Porec_M, Massc_M, viscdt, Arc, Acec, Deltac, Tauc_M, StrainDotc_M, TauDotc_M, Spinc_M, ShiftPosc, ShiftDetectc);
-               else JSphSolidCpu::Interaction_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc,   Posc, Velrhopc, Idpc, Codec, Pressc, Porec_M, Massc_M, viscdt, Arc, Acec, Deltac, Tauc_M, StrainDotc_M, TauDotc_M, Spinc_M, ShiftPosc, ShiftDetectc);
+  if (Psingle)JSphSolidCpu::InteractionSimple_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, PsPosc, Velrhopc, Idpc, Codec, Pressc, Porec_M, Massc_M, L_M, viscdt, Arc, Acec, Deltac, Tauc_M, StrainDotc_M, TauDotc_M, Spinc_M, ShiftPosc, ShiftDetectc);
+               else JSphSolidCpu::Interaction_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc,   Posc, Velrhopc, Idpc, Codec, Pressc, Porec_M, Massc_M, L_M, viscdt, Arc, Acec, Deltac, Tauc_M, StrainDotc_M, TauDotc_M, Spinc_M, ShiftPosc, ShiftDetectc);
 
 //-For 2-D simulations zero the 2nd component. | Para simulaciones 2D anula siempre la 2º componente.
   if(Simulate2D){

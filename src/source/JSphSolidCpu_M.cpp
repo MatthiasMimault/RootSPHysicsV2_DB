@@ -273,11 +273,11 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	Divisionc_M = ArraysCpu->ReserveBool();
 	Porec_M = ArraysCpu->ReserveFloat();
 	Massc_M = ArraysCpu->ReserveFloat();
-	MassM1c_M = ArraysCpu->ReserveFloat();
+	if (massm1) MassM1c_M = ArraysCpu->ReserveFloat();
 	//Voluc_M = ArraysCpu->ReserveFloat();
 	//JauTauc_M = ArraysCpu->ReserveMatrix3f_M();
 	Tauc_M = ArraysCpu->ReserveSymatrix3f();
-	if (velrhopm1) TauM1c_M = ArraysCpu->ReserveSymatrix3f();
+	if (jautaum12) TauM1c_M = ArraysCpu->ReserveSymatrix3f();
 	QuadFormc_M = ArraysCpu->ReserveSymatrix3f();
 	if (quadformm1) QuadFormM1c_M = ArraysCpu->ReserveSymatrix3f();
 
@@ -1637,7 +1637,7 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 				const unsigned pini = beginendcell[cxini + ymod];
 				const unsigned pfin = beginendcell[cxfin + ymod];
 
-				// NSPH coputation of Lp1 - Matthias
+				// NSPH computation of Lp1 - Matthias
 
 
 				//-Interaction of Fluid with type Fluid or Bound. | Interaccion de Fluid con varias Fluid o Bound.
