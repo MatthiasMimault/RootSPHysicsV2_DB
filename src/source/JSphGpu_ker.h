@@ -60,6 +60,14 @@ typedef struct{
   float agau,bgau;
   //-Ctes. of Cubic Spline kernel.
   float cubic_a1,cubic_a2,cubic_aa,cubic_a24,cubic_c1,cubic_d1,cubic_c2,cubic_odwdeltap;
+
+
+  // Matthias Constants
+  // Constantes tenseur elasticite
+  float C1, C2, C3, C12, C13, C23, C4, C5, C6;
+  float S1, S2, S3, S12, S13, S23, S4, S5, S6;
+  // Growth Constant
+  float lambdamass;
 }StCteInteraction; 
 
 /// Structure to collect kernel information.
@@ -115,6 +123,20 @@ void Interaction_Forces(bool psingle,TpKernel tkernel,bool floating,bool usedem,
   ,TpShifting tshifting,float3 *shiftpos,float *shiftdetect
   ,bool simulate2d,StKerInfo *kerinfo,JBlockSizeAuto *bsauto);
 
+//Matthias-Kernels for the force calculation with Solid, pore and mass (not yet quad)
+void Interaction_Forces_M(bool psingle, TpKernel tkernel, bool floating, bool usedem, bool lamsps
+	, TpDeltaSph tdelta, TpCellMode cellmode
+	, float viscob, float viscof, unsigned bsbound, unsigned bsfluid
+	, unsigned np, unsigned npb, unsigned npbok, tuint3 ncells
+	, const int2 *begincell, tuint3 cellmin, const unsigned *dcell
+	, const double2 *posxy, const double *posz, const float4 *pospress
+	, const float4 *velrhop, const typecode *code, const unsigned *idp
+	, const float *pore, const float *mass, const tsymatrix3f *tau
+	, tsymatrix3f *straindot, tsymatrix3f *spin
+	, float *viscdt, float* ar, float3 *ace, float *delta
+	, TpShifting tshifting, float3 *shiftpos, float *shiftdetect
+	, bool simulate2d, StKerInfo *kerinfo, JBlockSizeAuto *bsauto);
+
 //-Kernels for the calculation of the DEM forces.
 void Interaction_ForcesDem(bool psingle,TpCellMode cellmode,unsigned bsize
   ,unsigned nfloat,tuint3 ncells,const int2 *begincell,tuint3 cellmin,const unsigned *dcell
@@ -148,6 +170,21 @@ void ComputeStepSymplecticCor(bool floating,bool shift,unsigned np,unsigned npb
   ,const float4 *velrhoppre,const float *ar,const float3 *ace,const float3 *shiftpos
   ,double dtm,double dt,float rhopoutmin,float rhopoutmax
   ,typecode *code,double2 *movxy,double *movz,float4 *velrhop);
+
+// Matthias
+void ComputeStepVerlet_M(bool floating, bool shift, unsigned np, unsigned npb
+	, const float4 *velrhop1, const float4 *velrhop2
+	, const tsymatrix3f *taup1, const tsymatrix3f *taup2
+	, const float *massp1, const float *massp2
+	, const float *ar, const float3 *ace, const float3 *shiftpos
+	, const tsymatrix3f *atau
+	, double dt, double dt2, float rhopoutmin, float rhopoutmax
+	, typecode *code, double2 *movxy, double *movz
+	, float4 *velrhopnew, tsymatrix3f *taupnew, float *masspnew);
+
+void ComputeJauTauDot(unsigned np, unsigned npb
+	, const float4 *velrhop, const tsymatrix3f *tau, tsymatrix3f *taudot, const tsymatrix3f *straindot, const tsymatrix3f *spin);
+
 
 //-Kernels for ComputeStep (position).
 void ComputeStepPos(byte periactive,bool floating,unsigned np,unsigned npb,const double2 *movxy,const double *movz,double2 *posxy,double *posz,unsigned *dcell,typecode *code);
@@ -198,6 +235,14 @@ void ComputeDampingPla(double dt,tdouble4 plane,float dist,float over,tfloat3 fa
   ,unsigned n,unsigned pini,const double2 *posxy,const double *posz,const typecode *code
   ,float4 *velrhop);
 
+/*template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph tdelta, bool shift> __device__ void KerInteractionForcesFluidBox(bool boundp2, unsigned p1, const unsigned & pini, const unsigned & pfin, float visco, const float * ftomassp, const float2 * tauff, const double2 * posxy, const double * posz, const float4 * pospress, const float4 * velrhop, const typecode * code, const unsigned * idp, float massp2, float ftmassp1, bool ftp1, double3 posdp1, float3 posp1, float3 velp1, float pressp1, float rhopp1, const float2 & taup1_xx_xy, const float2 & taup1_xz_yy, const float2 & taup1_yz_zz, float2 & grap1_xx_xy, float2 & grap1_xz_yy, float2 & grap1_yz_zz, float3 & acep1, float & arp1, float & visc, float & deltap1, TpShifting tshifting, float3 & shiftposp1, float & shiftdetectp1);
+
+template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph tdelta, bool shift> __device__ void KerInteractionForcesSolidBox(bool boundp2, unsigned p1, const unsigned & pini, const unsigned & pfin, float visco, const double2 * posxy, const double * posz, const float4 * pospress, const float4 * velrhop, const typecode * code, const unsigned * idp, const float * pore, const float * mass, const float2 * tauff, float massp2, float ftmassp1, bool ftp1, double3 posdp1, float3 posp1, float3 velp1, float pressp1, float rhopp1, const float2 & taudotp1_xx_xy, const float2 & taudotp1_xz_yy, const float2 & taudotp1_yz_zz, const float2 & straindotp1_xx_xy, const float2 & straindotp1_xz_yy, const float2 & straindotp1_yz_zz, const float2 & spinp1_xx_xy, const float2 & spinp1_xz_yy, const float2 & spinp1_yz_zz, float3 & acep1, float & arp1, float & visc, float & deltap1, TpShifting tshifting, float3 & shiftposp1, float & shiftdetectp1);
+
+template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph tdelta, bool shift> __global__ void KerInteractionForcesFluid(unsigned n, unsigned pinit, int hdiv, int4 nc, unsigned cellfluid, float viscob, float viscof, const int2 * begincell, int3 cellzero, const unsigned * dcell, const float * ftomassp, const float2 * tauff, float2 * gradvelff, const double2 * posxy, const double * posz, const float4 * pospress, const float4 * velrhop, const typecode * code, const unsigned * idp, float * viscdt, float * ar, float3 * ace, float * delta, TpShifting tshifting, float3 * shiftpos, float * shiftdetect);
+
+template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph tdelta, bool shift> __global__ void KerInteractionForcesSolid(unsigned n, unsigned pinit, int hdiv, int4 nc, unsigned cellfluid, float viscob, float viscof, const int2 * begincell, int3 cellzero, const unsigned * dcell, const double2 * posxy, const double * posz, const float4 * pospress, const float4 * velrhop, const typecode * code, const unsigned * idp, const float pore, const float mass, , const float2 * tauff, float2 * taudotff, float2 * straindotff, float2 * spinff, float * viscdt, float * ar, float3 * ace, float * delta, TpShifting tshifting, float3 * shiftpos, float * shiftdetect);
+*/
 }
 
 

@@ -130,6 +130,7 @@ int main(int argc, char** argv){
   printf("\n%s\n%s\n",appname.c_str(),appnamesub.c_str());
   JCfgRun cfg;
   JLog2 log;
+
   try{
     cfg.LoadArgv(argc,argv);
     cfg.VisuConfig();
@@ -143,16 +144,18 @@ int main(int argc, char** argv){
       #ifndef _WITHGPU
         cfg.Cpu=true;
       #endif
+
+
       if(cfg.Cpu){
-        JSphCpuSingle sph;
-        sph.Run(appname,&cfg,&log);
+		JSphCpuSingle sph;
+		sph.Run(appname, &cfg, &log);
       }
       #ifdef _WITHGPU
-     else{
+      else{
         JSphGpuSingle sph;
         sph.Run(appname,&cfg,&log);
-      }
-#endif
+	  }
+	  #endif
     }
     errcode=0;
   }
