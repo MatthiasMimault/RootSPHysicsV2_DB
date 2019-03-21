@@ -35,8 +35,11 @@
 #include "JGaugeSystem.h"
 #include <climits>
 #include "JSphSolidCpu_M.h"
+//#include <Eigen/Dense>
 
-using namespace std;
+using namespace std; 
+//using namespace Eigen;
+
 //==============================================================================
 /// Constructor.
 //==============================================================================
@@ -50,9 +53,11 @@ JSphCpuSingle::JSphCpuSingle():JSphSolidCpu(false){
 /// Destructor.
 //==============================================================================
 JSphCpuSingle::~JSphCpuSingle(){
+  printf("Destruction\n");
   DestructorActive=true;
   delete CellDivSingle; CellDivSingle=NULL;
   delete PartsLoaded;   PartsLoaded=NULL;
+  printf("DestructionEnd\n");
 }
 
 //==============================================================================
@@ -210,6 +215,7 @@ void JSphCpuSingle::LoadCaseParticles_T() {
 //==============================================================================
 void JSphCpuSingle::ConfigDomain(){
   const char* met="ConfigDomain";
+  printf("ConfigDomain\n");
   //-Calculate number of particles. | Calcula numero de particulas.
   Np=PartsLoaded->GetCount(); Npb=CaseNpb; NpbOk=Npb;
   //-Allocates fixed memory for moving & floating particles. | Reserva memoria fija para moving y floating.
@@ -520,7 +526,7 @@ void JSphCpuSingle::RunCellDivide(bool updateperiodic){
   if(TStep==STEP_Verlet){
     CellDivSingle->SortArray(VelrhopM1c);
 	// Matthias
-	CellDivSingle->SortArray(JauTauM1c2_M);
+	CellDivSingle->SortArray(TauM1c_M);
 	CellDivSingle->SortArray(MassM1c_M);
   }
   else if(TStep==STEP_Symplectic && (PosPrec || VelrhopPrec)){//-In reality, this is only necessary in divide for corrector, not in predictor??? | En realidad solo es necesario en el divide del corrector, no en el predictor???
@@ -532,10 +538,12 @@ void JSphCpuSingle::RunCellDivide(bool updateperiodic){
   
   // Matthias
   //CellDivSingle->SortArray(JauTauc_M);
-  CellDivSingle->SortArray(JauTauc2_M);
+  CellDivSingle->SortArray(Tauc_M);
   CellDivSingle->SortArray(Massc_M); 
   CellDivSingle->SortArray(Divisionc_M);
   CellDivSingle->SortArray(Porec_M);
+
+  CellDivSingle->SortArray(QuadFormc_M);
 
   //-Collect divide data. | Recupera datos del divide.
   Np=CellDivSingle->GetNpFinal();
@@ -617,9 +625,9 @@ void JSphCpuSingle::RunRandomDivision_M() {
 			//-Generate list of selected particles to division.
 			// GenerateSelectionRandom();
 			// Divide the selected particles in X direction
-			//SourceSelectedParticles_M(count, Np, Npb, DomCells, Idpc, Codec, Dcellc, Posc, Velrhopc, JauTauc2_M, Porec_M, Massc_M, VelrhopM1c, JauTauM1c2_M);
+			//SourceSelectedParticles_M(count, Np, Npb, DomCells, Idpc, Codec, Dcellc, Posc, Velrhopc, Tauc_M, Porec_M, Massc_M, VelrhopM1c, TauM1c_M);
 			RandomDivDistance_M(count, Np, Npb, DomCells, Idpc, Codec, Dcellc, 
-				Posc, Velrhopc, JauTauc2_M, Porec_M, Massc_M, VelrhopM1c, JauTauM1c2_M,
+				Posc, Velrhopc, Tauc_M, Porec_M, Massc_M, VelrhopM1c, TauM1c_M,
 				LocDiv_M, RateBirth_M, Spread_M);
 			Np += count;
 		}
@@ -644,17 +652,14 @@ void JSphCpuSingle::RunSizeDivision_M() {
 	//printf("RuSizeDivn0\n");
 
 	for (unsigned p = Npb; p < Np; p++) {
-	//	if (Massc_M[p] / Velrhopc[p].w > SizeDivision_M*PI*Dp*Dp*Dp/6.0) {
-	//	if (Massc_M[p] / Velrhopc[p].w > SizeDivision_M*RhopZero*3.0f/PI/pow(Dp,3)/4.0) {
-	//	if (Massc_M[p] > SizeDivision_M*MassFluid) {
 		if ((Massc_M[p] / Velrhopc[p].w) > (SizeDivision_M*MassFluid / RhopZero)) {
-			Divisionc_M[p] = true;
+		//if(false){
+		Divisionc_M[p] = true;
 			count++;
 			//printf("DivisionMarquee\n");
 		}
 	}
 	while (run) {
-
 		// 2. Prepare memory for count particles
 		//-Maximum number of particles that fit in the list / Numero maximo de particulas que caben en la lista.
 		unsigned nmax = CpuParticlesSize - 1;
@@ -675,8 +680,10 @@ void JSphCpuSingle::RunSizeDivision_M() {
 			//printf("Division\n");
 			run = false;
 			// Divide the selected particles in X direction
-			MarkedDivision_M(count, Np, Npb, DomCells, Idpc, Codec, Dcellc,
-				Posc, Velrhopc, JauTauc2_M, Divisionc_M, Porec_M, Massc_M, VelrhopM1c, JauTauM1c2_M, MassM1c_M);
+			MarkedDivision_M(count, Np, Npb, DomCells, Idpc, Codec, Dcellc, Posc, Velrhopc, Tauc_M, Divisionc_M, Porec_M, Massc_M, VelrhopM1c, TauM1c_M, MassM1c_M);
+			/*MarkedDivision_M(count, Np, Npb, DomCells
+				, Idpc, Codec, Dcellc
+				, Divisionc_M, Posc, Velrhopc, Tauc_M,  Porec_M, Massc_M, QuadFormc_M, VelrhopM1c, TauM1c_M, MassM1c_M, QuadFormM1c_M);*/
 			Np += count;
 		}
 	}
@@ -856,7 +863,7 @@ void JSphCpuSingle::RandomDivDistance_M(unsigned countMax, unsigned np, unsigned
 
 
 //==============================================================================
-/// Division of marked particles
+/// Division of marked particles - Matthias
 //==============================================================================
 void JSphCpuSingle::MarkedDivision_M(unsigned countMax, unsigned np, unsigned pini, tuint3 cellmax
 	, unsigned *idp, typecode *code, unsigned *dcell, tdouble3 *pos, tfloat4 *velrhop, tsymatrix3f *taup
@@ -875,9 +882,12 @@ void JSphCpuSingle::MarkedDivision_M(unsigned countMax, unsigned np, unsigned pi
 			orientation = { 1,0,0 }; // X-orientation
 			//orientation = { velrhop[p].x,velrhop[p].y,velrhop[p].z };// Velocity - orientation
 			//orientation = orientation / sqrt(pow(velrhop[p].x, 2) + pow(velrhop[p].y, 2) + pow(velrhop[p].z, 2)); 
-			tdouble3 ps = { pos[p].x + orientation.x * cbrt(6.0 * massp[p] / velrhop[p].w / PI) * 0.2
+			/*tdouble3 ps = { pos[p].x + orientation.x * cbrt(6.0 * massp[p] / velrhop[p].w / PI) * 0.2
 				, pos[p].y + orientation.y * cbrt(6.0 * massp[p] / velrhop[p].w / PI) * 0.2
-				, pos[p].z + orientation.z * cbrt(6.0 * massp[p] / velrhop[p].w / PI) * 0.2 };
+				, pos[p].z + orientation.z * cbrt(6.0 * massp[p] / velrhop[p].w / PI) * 0.2 };*/
+			tdouble3 ps = { pos[p].x + orientation.x * massp[p] / velrhop[p].w / Dp / Dp *0.25f
+				, pos[p].y
+				, pos[p].z};
 
 			//-Calculate coordinates of cell inside of domain / Calcula coordendas de celda dentro de dominio.
 			unsigned cx = unsigned((ps.x - DomPosMin.x) / Scell);
@@ -926,6 +936,113 @@ void JSphCpuSingle::MarkedDivision_M(unsigned countMax, unsigned np, unsigned pi
 	}
 }
 
+//==============================================================================
+/// Division of marked particles w Qf - Matthias
+//==============================================================================
+void JSphCpuSingle::MarkedDivision_M(unsigned countMax, unsigned np, unsigned pini, tuint3 cellmax
+	, unsigned *idp, typecode *code, unsigned *dcell
+	, bool *divisionp, tdouble3 *pos, tfloat4 *velrhop, tsymatrix3f *taup, float *porep, float *massp, tsymatrix3f *qfp
+	, tfloat4 *velrhopm1, tsymatrix3f *taupm1, float *masspm1, tsymatrix3f *qfpm1)const
+{
+	const char met[] = "MarkedDivision_M";
+	unsigned count = 0;
+	unsigned p = pini + (rand() % np);
+	tdouble3 orientation;
+
+	for (p = pini; p < Np; p++) {
+		if (divisionp[p]) {
+			const unsigned pnew = np + count;
+
+			// EIGENDECOMPOSITION of Qf
+			/*Matrix3f Qe;
+			Qe << qfp[p].xx, qfp[p].xy, qfp[p].xz
+				, qfp[p].xy, qfp[p].yy, qfp[p].yz
+				, qfp[p].xz, qfp[p].yz, qfp[p].zz;
+
+			EigenSolver<Matrix3f> Es(Qe);
+			VectorXf Qdiag;
+			Qdiag = Es.eigenvalues().real();
+			MatrixXf Qvect; 
+			Qvect = Es.eigenvectors().real();*/
+			//Vector3f Qdiag = Es.eigenvalues();
+			//Matrix3f Qvect = Es.eigenvectors();
+
+			// Find dominant eigenvalue
+
+			//cout << Qdiag(0) << endl;
+			/*unsigned domindex;
+			if (Qdiag(0) < Qdiag(1)) {
+				if (Qdiag(1) < Qdiag(2)) domindex = 2;
+				else domindex = 1;
+			} else {
+				if (Qdiag(0) < Qdiag(2)) domindex = 2;
+				else domindex = 0;
+			}
+
+			Qdiag(domindex) *= 4;*/
+
+			//cout << Qdiag << endl;
+			
+
+			
+			// ORIENTATION of the division
+			//orientation = { (double)rand() / RAND_MAX, (double)rand() / RAND_MAX, (double)rand() / RAND_MAX };
+			//orientation = orientation / sqrt(pow(orientation.x, 2) + pow(orientation.y, 2) + pow(orientation.z, 2)) - 0.5; // Not working properly
+			orientation = { 1,0,0 }; // X-orientation
+									 //orientation = { velrhop[p].x,velrhop[p].y,velrhop[p].z };// Velocity - orientation
+									 //orientation = orientation / sqrt(pow(velrhop[p].x, 2) + pow(velrhop[p].y, 2) + pow(velrhop[p].z, 2)); 
+			tdouble3 ps = { pos[p].x + orientation.x * cbrt(6.0 * massp[p] / velrhop[p].w / PI) * 0.2
+				, pos[p].y + orientation.y * cbrt(6.0 * massp[p] / velrhop[p].w / PI) * 0.2
+				, pos[p].z + orientation.z * cbrt(6.0 * massp[p] / velrhop[p].w / PI) * 0.2 };
+
+			//-Calculate coordinates of cell inside of domain / Calcula coordendas de celda dentro de dominio.
+			unsigned cx = unsigned((ps.x - DomPosMin.x) / Scell);
+			unsigned cy = unsigned((ps.y - DomPosMin.y) / Scell);
+			unsigned cz = unsigned((ps.z - DomPosMin.z) / Scell);
+			//-Adjust coordinates of cell is they exceed maximum / Ajusta las coordendas de celda si sobrepasan el maximo.
+			cx = (cx <= cellmax.x ? cx : cellmax.x);
+			cy = (cy <= cellmax.y ? cy : cellmax.y);
+			cz = (cz <= cellmax.z ? cz : cellmax.z);
+
+			// UPDATE
+			//-Record position and cell of new particles /  Graba posicion y celda de nuevas particulas.
+			pos[pnew] = ps;
+			dcell[pnew] = PC__Cell(DomCellCode, cx, cy, cz);
+			idp[pnew] = pnew;
+			code[pnew] = code[p];
+			velrhop[pnew] = velrhop[p];
+			taup[pnew] = taup[p];
+			porep[pnew] = porep[p];
+			massp[pnew] = massp[p] / 2;
+			velrhopm1[pnew] = velrhopm1[p];
+			taupm1[pnew] = taupm1[p];
+			masspm1[pnew] = masspm1[p] / 2;
+			divisionp[pnew] = false;
+
+			// MOVE
+			//-Get pos of particle to be duplicated / Obtiene pos de particula a duplicar.
+			ps = { pos[p].x - orientation.x * cbrt(6.0 * massp[p] / velrhop[p].w / PI) * 0.2
+				, pos[p].y - orientation.y * cbrt(6.0 * massp[p] / velrhop[p].w / PI) * 0.2
+				, pos[p].z - orientation.z * cbrt(6.0 * massp[p] / velrhop[p].w / PI) * 0.2 };
+
+			//-Calculate coordinates of cell inside of domain / Calcula coordendas de celda dentro de dominio.
+			cx = unsigned((ps.x - DomPosMin.x) / Scell);
+			cy = unsigned((ps.y - DomPosMin.y) / Scell);
+			cz = unsigned((ps.z - DomPosMin.z) / Scell);
+			//-Adjust coordinates of cell is they exceed maximum / Ajusta las coordendas de celda si sobrepasan el maximo.
+			cx = (cx <= cellmax.x ? cx : cellmax.x);
+			cy = (cy <= cellmax.y ? cy : cellmax.y);
+			cz = (cz <= cellmax.z ? cz : cellmax.z);
+			pos[p] = ps;
+			dcell[p] = PC__Cell(DomCellCode, cx, cy, cz);
+			massp[p] = massp[pnew];
+			masspm1[p] = masspm1[pnew];
+			divisionp[p] = false;
+
+			count++;
+		}
+	}
+}
 
 //==============================================================================
 /// Manages excluded particles fixed, moving and floating before aborting the execution.
@@ -980,13 +1097,14 @@ void JSphCpuSingle::Interaction_Forces(TpInter tinter){
 
   //if (Psingle)JSphSolidCpu::InteractionSimple_Forces(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, PsPosc, Velrhopc, Idpc, Codec, Pressc, viscdt, Arc, Acec, Deltac, SpsTauc, SpsGradvelc, ShiftPosc, ShiftDetectc);
   //else JSphSolidCpu::Interaction_Forces(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, Posc, Velrhopc, Idpc, Codec, Pressc, viscdt, Arc, Acec, Deltac, SpsTauc, SpsGradvelc, ShiftPosc, ShiftDetectc);
-  // Matthias
 
-  //  if (Psingle)JSphSolidCpu::InteractionSimple_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, PsPosc, Velrhopc, Idpc, Codec, Pressc, Porec_M, Massc_M, viscdt, Arc, Acec, Deltac, JauTauc2_M, JauGradvelc2_M, JauTauDot_M, JauOmega_M, ShiftPosc, ShiftDetectc);
-  // else JSphSolidCpu::Interaction_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, Posc, Velrhopc, Idpc, Codec, Pressc, Porec_M, Massc_M, viscdt, Arc, Acec, Deltac, JauTauc2_M, JauGradvelc2_M, JauTauDot_M, JauOmega_M, ShiftPosc, ShiftDetectc);
-  
-  if (Psingle)JSphSolidCpu::InteractionSimple_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, PsPosc, Velrhopc, Idpc, Codec, Press3Dc_M, Porec_M, Massc_M, viscdt, Arc, Acec, Deltac, JauTauc2_M, JauGradvelc2_M, JauTauDot_M, JauOmega_M, ShiftPosc, ShiftDetectc);
-  else JSphSolidCpu::Interaction_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, Posc, Velrhopc, Idpc, Codec, Press3Dc_M, Porec_M, Massc_M, viscdt, Arc, Acec, Deltac, JauTauc2_M, JauGradvelc2_M, JauTauDot_M, JauOmega_M, ShiftPosc, ShiftDetectc);
+  // Matthias - No quadform, but press 1D
+  //if (Psingle)JSphSolidCpu::InteractionSimple_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, PsPosc, Velrhopc, Idpc, Codec, Pressc, Porec_M, Massc_M, viscdt, Arc, Acec, Deltac, Tauc_M, StrainDotc_M, TauDotc_M, Spinc_M, ShiftPosc, ShiftDetectc);
+  //             else JSphSolidCpu::Interaction_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc,   Posc, Velrhopc, Idpc, Codec, Pressc, Porec_M, Massc_M, viscdt, Arc, Acec, Deltac, Tauc_M, StrainDotc_M, TauDotc_M, Spinc_M, ShiftPosc, ShiftDetectc);
+
+  if (Psingle)JSphSolidCpu::InteractionSimple_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, PsPosc, Velrhopc, Idpc, Codec, Pressc, Porec_M, Massc_M, L_M, viscdt, Arc, Acec, Deltac, Tauc_M, StrainDotc_M, TauDotc_M, Spinc_M, ShiftPosc, ShiftDetectc);
+               else JSphSolidCpu::Interaction_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc,   Posc, Velrhopc, Idpc, Codec, Pressc, Porec_M, Massc_M, L_M, viscdt, Arc, Acec, Deltac, Tauc_M, StrainDotc_M, TauDotc_M, Spinc_M, ShiftPosc, ShiftDetectc);
+
 
 //-For 2-D simulations zero the 2nd component. | Para simulaciones 2D anula siempre la 2º componente.
   if(Simulate2D){
@@ -1005,7 +1123,7 @@ void JSphCpuSingle::Interaction_Forces(TpInter tinter){
     #endif
     for(int p=ini;p<fin;p++)if(Deltac[p]!=FLT_MAX)Arc[p]+=Deltac[p];
   }
- 
+
   //-Calculates maximum value of ViscDt.
   ViscDtMax=viscdt;
   //-Calculates maximum value of Ace.
@@ -1091,6 +1209,7 @@ template<bool checkcodenormal> double JSphCpuSingle::ComputeAceMaxOmp(unsigned n
 double JSphCpuSingle::ComputeStep_Ver() {
 
 	Interaction_Forces(INTER_Forces);    //-Interaction.
+
 	const double dt = DtVariable(true);    //-Calculate new dt.
 	DemDtForce = dt;                       //(DEM)
 	if (TShifting)RunShifting(dt);        //-Shifting.
@@ -1368,12 +1487,10 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
   //Log->Printf("\n---PartBeginDir : %s---\n", cfg->PartBeginDir.c_str());
   //Log->Printf("\n---CaseName : %s---\n", cfg->CaseName.c_str()); 
 
-  Log->Printf("\n---Thibaud's part---\n");
   GenCaseBis_T gcb;
   gcb.UseGencase(cfg->RunPath);
   if (!gcb.getUseGencase()) {
 	  gcb.Bridge(cfg->CaseName);
-	  Log->Printf("\n---Thibaud's part end---\n");
 	  LoadConfig_T(cfg);
 	  LoadCaseParticles_T();
 	  ConfigConstants(Simulate2D);
@@ -1385,7 +1502,6 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
 	  InitRun_T(PartsLoaded);
   }
   else {
-	  Log->Printf("\n---Thibaud's part end---\n");
 	  LoadConfig(cfg);
 	  LoadCaseParticles();
 	  ConfigConstants(Simulate2D);
@@ -1397,8 +1513,6 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
 	  InitRun();
   }
   
-
-
   //-Free memory of PartsLoaded. | Libera memoria de PartsLoaded.
   delete PartsLoaded; PartsLoaded = NULL;
   RunGaugeSystem(TimeStep);
@@ -1422,23 +1536,24 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
   //printf("---Start loop---");
 
   while(TimeStep<TimeMax){
+
     if(ViscoTime)Visco=ViscoTime->GetVisco(float(TimeStep));
 
-	//printf("---Loop1---");
-	//printf("\nTimeStep : %1.10f", TimeStep);
 	// Control of step - Matthias
-	//double stepdt = ComputeStep_Eul_M();
     double stepdt=ComputeStep();
 	RunGaugeSystem(TimeStep+stepdt);
+
     if(PartDtMin>stepdt)PartDtMin=stepdt; if(PartDtMax<stepdt)PartDtMax=stepdt;
+
     if(CaseNmoving)RunMotion(stepdt);
+
+
 
 	// Matthias - Cell division
 	RunSizeDivision_M();
 	//RunDivisionDisplacement_M();
 	RunCellDivide(true);
 
-	//printf("---Loop2---");
     TimeStep+=stepdt;
 	partoutstop=(Np<NpMinimum || !Np);
     if(TimeStep>=TimePartNext || partoutstop){
@@ -1453,7 +1568,7 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
       TimePartNext=TimeOut->GetNextTime(TimeStep);
       TimerPart.Start();
     }
-	//printf("---Loop3--");
+
     UpdateMaxValues();
     Nstep++;
     if(Part<=PartIni+1 && tc.CheckTime())Log->Print(string("  ")+tc.GetInfoFinish((TimeStep-TimeStepIni)/(TimeMax-TimeStepIni)));
@@ -1532,9 +1647,8 @@ void JSphCpuSingle::SaveData_M() {
 	float *pore = NULL;
 	float *mass = NULL;
 	float *volu = NULL;
-	tfloat3 *press = NULL;
-	tsymatrix3f *gradvel = NULL;
-	tsymatrix3f *tau = NULL;
+	float *press = NULL;
+	tsymatrix3f *qf = NULL;
 	if (save) {
 		//-Assign memory and collect particle values. | Asigna memoria y recupera datos de las particulas.
 		idp = ArraysCpu->ReserveUint();
@@ -1544,11 +1658,10 @@ void JSphCpuSingle::SaveData_M() {
 		pore = ArraysCpu->ReserveFloat();
 		mass = ArraysCpu->ReserveFloat();
 		volu = ArraysCpu->ReserveFloat();
-		press = ArraysCpu->ReserveFloat3();
-		gradvel = ArraysCpu->ReserveSymatrix3f();
-		tau = ArraysCpu->ReserveSymatrix3f();
+		press = ArraysCpu->ReserveFloat();
+		qf = ArraysCpu->ReserveSymatrix3f();
 
-		unsigned npnormal = GetParticlesData_M(Np, 0, true, PeriActive != 0, idp, pos, vel, rhop, pore, press, mass, gradvel, tau, NULL);
+		unsigned npnormal = GetParticlesData_M(Np, 0, true, PeriActive != 0, idp, pos, vel, rhop, pore, press, mass, qf, NULL);
 		if (npnormal != npsave)RunException("SaveData", "The number of particles is invalid.");
 	}
 	//-Gather additional information. | Reune informacion adicional..
@@ -1569,7 +1682,7 @@ void JSphCpuSingle::SaveData_M() {
 
 	//-Stores particle data. | Graba datos de particulas.
 	const tdouble3 vdom[2] = { OrderDecode(CellDivSingle->GetDomainLimits(true)),OrderDecode(CellDivSingle->GetDomainLimits(false)) };
-	JSph::SaveData_M(npsave, idp, pos, vel, rhop, pore, press, mass, gradvel, tau, 1, vdom, &infoplus);
+	JSph::SaveData_M(npsave, idp, pos, vel, rhop, pore, press, mass, qf, 1, vdom, &infoplus);
 	//JSph::SaveData(npsave, idp, pos, vel, rhop, 1, vdom, &infoplus);
 	//-Free auxiliary memory for particle data. | Libera memoria auxiliar para datos de particulas.
 	ArraysCpu->Free(idp);
@@ -1580,8 +1693,7 @@ void JSphCpuSingle::SaveData_M() {
 	ArraysCpu->Free(mass);
 	ArraysCpu->Free(volu);
 	ArraysCpu->Free(press);
-	ArraysCpu->Free(gradvel);
-	ArraysCpu->Free(tau);
+	ArraysCpu->Free(qf);
 	TmcStop(Timers, TMC_SuSavePart);
 }
 

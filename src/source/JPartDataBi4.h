@@ -145,6 +145,9 @@ class JPartDataBi4 : protected JObject
   void AddPartData(const std::string &name,unsigned npok,const char     *v,bool externalpointer=true){  AddPartDataVar(name,JBinaryDataDef::DatChar   ,npok,(const void *)v,externalpointer);  }
   void AddPartData(const std::string &name,unsigned npok,const byte     *v,bool externalpointer=true){  AddPartDataVar(name,JBinaryDataDef::DatUchar  ,npok,(const void *)v,externalpointer);  }
 
+  // Matthias
+  void AddPartData(const std::string &name, unsigned npok, const tsymatrix3f *v, bool externalpointer = true) { AddPartDataVar(name, JBinaryDataDef::DatSymMat, npok, (const void *)v, externalpointer); }
+
   //-Grabacion de fichero. File recording.
   void SaveFileCase(std::string casename);
   void SaveFilePart();

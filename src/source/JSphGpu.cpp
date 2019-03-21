@@ -36,7 +36,7 @@
 #include "JXml.h"
 #include "JFormatFiles2.h"
 #include "JGaugeSystem.h"
-#include "JSphSolidGpu_ker_L.h"
+//#include "JSphSolidGpu_ker_L.h"
 
 using namespace std;
 
@@ -419,17 +419,17 @@ void JSphGpu::ReserveBasicArraysGpu(){
   if (TStep == STEP_Verlet)
   {
 	  VelrhopM1g = ArraysGpu->ReserveFloat4();
-	  MassM1c_M = ArraysGpu->ReserveFloat();
-	  JauTauM1c2_M = ArraysGpu->ReserveSymatrix3f();
+	  MassM1g_M = ArraysGpu->ReserveFloat();
+	  TauM1g_M = ArraysGpu->ReserveSymatrix3f();
   }
   if(TVisco==VISCO_LaminarSPS)SpsTaug=ArraysGpu->ReserveSymatrix3f();
 
   // Matthias
   Divisionc_M = ArraysGpu->ReserveBool();
   Porec_M = ArraysGpu->ReserveFloat();
-  Massc_M = ArraysGpu->ReserveFloat();
+  Massg_M = ArraysGpu->ReserveFloat();
   //JauTauc_M = ArraysCpu->ReserveMatrix3f_M();
-  JauTauc2_M = ArraysGpu->ReserveSymatrix3f();
+  Taug_M = ArraysGpu->ReserveSymatrix3f();
 }
 
 //==============================================================================
@@ -511,7 +511,7 @@ void JSphGpu::ConstantDataUp(){
   ctes.lambdamass = LambdaMass;
 
   cusph::CteInteractionUp(&ctes);
-  cuSol::CteInteractionUp(&ctes);
+  //cuSol::CteInteractionUp(&ctes);
     CheckCudaError("ConstantDataUp","Failed copying constants to GPU.");
 }
 
@@ -526,7 +526,7 @@ void JSphGpu::ParticlesDataUp(unsigned n){
   cudaMemcpy(Posxyg  ,Posxy  ,sizeof(double2)*n ,cudaMemcpyHostToDevice);
   cudaMemcpy(Poszg   ,Posz   ,sizeof(double)*n  ,cudaMemcpyHostToDevice);
   cudaMemcpy(Velrhopg,Velrhop,sizeof(float4)*n  ,cudaMemcpyHostToDevice);
-  cudaMemcpy(Massc_M, Mass, sizeof(float)*n, cudaMemcpyHostToDevice);
+  cudaMemcpy(Massg_M, Mass, sizeof(float)*n, cudaMemcpyHostToDevice);
   CheckCudaError("ParticlesDataUp","Failed copying data to GPU.");
 }
 
@@ -639,7 +639,10 @@ void JSphGpu::ConfigBlockSizes(bool usezone,bool useperi){
     //-Collects kernel information.
     StKerInfo kerinfo;
     memset(&kerinfo,0,sizeof(StKerInfo));
+
+	printf("CudaDev-IF-BsMode:");
     #ifndef DISABLE_BSMODES
+	  printf(" Yes\n");
       cusph::Interaction_Forces(Psingle,TKernel,(CaseNfloat>0),UseDEM,lamsps,TDeltaSph,CellMode,0,0,0,0,100,50,20,TUint3(0),NULL,TUint3(0),NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,TShifting,NULL,NULL,Simulate2D,&kerinfo,NULL);
       if(UseDEM)cusph::Interaction_ForcesDem(Psingle,CellMode,BlockSizes.forcesdem,CaseNfloat,TUint3(0),NULL,TUint3(0),NULL,NULL,NULL,0,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,&kerinfo);
     #endif
@@ -799,7 +802,7 @@ void JSphGpu::InitRun() {
 	WithFloating = (CaseNfloat>0);
 	if (TStep == STEP_Verlet) {
 		cudaMemcpy(VelrhopM1g, Velrhopg, sizeof(tfloat4)*Np, cudaMemcpyDeviceToDevice);
-		cudaMemset(JauTauM1c2_M, 0, sizeof(tsymatrix3f)*Np);
+		cudaMemset(TauM1g_M, 0, sizeof(tsymatrix3f)*Np);
 		VerletStep = 0;
 	}
 	else if (TStep == STEP_Symplectic)DtPre = DtIni;
@@ -807,10 +810,10 @@ void JSphGpu::InitRun() {
 
 	// Matthias
 	//memset(JauTauc_M, 0, sizeof(tmatrix3f)*Np);
-	cudaMemset(JauTauc2_M, 0, sizeof(tsymatrix3f)*Np);
+	cudaMemset(Taug_M, 0, sizeof(tsymatrix3f)*Np);
 	cudaMemset(Divisionc_M, 0, sizeof(bool)*Np);
 	printf("MassFluid = %f ", MassFluid);
-	cudaMemcpy(MassM1c_M, Massc_M, sizeof(float)*Np, cudaMemcpyDeviceToDevice);
+	cudaMemcpy(MassM1g_M, Massg_M, sizeof(float)*Np, cudaMemcpyDeviceToDevice);
 	cudaDeviceSynchronize();
 	if (UseDEM)DemDtForce = DtIni; //(DEM )
 	if (CaseNfloat)InitFloating();
@@ -1000,13 +1003,13 @@ void JSphGpu::PreInteractionVars_Forces(TpInter tinter,unsigned np,unsigned npb)
   cusph::InitArray(npf,Aceg+npb,Gravity);                                //Aceg[]=Gravity para fluid //Aceg[]=Gravity for the fluid
   if(SpsGradvelg)cudaMemset(SpsGradvelg+npb,0,sizeof(tsymatrix3f)*npf);  //SpsGradvelg[]=(0,0,0,0,0,0)..
 
-  cudaMemset(JauGradvelc2_M, 0, sizeof(tsymatrix3f)*np);  //JauGradvelc[]=(0,0,0,0,0,0).													
-  cudaMemset(JauTauDot_M, 0, sizeof(tsymatrix3f)*np);  //JauGradvelc[]=(0,0,0,0,0,0).													
-  cudaMemset(JauOmega_M, 0, sizeof(tsymatrix3f)*np);  //JauGradvelc[]=(0,0,0,0,0,0)..
+  cudaMemset(StrainDotg_M, 0, sizeof(tsymatrix3f)*np);  //JauGradvelc[]=(0,0,0,0,0,0).													
+  cudaMemset(TauDotg_M, 0, sizeof(tsymatrix3f)*np);  //JauGradvelc[]=(0,0,0,0,0,0).													
+  cudaMemset(Sping_M, 0, sizeof(tsymatrix3f)*np);  //JauGradvelc[]=(0,0,0,0,0,0)..
   //-Apply the extra forces to the correct particle sets.
   if(AccInput)AddAccInput();
   const int n = int(np);
-  cuSol::PressPore_M(n, Velrhopg, RhopZero, Pressg, CteB, Gamma, Posxyg, Poszg, PoreZero, Porec_M);
+  //cuSol::PressPore_M(n, Velrhopg, RhopZero, Pressg, CteB, Gamma, Posxyg, Poszg, PoreZero, Porec_M);
   }
 
 
@@ -1031,9 +1034,9 @@ void JSphGpu::PreInteraction_Forces(TpInter tinter){
   Porec_M = ArraysGpu->ReserveFloat();
   Press3Dc = ArraysGpu->ReserveFloat3();
   //JauGradvelc_M = ArraysCpu->ReserveMatrix3f_M();
-  JauGradvelc2_M = ArraysGpu->ReserveSymatrix3f();
-  JauTauDot_M = ArraysGpu->ReserveSymatrix3f();
-  JauOmega_M = ArraysGpu->ReserveSymatrix3f();
+  StrainDotg_M = ArraysGpu->ReserveSymatrix3f();
+  TauDotg_M = ArraysGpu->ReserveSymatrix3f();
+  Sping_M = ArraysGpu->ReserveSymatrix3f();
 
   //-Prepares data for interation Pos-Single.
   if(Psingle){
@@ -1072,9 +1075,9 @@ void JSphGpu::PosInteraction_Forces(){
   ArraysGpu->Free(PsPospressg);  PsPospressg=NULL;
   ArraysGpu->Free(SpsGradvelg);  SpsGradvelg=NULL;
   //Lucas
-  ArraysGpu->Free(JauGradvelc2_M);  JauGradvelc2_M = NULL;
-  ArraysGpu->Free(JauTauDot_M);  JauTauDot_M = NULL;
-  ArraysGpu->Free(JauOmega_M);  JauOmega_M = NULL;
+  ArraysGpu->Free(StrainDotg_M);  StrainDotg_M = NULL;
+  ArraysGpu->Free(TauDotg_M);  TauDotg_M = NULL;
+  ArraysGpu->Free(Sping_M);  Sping_M = NULL;
   ArraysGpu->Free(Pressg);  Pressg = NULL;
   ArraysGpu->Free(Press3Dc);  Press3Dc = NULL;
   ArraysGpu->Free(Porec_M);  Porec_M = NULL;
@@ -1096,20 +1099,21 @@ void JSphGpu::ComputeVerlet(double dt){
   //-Calcula desplazamiento, velocidad y densidad.
   if(VerletStep<VerletSteps){
     const double twodt=dt+dt;
-    cuSol::ComputeStepVerlet_M(WithFloating,shift,Np,Npb,Velrhopg,VelrhopM1g,Arg,Aceg,ShiftPosg,dt,twodt,RhopOutMin,RhopOutMax,Codeg,movxyg,movzg,VelrhopM1g, JauTauM1c2_M,JauTauDot_M, JauTauc2_M, Massc_M, MassM1c_M, MassM1c_M);
-	cuSol::ComputeVelrhopBound(Npb, VelrhopM1g, twodt, VelrhopM1g, Arg, RhopZero);
+	cusph::ComputeStepVerlet_M(WithFloating, shift, Np, Npb, Velrhopg, VelrhopM1g, Taug_M, TauM1g_M, Massg_M, MassM1g_M
+		, Arg, Aceg, ShiftPosg, TauDotg_M, dt, twodt, RhopOutMin, RhopOutMax, Codeg, movxyg, movzg, VelrhopM1g, TauM1g_M, MassM1g_M);
+
   }
   else{
-    cuSol::ComputeStepVerlet_M(WithFloating,shift,Np,Npb,Velrhopg,Velrhopg,Arg,Aceg,ShiftPosg,dt,dt,RhopOutMin,RhopOutMax,Codeg,movxyg,movzg,VelrhopM1g, JauTauc2_M, JauTauDot_M, JauTauc2_M, Massc_M,Massc_M, Massc_M);
-	cuSol::ComputeVelrhopBound(Npb, Velrhopg, dt, VelrhopM1g, Arg, RhopZero);
+	  cusph::ComputeStepVerlet_M(WithFloating, shift, Np, Npb, Velrhopg, VelrhopM1g, Taug_M, TauM1g_M, Massg_M, MassM1g_M
+		  , Arg, Aceg, ShiftPosg, TauDotg_M, dt, dt, RhopOutMin, RhopOutMax, Codeg, movxyg, movzg, VelrhopM1g, TauM1g_M, MassM1g_M);
 	VerletStep=0;
   }
 
   //-The new values are calculated in VelRhopM1g.
   //-Los nuevos valores se calculan en VelrhopM1g.
   swap(Velrhopg,VelrhopM1g);   //-Exchanges Velrhopg and VelrhopM1g. | Intercambia Velrhopg y VelrhopM1g.
-  swap(JauTauc2_M, JauTauM1c2_M);     
-  swap(Massc_M, MassM1c_M);     //-Swap Mass
+  swap(Taug_M, TauM1g_M);
+  swap(Massg_M, MassM1g_M);     //-Swap Mass
   //-Applies displacement to non-periodic fluid particles.
   //-Aplica desplazamiento a las particulas fluid no periodicas.
   cusph::ComputeStepPos(PeriActive,WithFloating,Np,Npb,movxyg,movzg,Posxyg,Poszg,Dcellg,Codeg);

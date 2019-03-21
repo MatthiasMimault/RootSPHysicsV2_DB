@@ -130,6 +130,8 @@ namespace cuSol {
 		, float *viscdt, float *ar, float3 *ace, float *delta
 		, TpShifting tshifting, float3 *shiftpos, float *shiftdetect);
 
+	template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph tdelta, bool shift> __global__ void KerInteractionForcesFluid(unsigned n, unsigned pinit, int hdiv, int4 nc, unsigned cellfluid, float viscob, float viscof, const int2 * begincell, int3 cellzero, const unsigned * dcell, const float * ftomassp, const float2 * tauff, float2 * gradvelff, const double2 * posxy, const double * posz, const float4 * pospress, const float4 * velrhop, const typecode * code, const unsigned * idp, float * viscdt, float * ar, float3 * ace, float * delta, TpShifting tshifting, float3 * shiftpos, float * shiftdetect);
+
 	template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph tdelta, bool shift> __global__ void KerInteractionForcesSolid_M
 	(unsigned n, unsigned pinit, int hdiv, int4 nc, unsigned cellfluid, float viscob, float viscof
 		, const int2 *begincell, int3 cellzero, const unsigned *dcell
@@ -168,6 +170,4 @@ namespace cuSol {
 		, float CteB, float Gamma
 		, double2 *posxy, double *posz, float PoreZero, float *Porec_M);
 
-	__global__ void KerComputeVelrhopBound(unsigned n, const float4* velrhopold, double armul, float4* velrhopnew, const float* Arg, float RhopZero);
-	void ComputeVelrhopBound(unsigned n, const float4* velrhopold, double armul, float4* velrhopnew, const float* Arg, float RhopZero);
 }
