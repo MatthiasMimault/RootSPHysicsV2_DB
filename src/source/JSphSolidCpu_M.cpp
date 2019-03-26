@@ -7649,6 +7649,9 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT(double dt) {
 	TmcStop(Timers, TMC_SuComputeStep);
 }
 
+
+///
+
 //==============================================================================
 /// Calculate variable Dt.
 /// Calcula un Dt variable.

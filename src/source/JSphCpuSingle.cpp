@@ -687,8 +687,8 @@ void JSphCpuSingle::RunSizeDivision_M() {
 			//printf("Division\n");
 			run = false;
 			// Divide the selected particles in X direction
-			MarkedDivision_M(count, Np, Npb, DomCells, Idpc, Codec, Dcellc,
-				Posc, Velrhopc, Tauc_M, Divisionc_M, Porec_M, Massc_M, QuadFormc_M, VelrhopM1c, TauM1c_M, MassM1c_M, QuadFormM1c_M);
+			MarkedDivision_M(count, Np, Npb, DomCells, Idpc, Codec, Dcellc
+				, Posc, Velrhopc, Tauc_M, Divisionc_M, Porec_M, Massc_M, QuadFormc_M, VelrhopM1c, TauM1c_M, MassM1c_M, QuadFormM1c_M);
 			Np += count;
 		}
 	}
@@ -956,11 +956,9 @@ void JSphCpuSingle::MarkedDivision_M(unsigned countMax, unsigned np, unsigned pi
 			const unsigned pnew = np + count;
 
 			// Eigen resolution of qf[p], defintion of V, D
-			//printf("Eigen resolution\n");
 			Matrix3f Qg;
 			Qg << qfpm1[p].xx, qfpm1[p].xy, qfpm1[p].xz, qfpm1[p].xy, qfpm1[p].yy, qfpm1[p].yz, qfpm1[p].xz, qfpm1[p].yz, qfpm1[p].zz;
 			EigenSolver<Matrix3f> es(Qg);
-			//printf("Qg = (%.3f, %.3f, %.3f, %.3f, %.3f, %.3f)\n", qfp[p].xx, qfp[p].xy, qfp[p].xz, qfp[p].yy, qfp[p].yz, qfp[p].zz);
 
 			//printf("Max index\n");
 			// Index of maximal eigenvalue
@@ -979,57 +977,15 @@ void JSphCpuSingle::MarkedDivision_M(unsigned countMax, unsigned np, unsigned pi
 
 
 			//printf("UpdateQ\n");
-			// Update Q
 			Matrix3f D = es.eigenvalues().real().asDiagonal();
 			Matrix3f V = es.eigenvectors().real();
-
-			/*printf("V %d - %d = \n(%.3f, %.3f, %.3f)\n(%.3f, %.3f, %.3f)\n(%.3f, %.3f, %.3f)\n", idp[p], pnew
-					, V(0, 0), V(0, 1), V(0, 2), V(1, 0), V(1, 1), V(1, 2), V(2, 0), V(2, 1), V(2, 2));
-			printf("V3 %d - %d = \n(%.3f, %.3f, %.3f)\n", idp[p], pnew
-				, V3(0, 0), V3(1, 0), V3(2, 0));*/
 			D(i, i) *= 4.0;
 			Matrix3f Qt = V * D * V.transpose();
 
 			qfpm1[p] = TSymatrix3f(Qt(0, 0), Qt(0, 1), Qt(0, 2), Qt(1, 1), Qt(1, 2), Qt(2, 2));
-			//qfp[p] = TSymatrix3f(Qt(0, 0), Qt(0, 1), Qt(0, 2), Qt(1, 1), Qt(1, 2), Qt(2, 2));
 
 			// Update Pos
 			orientation = TDouble3(V(0, i) / sqrt(D(i, i)), V(1, i) / sqrt(D(i, i)), V(2, i) / sqrt(D(i, i)));
-
-			/*// QFPM1
-			// Eigen resolution of qf[p], defintion of V, D
-			Qg << qfpm1[p].xx, qfpm1[p].xy, qfpm1[p].xz, qfpm1[p].xy, qfpm1[p].yy, qfpm1[p].yz, qfpm1[p].xz, qfpm1[p].yz, qfpm1[p].zz;
-			printf("Qg %d - %d = \n(%.3f, %.3f, %.3f)\n(%.3f, %.3f, %.3f)\n(%.3f, %.3f, %.3f)\n", idp[p], pnew
-				, Qg(0, 0), Qg(0, 1), Qg(0, 2), Qg(1, 0), Qg(1, 1), Qg(1, 2), Qg(2, 0), Qg(2, 1), Qg(2, 2));
-			EigenSolver<Matrix3f> es2(Qg);
-			// Index of maximal eigenvalue
-			l0 = es2.eigenvalues()[0].real();
-			l1 = es2.eigenvalues()[1].real();
-			l2 = es2.eigenvalues()[2].real();
-			if (l0 > l1) {
-				if (l0 > l2) i = 0;
-				else i = 2;
-			}
-			else {
-				if (l1 > l2) i = 0;
-				else i = 2;
-			}
-
-			// Update Qm1
-			D = es2.eigenvalues().real().asDiagonal();
-			V = es2.eigenvectors().real();
-			D(i, i) *= 4.0;
-			Qt = V * D * V.transpose();
-			printf("Qt %d - %d = \n(%.3f, %.3f, %.3f)\n(%.3f, %.3f, %.3f)\n(%.3f, %.3f, %.3f)\n\n", idp[p], pnew
-				, Qt(0, 0), Qt(0, 1), Qt(0, 2), Qt(1, 0), Qt(1, 1), Qt(1, 2), Qt(2, 0), Qt(2, 1), Qt(2, 2));
-			qfpm1[p] = TSymatrix3f(Qt(0, 0), Qt(0, 1), Qt(0, 2), Qt(1, 1), Qt(1, 2), Qt(2, 2));*/
-
-			// Update Pos
-			//orientation = { (double)rand() / RAND_MAX, (double)rand() / RAND_MAX, (double)rand() / RAND_MAX };
-			//orientation = orientation / sqrt(pow(orientation.x, 2) + pow(orientation.y, 2) + pow(orientation.z, 2)) - 0.5; // Not working properly
-			//orientation = { 1,0,0 }; // X-orientation
-									 //orientation = { velrhop[p].x,velrhop[p].y,velrhop[p].z };// Velocity - orientation
-									 //orientation = orientation / sqrt(pow(velrhop[p].x, 2) + pow(velrhop[p].y, 2) + pow(velrhop[p].z, 2)); 
 			tdouble3 ps = { pos[p].x + orientation.x, pos[p].y + orientation.y, pos[p].z + orientation.z };
 
 			//-Calculate coordinates of cell inside of domain / Calcula coordendas de celda dentro de dominio.
