@@ -85,6 +85,12 @@ protected:
 	tfloat4 *VelrhopPrec;
 	double DtPre;
 
+	// Additional variables for #Symplectic_M
+	float *MassPrec_M;
+	tsymatrix3f *TauPrec_M;
+	tsymatrix3f *QuadFormPrec_M;
+
+
 	//-Variables for floating bodies.
 	unsigned *FtRidp;             ///<Identifier to access to the particles of the floating object [CaseNfloat].
 	StFtoForces *FtoForces;       ///<Stores forces of floatings [FtCount].
@@ -460,6 +466,12 @@ protected:
 	double DtVariable(bool final);
 	// Matthias
 	void ComputeEuler_M(double dt);
+
+	template<bool shift> void ComputeSymplecticPreT_M(double dt);
+	void ComputeSymplecticPre_M(double dt);
+	template<bool shift> void ComputeSymplecticCorrT_M(double dt);
+	void ComputeSymplecticCorr_M(double dt);
+	// End Matthias
 
 	void RunShifting(double dt);
 
