@@ -228,6 +228,7 @@ void JSphCpuSingle::ConfigDomain(){
   // #Memory
   AllocCpuMemoryFixed();
   //-Allocates memory in CPU for particles. | Reserva memoria en Cpu para particulas.
+  // #Allocmem
   AllocCpuMemoryParticles(Np,0);
 
   //-Copy particle values. | Copia datos de particulas.
@@ -271,6 +272,8 @@ void JSphCpuSingle::ConfigDomain(){
   //-Reorder particles for cell. | Reordena particulas por celda.
   BoundChanged=true;
   RunCellDivide(true);
+
+  printf("EndConfigDomain\n");
 }
 
 //==============================================================================
@@ -540,7 +543,10 @@ void JSphCpuSingle::RunCellDivide(bool updateperiodic){
   else if(TStep==STEP_Symplectic && (PosPrec || VelrhopPrec)){//-In reality, this is only necessary in divide for corrector, not in predictor??? | En realidad solo es necesario en el divide del corrector, no en el predictor???
     if(!PosPrec || !VelrhopPrec)RunException(met,"Symplectic data is invalid.") ;
     CellDivSingle->SortArray(PosPrec);
-    CellDivSingle->SortArray(VelrhopPrec);
+	CellDivSingle->SortArray(VelrhopPrec);
+	CellDivSingle->SortArray(MassPrec_M);
+	CellDivSingle->SortArray(TauPrec_M);
+	CellDivSingle->SortArray(QuadFormPrec_M);
   }
   if(TVisco==VISCO_LaminarSPS)CellDivSingle->SortArray(SpsTauc);
   
@@ -1060,6 +1066,8 @@ void JSphCpuSingle::MarkedDivisionSymp_M(unsigned countMax, unsigned np, unsigne
 
 	for (unsigned p = pini; p < Np; p++) {
 		if (divisionp[p]) {
+			// #Disparition #Division
+
 			const unsigned pnew = np + count;
 
 			// Eigen resolution of qf[p], defintion of V, D
@@ -1105,7 +1113,6 @@ void JSphCpuSingle::MarkedDivisionSymp_M(unsigned countMax, unsigned np, unsigne
 
 			//-Record position and cell of new particles /  Graba posicion y celda de nuevas particulas.
 			pos[pnew] = ps;
-			//pospre[pnew] = pospre[p];
 			dcell[pnew] = PC__Cell(DomCellCode, cx, cy, cz);
 			idp[pnew] = pnew;
 			code[pnew] = code[p];
@@ -1114,10 +1121,6 @@ void JSphCpuSingle::MarkedDivisionSymp_M(unsigned countMax, unsigned np, unsigne
 			porep[pnew] = porep[p];
 			massp[pnew] = massp[p] / 2;
 			qfp[pnew] = qfp[p];
-			//taupre[pnew] = taupre[p];
-			//velrhopre[pnew] = velrhopre[p];
-			//masspre[pnew] = masspre[p] / 2;
-			//qfpre[pnew] = qfpre[p];
 			divisionp[pnew] = false;
 
 			// MOVE
@@ -1135,7 +1138,6 @@ void JSphCpuSingle::MarkedDivisionSymp_M(unsigned countMax, unsigned np, unsigne
 			pos[p] = ps;
 			dcell[p] = PC__Cell(DomCellCode, cx, cy, cz);
 			massp[p] = massp[pnew];
-			//masspre[p] = masspre[pnew];
 			divisionp[p] = false;
 			count++;
 		}
@@ -1197,10 +1199,11 @@ void JSphCpuSingle::Interaction_Forces(TpInter tinter){
   //if (Psingle)JSphSolidCpu::InteractionSimple_Forces(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, PsPosc, Velrhopc, Idpc, Codec, Pressc, viscdt, Arc, Acec, Deltac, SpsTauc, SpsGradvelc, ShiftPosc, ShiftDetectc);
   //else JSphSolidCpu::Interaction_Forces(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, Posc, Velrhopc, Idpc, Codec, Pressc, viscdt, Arc, Acec, Deltac, SpsTauc, SpsGradvelc, ShiftPosc, ShiftDetectc);
  
+
   // Matthias - No quadform, but press 1D
   if (Psingle)JSphSolidCpu::InteractionSimple_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, PsPosc, Velrhopc, Idpc, Codec, Pressc, Porec_M, Massc_M, L_M, viscdt, Arc, Acec, Deltac, Tauc_M, StrainDotc_M, TauDotc_M, Spinc_M, ShiftPosc, ShiftDetectc);
                else JSphSolidCpu::Interaction_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc,   Posc, Velrhopc, Idpc, Codec, Pressc, Porec_M, Massc_M, L_M, viscdt, Arc, Acec, Deltac, Tauc_M, StrainDotc_M, TauDotc_M, Spinc_M, ShiftPosc, ShiftDetectc);
-
+  
 //-For 2-D simulations zero the 2nd component. | Para simulaciones 2D anula siempre la 2º componente.
   if(Simulate2D){
     const int ini=int(Npb),fin=int(Np),npf=int(Np-Npb);
@@ -1221,6 +1224,7 @@ void JSphCpuSingle::Interaction_Forces(TpInter tinter){
  
   //-Calculates maximum value of ViscDt.
   ViscDtMax=viscdt;
+
   //-Calculates maximum value of Ace.
   if(PeriActive!=0)AceMax=ComputeAceMaxOmp<true> (Np-Npb,Acec+Npb,Codec+Npb);
   else             AceMax=ComputeAceMaxOmp<false>(Np-Npb,Acec+Npb,Codec+Npb);
@@ -1230,6 +1234,7 @@ void JSphCpuSingle::Interaction_Forces(TpInter tinter){
 //==============================================================================
 /// Returns maximum value of ace (modulus).
 /// Devuelve el valor maximo de ace (modulo).
+// #Acemax
 //==============================================================================
 template<bool checkcodenormal> double JSphCpuSingle::ComputeAceMaxSeq(unsigned np,const tfloat3* ace,const typecode *code)const{
   float acemax=0;
@@ -1253,41 +1258,44 @@ template<bool checkcodenormal> double JSphCpuSingle::ComputeAceMaxSeq(unsigned n
 //==============================================================================
 /// Returns maximum value of ace (modulus) using OpenMP.
 /// Devuelve el valor maximo de ace (modulo) using OpenMP.
+// #Acemax
 //==============================================================================
 template<bool checkcodenormal> double JSphCpuSingle::ComputeAceMaxOmp(unsigned np,const tfloat3* ace,const typecode *code)const{
   const char met[]="ComputeAceMaxOmp";
   double acemax=0;
   #ifdef OMP_USE
-    if(np>OMP_LIMIT_COMPUTELIGHT){
-      const int n=int(np);
-      if(n<0)RunException(met,"Number of values is too big.");
-      float amax=0;
-      #pragma omp parallel 
-      {
-        float amax2=0;
-        #pragma omp for nowait
-        for(int p=0;p<n;++p){
-          if(!checkcodenormal){
-            const tfloat3 a=ace[p];
-            const float a2=a.x*a.x+a.y*a.y+a.z*a.z;
-            if(amax2<a2)amax2=a2;
-          }
-          //-With periodic conditions ignore periodic particles. | Con condiciones periodicas ignora las particulas periodicas.
-          else if(CODE_IsNormal(code[p])){
-            const tfloat3 a=ace[p];
-            const float a2=a.x*a.x+a.y*a.y+a.z*a.z;
-            if(amax2<a2)amax2=a2;
-          }
-        }
-        #pragma omp critical 
-        {
-          if(amax<amax2)amax=amax2;
-        }
-      }
-      //-Saves result.
-      acemax=sqrt(double(amax));
-    }
-    else if(np)acemax=ComputeAceMaxSeq<checkcodenormal>(np,ace,code);
+  if (np > OMP_LIMIT_COMPUTELIGHT) {
+	  const int n = int(np);
+	  if (n < 0)RunException(met, "Number of values is too big.");
+	  float amax = 0;
+#pragma omp parallel 
+	  {
+		  float amax2 = 0;
+#pragma omp for nowait
+		  for (int p = 0; p < n; ++p) {
+			  if (!checkcodenormal) {
+				  const tfloat3 a = ace[p];
+				  const float a2 = a.x*a.x + a.y*a.y + a.z*a.z;
+				  if (amax2 < a2)amax2 = a2;
+			  }
+			  //-With periodic conditions ignore periodic particles. | Con condiciones periodicas ignora las particulas periodicas.
+			  else if (CODE_IsNormal(code[p])) {
+				  const tfloat3 a = ace[p];
+				  const float a2 = a.x*a.x + a.y*a.y + a.z*a.z;
+				  if (amax2 < a2)amax2 = a2;
+			  }
+		  }
+#pragma omp critical 
+		  {
+			  if (amax < amax2)amax = amax2;
+		  }
+	  }
+	  //-Saves result.
+	  acemax = sqrt(double(amax));
+  }
+  else if (np) {
+	  acemax = ComputeAceMaxSeq<checkcodenormal>(np, ace, code);
+  }
   #else
     if(np)acemax=ComputeAceMaxSeq<checkcodenormal>(np,ace,code);
   #endif
@@ -1362,8 +1370,11 @@ double JSphCpuSingle::ComputeStep_Sym(){
   PosInteraction_Forces();                //-Free memory used for interaction.
   if(Damping)RunDamping(dt,Np,Npb,Posc,Codec,Velrhopc); //-Applies Damping.
 
-  DtPre=min(ddt_p,ddt_c);                 //-Calculate dt for next ComputeStep.
+  DtPre=min(ddt_p,ddt_c);        
+  //#pause
+
   return(dt);
+
 }
 
 //==============================================================================
@@ -1634,6 +1645,7 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
 
   //-Main Loop.
   //------------
+  //#Run #Loop #MainLoop
   JTimeControl tc("30,60,300,600");//-Shows information at 0.5, 1, 5 y 10 minutes (before first PART).
   bool partoutstop=false;
   TimerSim.Start();
@@ -1646,10 +1658,7 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
   while(TimeStep<TimeMax){
     if(ViscoTime)Visco=ViscoTime->GetVisco(float(TimeStep));
 
-	//printf("---Loop1---");
-	//printf("\nTimeStep : %1.10f", TimeStep);
 	// Control of step - Matthias
-	//double stepdt = ComputeStep_Eul_M();
     double stepdt=ComputeStep();
 	RunGaugeSystem(TimeStep+stepdt);
     if(PartDtMin>stepdt)PartDtMin=stepdt; if(PartDtMax<stepdt)PartDtMax=stepdt;
@@ -1657,7 +1666,6 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
 
 	// Matthias - Cell division
 	RunSizeDivision_M();
-		//RunDivisionDisplacement_M();
 	RunCellDivide(true);
 
     TimeStep+=stepdt;

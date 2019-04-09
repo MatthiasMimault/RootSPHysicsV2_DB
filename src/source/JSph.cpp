@@ -701,24 +701,13 @@ void JSph::LoadCaseConfig(){
   C1 = Delta * (1.0f - nuyz) / nf;
   C2 = C3 = Delta * (1.0f - nf * nuxy*nuxy) / (1.0f + nuyz);
   C12 = C13 = Delta * nuxy;
-  C23 = Delta * (nuyz + nf * nuxy*nuxy) / (1.0f + nuyz);
+  C23 = Delta * (nuyz + nf * nuxy*nuxy) / (1.0f + nuyz); 
+
+  C4 = Ey/(2.0f+2.0f*nuxy); C5 = Gf; C6 = Gf;
   
-  /*const float alpha1 = Ey * (1 - nuyz) / (nf*(1 - nuyz) - 2.0f*nuxy*nuxy);
-  const float alpha2 = Ey * nf / (2.0f*nf*(1 - nuyz) - 4.0f*nuxy*nuxy);
-  const float alpha3 = Ey * nuyz / (nf*(1 - nuyz) - 2.0f*nuxy*nuxy);
-  const float alpha4 = Gf;
-  const float alpha5 = Ey / (2.0f*(1 + nuyz));
-
-  printf("///\n");
-  printf("Gf = %.3f, Gt = %.3f, Gt' = %.3f\n", Gf, alpha5, Ey / (2.0f*(1 + nuyz)));
-  printf("///\n");
-
-  C1 = alpha1; C12 = alpha3; C13 = alpha3;
-  C2 = alpha2 + alpha5; C23 = alpha2 - alpha5; C3 = alpha2 + alpha5;
-  C4 = alpha5; C5 = alpha4; C6 = alpha4;*/
-  //K = min(min(min(C1, C12), min(C13, C2)), min(C3, C23)) / 3.0f;
+  
   K = (C1 + C2 + C3) / 3.0f;
-  //K_M = TFloat3((C1 + C12 + C13) / 3.0f, (C2 + C12 + C23) / 3.0f, (C3 + C23 + C13) / 3.0f);
+  
   S1 = 1 / Ex; S12 = -nuxy / Ex; S13 = -nuxy / Ex;
   S21 = -nuxy / Ex; S2 = 1 / Ey; S23 = -nuyz / Ey;
   S31 = -nuxy / Ex; S32 = -nuyz / Ey; S3 = 1 / Ey;
@@ -737,7 +726,7 @@ void JSph::LoadCaseConfig(){
   // New B for anisotropy
   CteB = Kani / ( Gamma ) ;
   CteB_M = TFloat3(K_M.x / Gamma, K_M.y / Gamma, K_M.z / Gamma);
-  //CteB3D = TFloat3((C1 + C12 + C13) / Gamma, (C2 + C12 + C23) / Gamma, (C3 + C13 + C23) / Gamma);
+ 
   // Pore
   PoreZero = (float)ctes.GetPoreZero();
   // Mass
