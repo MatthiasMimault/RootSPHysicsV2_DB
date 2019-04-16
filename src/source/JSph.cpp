@@ -402,6 +402,7 @@ void JSph::LoadConfig(const JCfgRun *cfg){
   }
   if(TDeltaSph==DELTA_Dynamic && Cpu)TDeltaSph=DELTA_DynamicExt; //-It is necessary because the interaction is divided in two steps: fluid-fluid/float and fluid-bound.
 
+  // #Shift
   if(cfg->Shifting>=0){
     switch(cfg->Shifting){
       case 0:  TShifting=SHIFT_None;     break;

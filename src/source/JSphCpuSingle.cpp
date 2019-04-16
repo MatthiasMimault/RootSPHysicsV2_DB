@@ -1345,7 +1345,7 @@ double JSphCpuSingle::ComputeStep_Eul_M() {
 /// Realiza interaccion y actualizacion de particulas segun las fuerzas 
 /// calculadas en la interaccion usando Symplectic.
 
-/// Modified with #Symplectic_M
+// Modified with #Symplectic_M
 //=============================================================================
 double JSphCpuSingle::ComputeStep_Sym(){
   const double dt=DtPre;
@@ -1356,6 +1356,7 @@ double JSphCpuSingle::ComputeStep_Sym(){
   const double ddt_p=DtVariable(false);   //-Calculate dt of predictor step.
   if(TShifting)RunShifting(dt*.5);        //-Shifting.
   ComputeSymplecticPre_M(dt);               //-Apply Symplectic-Predictor to particles.
+  //ComputeSymplecticPre_VelCst_M(dt);               
   if(CaseNfloat)RunFloating(dt*.5,true);  //-Control of floating bodies.
   PosInteraction_Forces();                //-Free memory used for interaction.
   //-Corrector
@@ -1366,6 +1367,7 @@ double JSphCpuSingle::ComputeStep_Sym(){
   const double ddt_c=DtVariable(true);    //-Calculate dt of corrector step.
   if(TShifting)RunShifting(dt);           //-Shifting.
   ComputeSymplecticCorr_M(dt);              //-Apply Symplectic-Corrector to particles.
+  // ComputeSymplecticCorr_VelCst_M(dt);   
   if(CaseNfloat)RunFloating(dt,false);    //-Control of floating bodies.
   PosInteraction_Forces();                //-Free memory used for interaction.
   if(Damping)RunDamping(dt,Np,Npb,Posc,Codec,Velrhopc); //-Applies Damping.
@@ -1593,17 +1595,7 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
   //Log->Printf("\n---Runpath : %s---\n", cfg->RunPath.c_str());
   //Log->Printf("\n---PartBeginDir : %s---\n", cfg->PartBeginDir.c_str());
   //Log->Printf("\n---CaseName : %s---\n", cfg->CaseName.c_str()); 
-
-  /*printf("\\\\\\\\\\EigenTest\n");
-  MatrixXd marta(2, 2);
-   marta(0, 0) = 3;
-  marta(1, 0) = 2.5;
-  marta(0, 1) = -1;
-  marta(1, 1) = marta(1, 0) + marta(0, 1);
   
-  printf("%.3f\n",marta(1,0));
-  printf("End EigenTest\n");*/
-
   GenCaseBis_T gcb;
   gcb.UseGencase(cfg->RunPath);
   if (!gcb.getUseGencase()) {
@@ -1682,7 +1674,6 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
       TimePartNext=TimeOut->GetNextTime(TimeStep);
       TimerPart.Start();
     }
-	//printf("---Loop3--");
     UpdateMaxValues();
     Nstep++;
     if(Part<=PartIni+1 && tc.CheckTime())Log->Print(string("  ")+tc.GetInfoFinish((TimeStep-TimeStepIni)/(TimeMax-TimeStepIni)));
