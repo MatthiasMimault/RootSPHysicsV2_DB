@@ -434,32 +434,6 @@ template<bool psingle> __device__ void KerGetParticleData(unsigned p1
 }
 
 //------------------------------------------------------------------------------
-/// Returns position, vel, rhop and press of a particle - w Mass and Pore Matthias
-//------------------------------------------------------------------------------
-template<bool psingle> __device__ void KerGetParticleData(unsigned p1
-	, const double2 *posxy, const double *posz, const float4 *pospress, const float4 *velrhop
-	, const float *pore, const float *mass
-	, float3 &velp1, float &rhopp1, double3 &posdp1, float3 &posp1, float &pressp1
-	, float &porep1, float &massp1)
-{
-	float4 r = velrhop[p1];
-	velp1 = make_float3(r.x, r.y, r.z);
-	rhopp1 = r.w;
-	if (psingle) {
-		float4 pxy = pospress[p1];
-		posp1 = make_float3(pxy.x, pxy.y, pxy.z);
-		pressp1 = pxy.w;
-	}
-	else {
-		double2 pxy = posxy[p1];
-		posdp1 = make_double3(pxy.x, pxy.y, posz[p1]);
-		pressp1 = (CTE.cteb*(powf(rhopp1*CTE.ovrhopzero, CTE.gamma) - 1.0f));
-	}
-	porep1 = pore[p1];
-	massp1 = mass[p1];
-}
-
-//------------------------------------------------------------------------------
 /// Returns drx, dry and drz between the particles.
 /// Devuelve drx, dry y drz entre dos particulas.
 //------------------------------------------------------------------------------
@@ -505,35 +479,6 @@ template<bool psingle> __device__ void KerGetParticlesDr(int p2
     dry=float(posdp1.y-posp2.y);
     drz=float(posdp1.z-posz[p2]);
   }
-}
-
-
-
-//------------------------------------------------------------------------------
-/// Returns drx, dry and drz between the particles. with pore, mass - Matthias
-//------------------------------------------------------------------------------
-template<bool psingle> __device__ void KerGetParticlesDr_M(int p2
-	, const double2 *posxy, const double *posz, const float4 *pospress, const float *pore, const float *mass
-	, const double3 &posdp1, const float3 &posp1
-	, float &drx, float &dry, float &drz, float &pressp2, float &porep2, float &massp2){
-
-	if (psingle) {
-		float4 posp2 = pospress[p2];
-		drx = posp1.x - posp2.x;
-		dry = posp1.y - posp2.y;
-		drz = posp1.z - posp2.z;
-		pressp2 = posp2.w;
-	}
-	else {
-		double2 posp2 = posxy[p2];
-		drx = float(posdp1.x - posp2.x);
-		dry = float(posdp1.y - posp2.y);
-		drz = float(posdp1.z - posz[p2]);
-		pressp2 = 0;
-	}
-	porep2 = pore[p2];
-	massp2 = mass[p2];
-
 }
 
 //------------------------------------------------------------------------------
@@ -768,305 +713,126 @@ template<bool psingle,TpKernel tker,TpFtMode ftmode> __global__ void KerInteract
 /// Interaction of a particle with a set of particles. (Fluid/Float-Fluid/Float/Bound)
 /// Realiza la interaccion de una particula con un conjunto de ellas. (Fluid/Float-Fluid/Float/Bound)
 //------------------------------------------------------------------------------
-template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph tdelta, bool shift> __device__ void KerInteractionForcesFluidBox
-(bool boundp2, unsigned p1, const unsigned &pini, const unsigned &pfin, float visco
-	, const float *ftomassp, const float2 *tauff
-	, const double2 *posxy, const double *posz, const float4 *pospress, const float4 *velrhop, const typecode *code, const unsigned *idp
-	, float massp2, float ftmassp1, bool ftp1
-	, double3 posdp1, float3 posp1, float3 velp1, float pressp1, float rhopp1
-	, const float2 &taup1_xx_xy, const float2 &taup1_xz_yy, const float2 &taup1_yz_zz
-	, float2 &grap1_xx_xy, float2 &grap1_xz_yy, float2 &grap1_yz_zz
-	, float3 &acep1, float &arp1, float &visc, float &deltap1
-	, TpShifting tshifting, float3 &shiftposp1, float &shiftdetectp1)
+template<bool psingle,TpKernel tker,TpFtMode ftmode,bool lamsps,TpDeltaSph tdelta,bool shift> __device__ void KerInteractionForcesFluidBox
+  (bool boundp2,unsigned p1,const unsigned &pini,const unsigned &pfin,float visco
+  ,const float *ftomassp,const float2 *tauff
+  ,const double2 *posxy,const double *posz,const float4 *pospress,const float4 *velrhop,const typecode *code,const unsigned *idp
+  ,float massp2,float ftmassp1,bool ftp1
+  ,double3 posdp1,float3 posp1,float3 velp1,float pressp1,float rhopp1
+  ,const float2 &taup1_xx_xy,const float2 &taup1_xz_yy,const float2 &taup1_yz_zz
+  ,float2 &grap1_xx_xy,float2 &grap1_xz_yy,float2 &grap1_yz_zz
+  ,float3 &acep1,float &arp1,float &visc,float &deltap1
+  ,TpShifting tshifting,float3 &shiftposp1,float &shiftdetectp1)
 {
-	for (int p2 = pini; p2 < pfin; p2++) {
-		float drx, dry, drz, pressp2;
-		KerGetParticlesDr<psingle>(p2, posxy, posz, pospress, posdp1, posp1, drx, dry, drz, pressp2);
-		float rr2 = drx * drx + dry * dry + drz * drz;
-		if (rr2 <= CTE.fourh2 && rr2 >= ALMOSTZERO) {
-			//-Cubic Spline, Wendland or Gaussian kernel.
-			float frx, fry, frz;
-			if (tker == KERNEL_Wendland)KerGetKernelWendland(rr2, drx, dry, drz, frx, fry, frz);
-			else if (tker == KERNEL_Gaussian)KerGetKernelGaussian(rr2, drx, dry, drz, frx, fry, frz);
-			else if (tker == KERNEL_Cubic)KerGetKernelCubic(rr2, drx, dry, drz, frx, fry, frz);
+  for(int p2=pini;p2<pfin;p2++){
+    float drx,dry,drz,pressp2;
+    KerGetParticlesDr<psingle> (p2,posxy,posz,pospress,posdp1,posp1,drx,dry,drz,pressp2);
+    float rr2=drx*drx+dry*dry+drz*drz;
+    if(rr2<=CTE.fourh2 && rr2>=ALMOSTZERO){
+      //-Cubic Spline, Wendland or Gaussian kernel.
+      float frx,fry,frz;
+      if(tker==KERNEL_Wendland)KerGetKernelWendland(rr2,drx,dry,drz,frx,fry,frz);
+      else if(tker==KERNEL_Gaussian)KerGetKernelGaussian(rr2,drx,dry,drz,frx,fry,frz);
+      else if(tker==KERNEL_Cubic)KerGetKernelCubic(rr2,drx,dry,drz,frx,fry,frz);
 
-			//-Obtains mass of particle p2 if any floating bodies exist.
-			//-Obtiene masa de particula p2 en caso de existir floatings.
-			bool ftp2;         //-Indicates if it is floating. | Indica si es floating.
-			float ftmassp2;    //-Contains mass of floating body or massf if fluid. | Contiene masa de particula floating o massp2 si es bound o fluid.
-			bool compute = true; //-Deactivated when DEM is used and is float-float or float-bound. | Se desactiva cuando se usa DEM y es float-float o float-bound.
-			if (USE_FLOATING) {
-				const typecode cod = code[p2];
-				ftp2 = CODE_IsFloating(cod);
-				ftmassp2 = (ftp2 ? ftomassp[CODE_GetTypeValue(cod)] : massp2);
-#ifdef DELTA_HEAVYFLOATING
-				if (ftp2 && ftmassp2 <= (massp2*1.2f) && (tdelta == DELTA_Dynamic || tdelta == DELTA_DynamicExt))deltap1 = FLT_MAX;
-#else
-				if (ftp2 && (tdelta == DELTA_Dynamic || tdelta == DELTA_DynamicExt))deltap1 = FLT_MAX;
-#endif
-				if (ftp2 && shift && tshifting == SHIFT_NoBound)shiftposp1.x = FLT_MAX; //-Cancels shifting with floating bodies. | Con floatings anula shifting.
-				compute = !(USE_DEM && ftp1 && (boundp2 || ftp2)); //-Deactivated when DEM is used and is float-float or float-bound. | Se desactiva cuando se usa DEM y es float-float o float-bound.
-			}
+      //-Obtains mass of particle p2 if any floating bodies exist.
+      //-Obtiene masa de particula p2 en caso de existir floatings.
+      bool ftp2;         //-Indicates if it is floating. | Indica si es floating.
+      float ftmassp2;    //-Contains mass of floating body or massf if fluid. | Contiene masa de particula floating o massp2 si es bound o fluid.
+      bool compute=true; //-Deactivated when DEM is used and is float-float or float-bound. | Se desactiva cuando se usa DEM y es float-float o float-bound.
+      if(USE_FLOATING){
+        const typecode cod=code[p2];
+        ftp2=CODE_IsFloating(cod);
+        ftmassp2=(ftp2? ftomassp[CODE_GetTypeValue(cod)]: massp2);
+        #ifdef DELTA_HEAVYFLOATING
+          if(ftp2 && ftmassp2<=(massp2*1.2f) && (tdelta==DELTA_Dynamic || tdelta==DELTA_DynamicExt))deltap1=FLT_MAX;
+        #else
+          if(ftp2 && (tdelta==DELTA_Dynamic || tdelta==DELTA_DynamicExt))deltap1=FLT_MAX;
+        #endif
+        if(ftp2 && shift && tshifting==SHIFT_NoBound)shiftposp1.x=FLT_MAX; //-Cancels shifting with floating bodies. | Con floatings anula shifting.
+        compute=!(USE_DEM && ftp1 && (boundp2 || ftp2)); //-Deactivated when DEM is used and is float-float or float-bound. | Se desactiva cuando se usa DEM y es float-float o float-bound.
+      }
 
-			const float4 velrhop2 = velrhop[p2];
+      const float4 velrhop2=velrhop[p2];
+      
+      //===== Aceleration ===== 
+      if(compute){
+        if(!psingle)pressp2=(CTE.cteb*(powf(velrhop2.w*CTE.ovrhopzero,CTE.gamma)-1.0f));
+        const float prs=(pressp1+pressp2)/(rhopp1*velrhop2.w) + (tker==KERNEL_Cubic? KerGetKernelCubicTensil(rr2,rhopp1,pressp1,velrhop2.w,pressp2): 0);
+        const float p_vpm=-prs*(USE_FLOATING? ftmassp2*ftmassp1: massp2);
+        acep1.x+=p_vpm*frx; acep1.y+=p_vpm*fry; acep1.z+=p_vpm*frz;
+      }
 
-			//===== Aceleration ===== 
-			if (compute) {
-				if (!psingle)pressp2 = (CTE.cteb*(powf(velrhop2.w*CTE.ovrhopzero, CTE.gamma) - 1.0f));
-				const float prs = (pressp1 + pressp2) / (rhopp1*velrhop2.w) + (tker == KERNEL_Cubic ? KerGetKernelCubicTensil(rr2, rhopp1, pressp1, velrhop2.w, pressp2) : 0);
-				const float p_vpm = -prs * (USE_FLOATING ? ftmassp2 * ftmassp1 : massp2);
-				acep1.x += p_vpm * frx; acep1.y += p_vpm * fry; acep1.z += p_vpm * frz;
-			}
+      //-Density derivative.
+      const float dvx=velp1.x-velrhop2.x, dvy=velp1.y-velrhop2.y, dvz=velp1.z-velrhop2.z;
+      if(compute)arp1+=(USE_FLOATING? ftmassp2: massp2)*(dvx*frx+dvy*fry+dvz*frz);
 
-			//-Density derivative.
-			const float dvx = velp1.x - velrhop2.x, dvy = velp1.y - velrhop2.y, dvz = velp1.z - velrhop2.z;
-			if (compute)arp1 += (USE_FLOATING ? ftmassp2 : massp2)*(dvx*frx + dvy * fry + dvz * frz);
+      const float cbar=CTE.cs0;
+      //-Density derivative (DeltaSPH Molteni).
+      if((tdelta==DELTA_Dynamic || tdelta==DELTA_DynamicExt)){
+        const float rhop1over2=rhopp1/velrhop2.w;
+        const float visc_densi=CTE.delta2h*cbar*(rhop1over2-1.f)/(rr2+CTE.eta2);
+        const float dot3=(drx*frx+dry*fry+drz*frz);
+        const float delta=visc_densi*dot3*(USE_FLOATING? ftmassp2: massp2);
+        if(USE_FLOATING)deltap1=(boundp2 || deltap1==FLT_MAX? FLT_MAX: deltap1+delta); //-Con floating bodies entre el fluido. //-For floating bodies within the fluid
+        else deltap1=(boundp2? FLT_MAX: deltap1+delta);
+      }
 
-			const float cbar = CTE.cs0;
-			//-Density derivative (DeltaSPH Molteni).
-			if ((tdelta == DELTA_Dynamic || tdelta == DELTA_DynamicExt)) {
-				const float rhop1over2 = rhopp1 / velrhop2.w;
-				const float visc_densi = CTE.delta2h*cbar*(rhop1over2 - 1.f) / (rr2 + CTE.eta2);
-				const float dot3 = (drx*frx + dry * fry + drz * frz);
-				const float delta = visc_densi * dot3*(USE_FLOATING ? ftmassp2 : massp2);
-				if (USE_FLOATING)deltap1 = (boundp2 || deltap1 == FLT_MAX ? FLT_MAX : deltap1 + delta); //-Con floating bodies entre el fluido. //-For floating bodies within the fluid
-				else deltap1 = (boundp2 ? FLT_MAX : deltap1 + delta);
-			}
+      //-Shifting correction.
+      if(shift && shiftposp1.x!=FLT_MAX){
+        const float massrhop=(USE_FLOATING? ftmassp2: massp2)/velrhop2.w;
+        const bool noshift=(boundp2 && (tshifting==SHIFT_NoBound || (tshifting==SHIFT_NoFixed && CODE_IsFixed(code[p2]))));
+        shiftposp1.x=(noshift? FLT_MAX: shiftposp1.x+massrhop*frx); //-Removes shifting for the boundaries. | Con boundary anula shifting.
+        shiftposp1.y+=massrhop*fry;
+        shiftposp1.z+=massrhop*frz;
+        shiftdetectp1-=massrhop*(drx*frx+dry*fry+drz*frz);
+      }
 
-			//-Shifting correction.
-			if (shift && shiftposp1.x != FLT_MAX) {
-				const float massrhop = (USE_FLOATING ? ftmassp2 : massp2) / velrhop2.w;
-				const bool noshift = (boundp2 && (tshifting == SHIFT_NoBound || (tshifting == SHIFT_NoFixed && CODE_IsFixed(code[p2]))));
-				shiftposp1.x = (noshift ? FLT_MAX : shiftposp1.x + massrhop * frx); //-Removes shifting for the boundaries. | Con boundary anula shifting.
-				shiftposp1.y += massrhop * fry;
-				shiftposp1.z += massrhop * frz;
-				shiftdetectp1 -= massrhop * (drx*frx + dry * fry + drz * frz);
-			}
-
-			//===== Viscosity ===== 
-			if (compute) {
-				const float dot = drx * dvx + dry * dvy + drz * dvz;
-				const float dot_rr2 = dot / (rr2 + CTE.eta2);
-				visc = max(dot_rr2, visc);  //ViscDt=max(dot/(rr2+Eta2),ViscDt);
-				if (!lamsps) {//-Artificial viscosity.
-					if (dot < 0) {
-						const float amubar = CTE.h*dot_rr2;  //amubar=CTE.h*dot/(rr2+CTE.eta2);
-						const float robar = (rhopp1 + velrhop2.w)*0.5f;
-						const float pi_visc = (-visco * cbar*amubar / robar)*(USE_FLOATING ? ftmassp2 * ftmassp1 : massp2);
-						acep1.x -= pi_visc * frx; acep1.y -= pi_visc * fry; acep1.z -= pi_visc * frz;
-					}
-				}
-				else {//-Laminar+SPS viscosity.
-					{//-Laminar contribution.
-						const float robar2 = (rhopp1 + velrhop2.w);
-						const float temp = 4.f*visco / ((rr2 + CTE.eta2)*robar2);  //-Simplication of temp=2.0f*visco/((rr2+CTE.eta2)*robar); robar=(rhopp1+velrhop2.w)*0.5f;
-						const float vtemp = (USE_FLOATING ? ftmassp2 : massp2)*temp*(drx*frx + dry * fry + drz * frz);
-						acep1.x += vtemp * dvx; acep1.y += vtemp * dvy; acep1.z += vtemp * dvz;
-					}
-					//-SPS turbulence model.
-					float2 taup2_xx_xy = taup1_xx_xy; //-taup1 is always zero when p1 is not fluid. | taup1 siempre es cero cuando p1 no es fluid.
-					float2 taup2_xz_yy = taup1_xz_yy;
-					float2 taup2_yz_zz = taup1_yz_zz;
-					if (!boundp2 && (USE_NOFLOATING || !ftp2)) {//-When p2 is fluid.
-						float2 taup2 = tauff[p2 * 3];     taup2_xx_xy.x += taup2.x; taup2_xx_xy.y += taup2.y;
-						taup2 = tauff[p2 * 3 + 1];   taup2_xz_yy.x += taup2.x; taup2_xz_yy.y += taup2.y;
-						taup2 = tauff[p2 * 3 + 2];   taup2_yz_zz.x += taup2.x; taup2_yz_zz.y += taup2.y;
-					}
-					acep1.x += (USE_FLOATING ? ftmassp2 * ftmassp1 : massp2)*(taup2_xx_xy.x*frx + taup2_xx_xy.y*fry + taup2_xz_yy.x*frz);
-					acep1.y += (USE_FLOATING ? ftmassp2 * ftmassp1 : massp2)*(taup2_xx_xy.y*frx + taup2_xz_yy.y*fry + taup2_yz_zz.x*frz);
-					acep1.z += (USE_FLOATING ? ftmassp2 * ftmassp1 : massp2)*(taup2_xz_yy.x*frx + taup2_yz_zz.x*fry + taup2_yz_zz.y*frz);
-					//-Velocity gradients.
-					if (USE_NOFLOATING || !ftp1) {//-When p1 is fluid.
-						const float volp2 = -(USE_FLOATING ? ftmassp2 : massp2) / velrhop2.w;
-						float dv = dvx * volp2; grap1_xx_xy.x += dv * frx; grap1_xx_xy.y += dv * fry; grap1_xz_yy.x += dv * frz;
-						dv = dvy * volp2; grap1_xx_xy.y += dv * frx; grap1_xz_yy.y += dv * fry; grap1_yz_zz.x += dv * frz;
-						dv = dvz * volp2; grap1_xz_yy.x += dv * frx; grap1_yz_zz.x += dv * fry; grap1_yz_zz.y += dv * frz;
-						// to compute tau terms we assume that gradvel.xy=gradvel.dudy+gradvel.dvdx, gradvel.xz=gradvel.dudz+gradvel.dwdx, gradvel.yz=gradvel.dvdz+gradvel.dwdy
-						// so only 6 elements are needed instead of 3x3.
-					}
-				}
-			}
-		}
-	}
-}
-
-
-//------------------------------------------------------------------------------
-/// Interaction of a particle with a set of particles. Solid - Solid -- Matthias
-//------------------------------------------------------------------------------
-template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph tdelta, bool shift> __device__ void KerInteractionForcesSolidBox
- (bool boundp2, unsigned p1, const unsigned & pini, const unsigned & pfin, float visco
-	 , const double2 *posxy, const double *posz, const float4 *pospress, const float4 *velrhop, const typecode *code, const unsigned *idp
-	 , const float * pore, const float * mass, const float2 * tauff
-	 , double3 posdp1, float3 posp1, float3 velp1, float pressp1, float rhopp1, float porep1, float massp1
-	 , const float2 taup1_xx_xy, const float2 taup1_xz_yy, const float2 taup1_yz_zz
-	 , float2 & straindotp1_xx_xy, float2 & straindotp1_xz_yy, float2 & straindotp1_yz_zz
-	 , float2 & spinp1_xx_xy, float2 & spinp1_xz_yy, float2 & spinp1_yz_zz
-	 , float3 & acep1, float & arp1, float & visc, float & deltap1
-	 , TpShifting tshifting, float3 & shiftposp1, float & shiftdetectp1){
-
-	for (int p2 = pini; p2<pfin; p2++) {
-
-		float drx, dry, drz, pressp2, porep2, massp2;		
-		KerGetParticlesDr_M<psingle>(p2, posxy, posz, pospress, pore, mass, posdp1, posp1, drx, dry, drz, pressp2, porep2, massp2);
-
-		float rr2 = drx * drx + dry * dry + drz * drz;
-		if (rr2 <= CTE.fourh2 && rr2 >= ALMOSTZERO) {
-			//-Cubic Spline, Wendland or Gaussian kernel.
-			float frx, fry, frz;
-			if (tker == KERNEL_Wendland)KerGetKernelWendland(rr2, drx, dry, drz, frx, fry, frz);
-			else if (tker == KERNEL_Gaussian)KerGetKernelGaussian(rr2, drx, dry, drz, frx, fry, frz);
-			else if (tker == KERNEL_Cubic)KerGetKernelCubic(rr2, drx, dry, drz, frx, fry, frz);
-
-			/*//-Obtains mass of particle p2 if any floating bodies exist.
-			//-Obtiene masa de particula p2 en caso de existir floatings.
-			bool ftp2;         //-Indicates if it is floating. | Indica si es floating.
-			float ftmassp2;    //-Contains mass of floating body or massf if fluid. | Contiene masa de particula floating o massp2 si es bound o fluid.
-			bool compute = true; //-Deactivated when DEM is used and is float-float or float-bound. | Se desactiva cuando se usa DEM y es float-float o float-bound.
-			if (USE_FLOATING) {
-				const typecode cod = code[p2];
-				ftp2 = CODE_IsFloating(cod);
-//				ftmassp2 = (ftp2 ? ftomassp[CODE_GetTypeValue(cod)] : massp2);
-#ifdef DELTA_HEAVYFLOATING
-				if (ftp2 && ftmassp2 <= (massp2*1.2f) && (tdelta == DELTA_Dynamic || tdelta == DELTA_DynamicExt))deltap1 = FLT_MAX;
-#else
-				if (ftp2 && (tdelta == DELTA_Dynamic || tdelta == DELTA_DynamicExt))deltap1 = FLT_MAX;
-#endif
-				if (ftp2 && shift && tshifting == SHIFT_NoBound)shiftposp1.x = FLT_MAX; //-Cancels shifting with floating bodies. | Con floatings anula shifting.
-				compute = !(USE_DEM && ftp1 && (boundp2 || ftp2)); //-Deactivated when DEM is used and is float-float or float-bound. | Se desactiva cuando se usa DEM y es float-float o float-bound.
-			}*/
-
-			// P2 variables - Matthias
-			bool compute = true;
-			const float4 velrhop2 = velrhop[p2];
-			float2 taup2_xx_xy, taup2_xz_yy, taup2_yz_zz;
-			taup2_xx_xy = tauff[p2 * 3];
-			taup2_xz_yy = tauff[p2 * 3 + 1];
-			taup2_yz_zz = tauff[p2 * 3 + 2];
-
-			/*//===== Aceleration ===== 
-			if (compute) {
-				if (!psingle)pressp2 = (CTE.cteb*(powf(velrhop2.w*CTE.ovrhopzero, CTE.gamma) - 1.0f));
-				const float prs = (pressp1 + pressp2) / (rhopp1*velrhop2.w) + (tker == KERNEL_Cubic ? KerGetKernelCubicTensil(rr2, rhopp1, pressp1, velrhop2.w, pressp2) : 0);
-				const float p_vpm = -prs * (USE_FLOATING ? ftmassp2 * ftmassp1 : massp2);
-				acep1.x += p_vpm * frx; acep1.y += p_vpm * fry; acep1.z += p_vpm * frz;
-			}*/
-
-			//===== Aceleration Solid Pore ===== Matthias
-			if (compute) {
-				if (!psingle)pressp2 = (CTE.cteb*(powf(velrhop2.w*CTE.ovrhopzero, CTE.gamma) - 1.0f));
-				const float2 prs_xx_xy = make_float2(
-					(pressp1 + porep1 - taup1_xx_xy.x + pressp2 + porep2 - taup2_xx_xy.x) / (rhopp1*velrhop2.w)
-					+ (tker == KERNEL_Cubic ? KerGetKernelCubicTensil(rr2, rhopp1, pressp1, velrhop2.w, pressp2) : 0)
-					, -(taup1_xx_xy.y + taup2_xx_xy.y) / (rhopp1*velrhop2.w));
-				const float2 prs_xz_yy = make_float2(
-					-(taup1_xz_yy.x + taup2_xz_yy.x) / (rhopp1*velrhop2.w)
-					, (pressp1 + porep1 - taup1_xz_yy.y + pressp2 + porep2 - taup2_xz_yy.y) / (rhopp1*velrhop2.w)
-					+ (tker == KERNEL_Cubic ? KerGetKernelCubicTensil(rr2, rhopp1, pressp1, velrhop2.w, pressp2) : 0));
-				const float2 prs_yz_zz = make_float2(
-					-(taup1_yz_zz.x + taup2_yz_zz.x) / (rhopp1*velrhop2.w)
-					, (pressp1 + porep1 - taup1_yz_zz.y + pressp2 + porep2 - taup2_yz_zz.y) / (rhopp1*velrhop2.w)
-					+ (tker == KERNEL_Cubic ? KerGetKernelCubicTensil(rr2, rhopp1, pressp1, velrhop2.w, pressp2) : 0));
-				const float2 p_vpm_xx_xy = make_float2(-prs_xx_xy.x*massp2, -prs_xx_xy.y*massp2);
-				const float2 p_vpm_xz_yy = make_float2(-prs_xz_yy.x*massp2, -prs_xz_yy.y*massp2);
-				const float2 p_vpm_yz_zz = make_float2(-prs_yz_zz.x*massp2, -prs_yz_zz.y*massp2);
-				acep1.x += p_vpm_xx_xy.x*frx + p_vpm_xx_xy.y*fry + p_vpm_xz_yy.x*frz;
-				acep1.y += p_vpm_xx_xy.y*frx + p_vpm_xz_yy.y*fry + p_vpm_yz_zz.x*frz;
-				acep1.z += p_vpm_xz_yy.x*frx + p_vpm_yz_zz.x*fry + p_vpm_yz_zz.y*frz;
-			}
-
-			//-Density derivative.
-			const float dvx = velp1.x - velrhop2.x, dvy = velp1.y - velrhop2.y, dvz = velp1.z - velrhop2.z;
-			if (compute)arp1 += massp2 *(dvx*frx + dvy * fry + dvz * frz);
-
-			const float cbar = CTE.cs0;
-			//-Density derivative (DeltaSPH Molteni).
-			/*if ((tdelta == DELTA_Dynamic || tdelta == DELTA_DynamicExt)) {
-				const float rhop1over2 = rhopp1 / velrhop2.w;
-				const float visc_densi = CTE.delta2h*cbar*(rhop1over2 - 1.f) / (rr2 + CTE.eta2);
-				const float dot3 = (drx*frx + dry * fry + drz * frz);
-				const float delta = visc_densi * dot3*massp2;
-				if (USE_FLOATING)deltap1 = (boundp2 || deltap1 == FLT_MAX ? FLT_MAX : deltap1 + delta); //-Con floating bodies entre el fluido. //-For floating bodies within the fluid
-				else deltap1 = (boundp2 ? FLT_MAX : deltap1 + delta);
-			}*/
-
-			//-Shifting correction. -- Matthias -- might be interesting
-			if (shift && shiftposp1.x != FLT_MAX) {
-				const float massrhop = massp2 / velrhop2.w;
-				const bool noshift = (boundp2 && (tshifting == SHIFT_NoBound || (tshifting == SHIFT_NoFixed && CODE_IsFixed(code[p2]))));
-				shiftposp1.x = (noshift ? FLT_MAX : shiftposp1.x + massrhop * frx); //-Removes shifting for the boundaries. | Con boundary anula shifting.
-				shiftposp1.y += massrhop * fry;
-				shiftposp1.z += massrhop * frz;
-				shiftdetectp1 -= massrhop * (drx*frx + dry * fry + drz * frz);
-			}
-
-			//===== Viscosity ===== 
-			if (compute) {
-				const float dot = drx * dvx + dry * dvy + drz * dvz;
-				const float dot_rr2 = dot / (rr2 + CTE.eta2);
-				visc = max(dot_rr2, visc);  //ViscDt=max(dot/(rr2+Eta2),ViscDt);
-
-				//-Artificial viscosity
-				if (dot<0) {
-					const float amubar = CTE.h*dot_rr2;  //amubar=CTE.h*dot/(rr2+CTE.eta2);
-					const float robar = (rhopp1 + velrhop2.w)*0.5f;
-					const float pi_visc = (-visco * cbar*amubar / robar)*massp2;
-					acep1.x -= pi_visc * frx; acep1.y -= pi_visc * fry; acep1.z -= pi_visc * frz;
-				}
-				/*if (!lamsps) {//-Artificial viscosity.
-					if (dot<0) {
-						const float amubar = CTE.h*dot_rr2;  //amubar=CTE.h*dot/(rr2+CTE.eta2);
-						const float robar = (rhopp1 + velrhop2.w)*0.5f;
-						const float pi_visc = (-visco * cbar*amubar / robar)*(USE_FLOATING ? ftmassp2 * ftmassp1 : massp2);
-						acep1.x -= pi_visc * frx; acep1.y -= pi_visc * fry; acep1.z -= pi_visc * frz;
-					}
-				}
-				else {//-Laminar+SPS viscosity.
-					{//-Laminar contribution.
-						const float robar2 = (rhopp1 + velrhop2.w);
-						const float temp = 4.f*visco / ((rr2 + CTE.eta2)*robar2);  //-Simplication of temp=2.0f*visco/((rr2+CTE.eta2)*robar); robar=(rhopp1+velrhop2.w)*0.5f;
-						const float vtemp = (USE_FLOATING ? ftmassp2 : massp2)*temp*(drx*frx + dry * fry + drz * frz);
-						acep1.x += vtemp * dvx; acep1.y += vtemp * dvy; acep1.z += vtemp * dvz;
-					}
-					//-SPS turbulence model.
-					float2 taup2_xx_xy = taup1_xx_xy; //-taup1 is always zero when p1 is not fluid. | taup1 siempre es cero cuando p1 no es fluid.
-					float2 taup2_xz_yy = taup1_xz_yy;
-					float2 taup2_yz_zz = taup1_yz_zz;
-					if (!boundp2 && (USE_NOFLOATING || !ftp2)) {//-When p2 is fluid.
-						float2 taup2 = tauff[p2 * 3];     taup2_xx_xy.x += taup2.x; taup2_xx_xy.y += taup2.y;
-						taup2 = tauff[p2 * 3 + 1];   taup2_xz_yy.x += taup2.x; taup2_xz_yy.y += taup2.y;
-						taup2 = tauff[p2 * 3 + 2];   taup2_yz_zz.x += taup2.x; taup2_yz_zz.y += taup2.y;
-					}
-					acep1.x += (USE_FLOATING ? ftmassp2 * ftmassp1 : massp2)*(taup2_xx_xy.x*frx + taup2_xx_xy.y*fry + taup2_xz_yy.x*frz);
-					acep1.y += (USE_FLOATING ? ftmassp2 * ftmassp1 : massp2)*(taup2_xx_xy.y*frx + taup2_xz_yy.y*fry + taup2_yz_zz.x*frz);
-					acep1.z += (USE_FLOATING ? ftmassp2 * ftmassp1 : massp2)*(taup2_xz_yy.x*frx + taup2_yz_zz.x*fry + taup2_yz_zz.y*frz);
-					//-Velocity gradients.
-					if (USE_NOFLOATING || !ftp1) {//-When p1 is fluid.
-						const float volp2 = -(USE_FLOATING ? ftmassp2 : massp2) / velrhop2.w;
-						float dv = dvx * volp2; grap1_xx_xy.x += dv * frx; grap1_xx_xy.y += dv * fry; grap1_xz_yy.x += dv * frz;
-						dv = dvy * volp2; grap1_xx_xy.y += dv * frx; grap1_xz_yy.y += dv * fry; grap1_yz_zz.x += dv * frz;
-						dv = dvz * volp2; grap1_xz_yy.x += dv * frx; grap1_yz_zz.x += dv * fry; grap1_yz_zz.y += dv * frz;
-						// to compute tau terms we assume that gradvel.xy=gradvel.dudy+gradvel.dvdx, gradvel.xz=gradvel.dudz+gradvel.dwdx, gradvel.yz=gradvel.dvdz+gradvel.dwdy
-						// so only 6 elements are needed instead of 3x3.
-					}
-				}*/
-			}
-			//===== Velocity gradient estimation ===== Matthias 
-			const float volp2 = -massp2 / velrhop2.w;
-
-			float dv = dvx * volp2;
-			straindotp1_xx_xy.x += dv * frx; straindotp1_xx_xy.y += 0.5f*dv*fry; straindotp1_xz_yy.x += 0.5f*dv*frz;
-			spinp1_xx_xy.y += 0.5f*dv*fry; spinp1_xz_yy.x += 0.5f*dv*frz;
-
-			dv = dvy * volp2;
-			straindotp1_xx_xy.y += 0.5f*dv*frx; straindotp1_xz_yy.y += dv * fry; straindotp1_yz_zz.x += 0.5f*dv*frz;
-			spinp1_xx_xy.y -= 0.5f*dv*frx; spinp1_yz_zz.x += 0.5f*dv*frz;
-
-			dv = dvz * volp2;
-			straindotp1_xz_yy.x += 0.5f*dv*frx; straindotp1_yz_zz.x += 0.5f*dv*fry; straindotp1_yz_zz.y += dv * frz;
-			spinp1_xz_yy.x -= 0.5f*dv*frx; spinp1_yz_zz.x -= 0.5f*dv*fry;
-		}
-	}
+      //===== Viscosity ===== 
+      if(compute){
+        const float dot=drx*dvx + dry*dvy + drz*dvz;
+        const float dot_rr2=dot/(rr2+CTE.eta2);
+        visc=max(dot_rr2,visc);  //ViscDt=max(dot/(rr2+Eta2),ViscDt);
+        if(!lamsps){//-Artificial viscosity.
+          if(dot<0){
+            const float amubar=CTE.h*dot_rr2;  //amubar=CTE.h*dot/(rr2+CTE.eta2);
+            const float robar=(rhopp1+velrhop2.w)*0.5f;
+            const float pi_visc=(-visco*cbar*amubar/robar)*(USE_FLOATING? ftmassp2*ftmassp1: massp2);
+            acep1.x-=pi_visc*frx; acep1.y-=pi_visc*fry; acep1.z-=pi_visc*frz;
+          }
+        }
+        else{//-Laminar+SPS viscosity.
+          {//-Laminar contribution.
+            const float robar2=(rhopp1+velrhop2.w);
+            const float temp=4.f*visco/((rr2+CTE.eta2)*robar2);  //-Simplication of temp=2.0f*visco/((rr2+CTE.eta2)*robar); robar=(rhopp1+velrhop2.w)*0.5f;
+            const float vtemp=(USE_FLOATING? ftmassp2: massp2)*temp*(drx*frx+dry*fry+drz*frz);  
+            acep1.x+=vtemp*dvx; acep1.y+=vtemp*dvy; acep1.z+=vtemp*dvz;
+          }
+          //-SPS turbulence model.
+          float2 taup2_xx_xy=taup1_xx_xy; //-taup1 is always zero when p1 is not fluid. | taup1 siempre es cero cuando p1 no es fluid.
+          float2 taup2_xz_yy=taup1_xz_yy;
+          float2 taup2_yz_zz=taup1_yz_zz;
+          if(!boundp2 && (USE_NOFLOATING || !ftp2)){//-When p2 is fluid.
+            float2 taup2=tauff[p2*3];     taup2_xx_xy.x+=taup2.x; taup2_xx_xy.y+=taup2.y;
+                   taup2=tauff[p2*3+1];   taup2_xz_yy.x+=taup2.x; taup2_xz_yy.y+=taup2.y;
+                   taup2=tauff[p2*3+2];   taup2_yz_zz.x+=taup2.x; taup2_yz_zz.y+=taup2.y;
+          }
+          acep1.x+=(USE_FLOATING? ftmassp2*ftmassp1: massp2)*(taup2_xx_xy.x*frx+taup2_xx_xy.y*fry+taup2_xz_yy.x*frz);
+          acep1.y+=(USE_FLOATING? ftmassp2*ftmassp1: massp2)*(taup2_xx_xy.y*frx+taup2_xz_yy.y*fry+taup2_yz_zz.x*frz);
+          acep1.z+=(USE_FLOATING? ftmassp2*ftmassp1: massp2)*(taup2_xz_yy.x*frx+taup2_yz_zz.x*fry+taup2_yz_zz.y*frz);
+          //-Velocity gradients.
+          if(USE_NOFLOATING || !ftp1){//-When p1 is fluid.
+            const float volp2=-(USE_FLOATING? ftmassp2: massp2)/velrhop2.w;
+            float dv=dvx*volp2; grap1_xx_xy.x+=dv*frx; grap1_xx_xy.y+=dv*fry; grap1_xz_yy.x+=dv*frz;
+                  dv=dvy*volp2; grap1_xx_xy.y+=dv*frx; grap1_xz_yy.y+=dv*fry; grap1_yz_zz.x+=dv*frz;
+                  dv=dvz*volp2; grap1_xz_yy.x+=dv*frx; grap1_yz_zz.x+=dv*fry; grap1_yz_zz.y+=dv*frz;
+            // to compute tau terms we assume that gradvel.xy=gradvel.dudy+gradvel.dvdx, gradvel.xz=gradvel.dudz+gradvel.dwdx, gradvel.yz=gradvel.dvdz+gradvel.dwdy
+            // so only 6 elements are needed instead of 3x3.
+          }
+        }
+      }
+    }
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -1192,12 +958,12 @@ template<bool psingle,TpKernel tker,TpFtMode ftmode,bool lamsps,TpDeltaSph tdelt
 
 
 //------------------------------------------------------------------------------
-// Surcharge Matthias for solids
-template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph tdelta, bool shift> __global__ void KerInteractionForcesSolid_M
+/*template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph tdelta, bool shift> __global__ void KerInteractionForcesSolid
 (unsigned n, unsigned pinit, int hdiv, int4 nc, unsigned cellfluid, float viscob, float viscof
 	, const int2 *begincell, int3 cellzero, const unsigned *dcell
+	, const float *ftomassp, const float2 *tauff, float2 *gradvelff
 	, const double2 *posxy, const double *posz, const float4 *pospress, const float4 *velrhop, const typecode *code, const unsigned *idp
-	, const float *pore, const float *mass, const float2 *tauff, float2 *straindotff, float2 *spinff
+	, const float pore, const float mass, const tsymatrix3f *tau
 	, float *viscdt, float *ar, float3 *ace, float *delta
 	, TpShifting tshifting, float3 *shiftpos, float *shiftdetect)
 {
@@ -1217,41 +983,23 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 
 		//-Obtains data of particle p1 in case there are floating bodies.
 		//-Obtiene datos de particula p1 en caso de existir floatings.
-		/*bool ftp1;       //-Indicates if it is floating. | Indica si es floating.
+		bool ftp1;       //-Indicates if it is floating. | Indica si es floating.
 		float ftmassp1;  //-Contains floating particle mass or 1.0f if it is fluid. | Contiene masa de particula floating o 1.0f si es fluid.
 		if (USE_FLOATING) {
 			const typecode cod = code[p1];
 			ftp1 = CODE_IsFloating(cod);
-		//	ftmassp1 = (ftp1 ? ftomassp[CODE_GetTypeValue(cod)] : 1.f);
+			ftmassp1 = (ftp1 ? ftomassp[CODE_GetTypeValue(cod)] : 1.f);
 			if (ftp1 && (tdelta == DELTA_Dynamic || tdelta == DELTA_DynamicExt))deltap1 = FLT_MAX;
 			if (ftp1 && shift)shiftposp1.x = FLT_MAX; //-Shifting is not calculated for floating bodies. | Para floatings no se calcula shifting.
-		}*/
+		}
 
 		//-Obtains basic data of particle p1.
 		double3 posdp1;
 		float3 posp1, velp1;
-		float rhopp1, pressp1, porep1, massp1;
-		//float2 taup1_xx_xy, taup1_xz_yy, taup1_yz_zz; Maybe
-		KerGetParticleData<psingle>(p1, posxy, posz, pospress, velrhop, pore, mass, velp1, rhopp1, posdp1, posp1, pressp1, porep1, massp1);
+		float rhopp1, pressp1;
+		KerGetParticleData<psingle>(p1, posxy, posz, pospress, velrhop, velp1, rhopp1, posdp1, posp1, pressp1);
 
-
-		// Variable for Jaumann Stress
-		float2 taup1_xx_xy, taup1_xz_yy, taup1_yz_zz;
-		taup1_xx_xy = tauff[p1 * 3];
-		taup1_xz_yy = tauff[p1 * 3 + 1];
-		taup1_yz_zz = tauff[p1 * 3 + 2];
-		
-		float2 straindotp1_xx_xy, straindotp1_xz_yy, straindotp1_yz_zz;
-		straindotp1_xx_xy = make_float2(0, 0);
-		straindotp1_xz_yy = make_float2(0, 0);
-		straindotp1_yz_zz = make_float2(0, 0);
-
-		float2 spinp1_xx_xy, spinp1_xz_yy, spinp1_yz_zz;
-		spinp1_xx_xy = make_float2(0, 0);
-		spinp1_xz_yy = make_float2(0, 0);
-		spinp1_yz_zz = make_float2(0, 0);
-
-		/*//-Variables for Laminar+SPS.
+		//-Variables for Laminar+SPS.
 		float2 taup1_xx_xy, taup1_xz_yy, taup1_yz_zz;
 		if (lamsps) {
 			taup1_xx_xy = tauff[p1 * 3];
@@ -1264,7 +1012,7 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 			grap1_xx_xy = make_float2(0, 0);
 			grap1_xz_yy = make_float2(0, 0);
 			grap1_yz_zz = make_float2(0, 0);
-		}*/
+		}
 
 		//-Obtains interaction limits.
 		int cxini, cxfin, yini, yfin, zini, zfin;
@@ -1283,17 +1031,7 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 						pfin = cbeg.y;
 					}
 				}
-				/*if (pfin)KerInteractionForcesFluidBox<psingle, tker, ftmode, lamsps, tdelta, shift>(false, p1, pini, pfin, viscof
-					, ftomassp, tauff
-					, posxy, posz, pospress, velrhop, code, idp, CTE.massf
-					, ftmassp1, ftp1, posdp1, posp1, velp1, pressp1, rhopp1, taup1_xx_xy, taup1_xz_yy, taup1_yz_zz, grap1_xx_xy, grap1_xz_yy, grap1_yz_zz
-					, acep1, arp1, visc, deltap1, tshifting, shiftposp1, shiftdetectp1);*/
-
-				if (pfin)KerInteractionForcesSolidBox<psingle, tker, ftmode, lamsps, tdelta, shift>(false, p1, pini, pfin, viscof
-					, posxy, posz, pospress, velrhop, code, idp, pore, mass, tauff
-					, posdp1, posp1, velp1, pressp1, rhopp1, porep1, massp1, taup1_xx_xy, taup1_xz_yy, taup1_yz_zz
-					, straindotp1_xx_xy, straindotp1_xz_yy, straindotp1_yz_zz, spinp1_xx_xy, spinp1_xz_yy, spinp1_yz_zz
-					, acep1, arp1, visc, deltap1, tshifting, shiftposp1, shiftdetectp1);
+				if (pfin)KerInteractionForcesFluidBox<psingle, tker, ftmode, lamsps, tdelta, shift>(false, p1, pini, pfin, viscof, ftomassp, tauff, posxy, posz, pospress, velrhop, code, idp, CTE.massf, ftmassp1, ftp1, posdp1, posp1, velp1, pressp1, rhopp1, taup1_xx_xy, taup1_xz_yy, taup1_yz_zz, grap1_xx_xy, grap1_xz_yy, grap1_yz_zz, acep1, arp1, visc, deltap1, tshifting, shiftposp1, shiftdetectp1);
 			}
 		}
 		//-Interaction with boundaries.
@@ -1309,13 +1047,7 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 						pfin = cbeg.y;
 					}
 				}
-				//if (pfin)KerInteractionForcesFluidBox<psingle, tker, ftmode, lamsps, tdelta, shift>(true, p1, pini, pfin, viscob, ftomassp, tauff, posxy, posz, pospress, velrhop, code, idp, CTE.massb, ftmassp1, ftp1, posdp1, posp1, velp1, pressp1, rhopp1, taup1_xx_xy, taup1_xz_yy, taup1_yz_zz, grap1_xx_xy, grap1_xz_yy, grap1_yz_zz, acep1, arp1, visc, deltap1, tshifting, shiftposp1, shiftdetectp1);
-
-				if (pfin)KerInteractionForcesSolidBox<psingle, tker, ftmode, lamsps, tdelta, shift>(true, p1, pini, pfin, viscof
-					, posxy, posz, pospress, velrhop, code, idp, pore, mass, tauff
-					, posdp1, posp1, velp1, pressp1, rhopp1, porep1, massp1, taup1_xx_xy, taup1_xz_yy, taup1_yz_zz
-					, straindotp1_xx_xy, straindotp1_xz_yy, straindotp1_yz_zz, spinp1_xx_xy, spinp1_xz_yy, spinp1_yz_zz
-					, acep1, arp1, visc, deltap1, tshifting, shiftposp1, shiftdetectp1);
+				if (pfin)KerInteractionForcesFluidBox<psingle, tker, ftmode, lamsps, tdelta, shift>(true, p1, pini, pfin, viscob, ftomassp, tauff, posxy, posz, pospress, velrhop, code, idp, CTE.massb, ftmassp1, ftp1, posdp1, posp1, velp1, pressp1, rhopp1, taup1_xx_xy, taup1_xz_yy, taup1_yz_zz, grap1_xx_xy, grap1_xz_yy, grap1_yz_zz, acep1, arp1, visc, deltap1, tshifting, shiftposp1, shiftdetectp1);
 			}
 		}
 		//-Stores results.
@@ -1328,11 +1060,11 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 			ar[p1] += arp1;
 			float3 r = ace[p1]; r.x += acep1.x; r.y += acep1.y; r.z += acep1.z; ace[p1] = r;
 			if (visc>viscdt[p1])viscdt[p1] = visc;
-			/*if (lamsps) {
+			if (lamsps) {
 				gradvelff[p1 * 3] = grap1_xx_xy;
 				gradvelff[p1 * 3 + 1] = grap1_xz_yy;
 				gradvelff[p1 * 3 + 2] = grap1_yz_zz;
-			}*/
+			}
 			if (shift) {
 				shiftpos[p1] = shiftposp1;
 				if (shiftdetect)shiftdetect[p1] = shiftdetectp1;
@@ -1341,7 +1073,12 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 	}
 }
 
+
+, const float pore, const float mass, const tsymatrix3f *tau
+, tsymatrix3f *taudot, tsymatrix3f *straindot, tsymatrix3f *spin*/
+
 #ifndef DISABLE_BSMODES
+
 
 //==============================================================================
 /// Collects kernel information.
@@ -1502,29 +1239,28 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 	, const double2 *posxy, const double *posz, const float4 *pospress
 	, const float4 *velrhop, const typecode *code, const unsigned *idp
 	, const float *pore, const float *mass, const tsymatrix3f *tau
-	, tsymatrix3f *straindot, tsymatrix3f *spin
+	, tsymatrix3f *taudot, tsymatrix3f *straindot, tsymatrix3f *spin
 	, float *viscdt, float* ar, float3 *ace, float *delta
 	, TpShifting tshifting, float3 *shiftpos, float *shiftdetect
 	, bool simulate2d, StKerInfo *kerinfo, JBlockSizeAuto *bsauto)
 {
 	//-Collects kernel information.
-/*#ifndef DISABLE_BSMODES
-	if (kerinfo)//Interaction_ForcesT_KerInfo<psingle, tker, ftmode, lamsps, tdelta, shift>(kerinfo);
-	else if (bsauto)//Interaction_ForcesT_BsAuto<psingle, tker, ftmode, lamsps, tdelta, shift>(cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, ftomassp, tau, gradvel, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, bsauto);
-	else {
-#endif*/
+#ifndef DISABLE_BSMODES
+	//if (kerinfo)Interaction_ForcesT_KerInfo<psingle, tker, ftmode, lamsps, tdelta, shift>(kerinfo);
+	//else if (bsauto)Interaction_ForcesT_BsAuto<psingle, tker, ftmode, lamsps, tdelta, shift>(cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, ftomassp, tau, gradvel, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, bsauto);
+	//else {
+#endif
 		//-Executes particle interactions.
 		const unsigned npf = np - npb;
-		const int hdiv = (cellmode == CELLMODE_H ? 2 : 1);
+		//const int hdiv = (cellmode == CELLMODE_H ? 2 : 1);
 		const int4 nc = make_int4(int(ncells.x), int(ncells.y), int(ncells.z), int(ncells.x*ncells.y));
-		const unsigned cellfluid = nc.w*nc.z + 1;
+		//const unsigned cellfluid = nc.w*nc.z + 1;
 		const int3 cellzero = make_int3(cellmin.x, cellmin.y, cellmin.z);
 		//-Interaction Fluid-Fluid & Fluid-Bound.
 		if (npf) {
 			dim3 sgridf = GetGridSize(npf, bsfluid);
 			//printf("---->bsfluid:%u   ",bsfluid);
 			//KerInteractionForcesFluid<psingle, tker, ftmode, lamsps, tdelta, shift> << <sgridf, bsfluid >> > (npf, npb, hdiv, nc, cellfluid, viscob, viscof, begincell, cellzero, dcell, ftomassp, (const float2*)tau, (float2*)gradvel, posxy, posz, pospress, velrhop, code, idp, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);
-			KerInteractionForcesSolid_M<psingle, tker, ftmode, lamsps, tdelta, shift> << <sgridf, bsfluid >> > (npf, npb, hdiv, nc, cellfluid, viscob, viscof, begincell, cellzero, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, (const float2*)tau, (float2*)straindot, (float2*)spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);
 		}
 		//-Interaction Boundary-Fluid.
 		if (npbok) {
@@ -1532,9 +1268,9 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 			//printf("bsbound:%u\n",bsbound);
 			//KerInteractionForcesBound<psingle, tker, ftmode> << <sgridb, bsbound >> > (npbok, hdiv, nc, begincell, cellzero, dcell, ftomassp, posxy, posz, pospress, velrhop, code, idp, viscdt, ar);
 		}
-/*#ifndef DISABLE_BSMODES
-	}
-#endif*/
+#ifndef DISABLE_BSMODES
+	//}
+#endif
 }
 
 //==============================================================================
@@ -1570,22 +1306,22 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps> void Interac
 	, const double2 *posxy, const double *posz, const float4 *pospress
 	, const float4 *velrhop, const typecode *code, const unsigned *idp
 	, const float *pore, const float *mass, const tsymatrix3f *tau
-	, tsymatrix3f *straindot, tsymatrix3f *spin
+	, tsymatrix3f *taudot, tsymatrix3f *straindot, tsymatrix3f *spin
 	, float *viscdt, float* ar, float3 *ace, float *delta
 	, TpShifting tshifting, float3 *shiftpos, float *shiftdetect
 	, bool simulate2d, StKerInfo *kerinfo, JBlockSizeAuto *bsauto)
 {
 	if (tshifting) {
 		const bool shift = true;
-		if (tdelta == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, shift>(cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
-		if (tdelta == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, shift>(cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
-		if (tdelta == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, shift>(cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
+		if (tdelta == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, shift>(cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, taudot, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
+		if (tdelta == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, shift>(cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, taudot, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
+		if (tdelta == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, shift>(cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, taudot, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
 	}
 	else {
 		const bool shift = false;
-		if (tdelta == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, shift>(cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
-		if (tdelta == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, shift>(cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
-		if (tdelta == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, shift>(cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
+		if (tdelta == DELTA_None)      Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_None, shift>(cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, taudot, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
+		if (tdelta == DELTA_Dynamic)   Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_Dynamic, shift>(cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, taudot, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
+		if (tdelta == DELTA_DynamicExt)Interaction_ForcesT<psingle, tker, ftmode, lamsps, DELTA_DynamicExt, shift>(cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, taudot, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
 	}
 }
 
@@ -1614,13 +1350,13 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode> void Interaction_Forces_t
 	, const double2 *posxy, const double *posz, const float4 *pospress
 	, const float4 *velrhop, const typecode *code, const unsigned *idp
 	, const float *pore, const float *mass, const tsymatrix3f *tau
-	, tsymatrix3f *straindot, tsymatrix3f *spin
+	, tsymatrix3f *taudot, tsymatrix3f *straindot, tsymatrix3f *spin
 	, float *viscdt, float* ar, float3 *ace, float *delta
 	, TpShifting tshifting, float3 *shiftpos, float *shiftdetect
 	, bool simulate2d, StKerInfo *kerinfo, JBlockSizeAuto *bsauto)
 {
-	if (lamsps)Interaction_Forces_t2<psingle, tker, ftmode, true>(tdelta, cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
-	else      Interaction_Forces_t2<psingle, tker, ftmode, false>(tdelta, cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
+	if (lamsps)Interaction_Forces_t2<psingle, tker, ftmode, true>(tdelta, cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, taudot, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
+	else      Interaction_Forces_t2<psingle, tker, ftmode, false>(tdelta, cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, taudot, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
 }
 
 
@@ -1682,7 +1418,7 @@ void Interaction_Forces_M(bool psingle, TpKernel tkernel, bool floating, bool us
 	, const double2 *posxy, const double *posz, const float4 *pospress
 	, const float4 *velrhop, const typecode *code, const unsigned *idp
 	, const float *pore, const float *mass, const tsymatrix3f *tau
-	, tsymatrix3f *straindot, tsymatrix3f *spin	
+	, tsymatrix3f *taudot, tsymatrix3f *straindot, tsymatrix3f *spin	
 	, float *viscdt, float* ar, float3 *ace, float *delta
 	, TpShifting tshifting, float3 *shiftpos, float *shiftdetect
 	, bool simulate2d, StKerInfo *kerinfo, JBlockSizeAuto *bsauto)
@@ -1691,45 +1427,45 @@ void Interaction_Forces_M(bool psingle, TpKernel tkernel, bool floating, bool us
 		const TpKernel tker = KERNEL_Wendland;
 		if (psingle) {
 			const bool psingle = true;
-			if (!floating)   Interaction_Forces_t1<psingle, tker, FTMODE_None>(lamsps, tdelta, cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
-			else if (!usedem)Interaction_Forces_t1<psingle, tker, FTMODE_Sph>(lamsps, tdelta, cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
-			else            Interaction_Forces_t1<psingle, tker, FTMODE_Dem>(lamsps, tdelta, cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau,  straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
+			if (!floating)   Interaction_Forces_t1<psingle, tker, FTMODE_None>(lamsps, tdelta, cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, taudot, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
+			else if (!usedem)Interaction_Forces_t1<psingle, tker, FTMODE_Sph>(lamsps, tdelta, cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, taudot, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
+			else            Interaction_Forces_t1<psingle, tker, FTMODE_Dem>(lamsps, tdelta, cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, taudot, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
 		}
 		else {
 			const bool psingle = false;
-			if (!floating)   Interaction_Forces_t1<psingle, tker, FTMODE_None>(lamsps, tdelta, cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
-			else if (!usedem)Interaction_Forces_t1<psingle, tker, FTMODE_Sph>(lamsps, tdelta, cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
-			else            Interaction_Forces_t1<psingle, tker, FTMODE_Dem>(lamsps, tdelta, cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
+			if (!floating)   Interaction_Forces_t1<psingle, tker, FTMODE_None>(lamsps, tdelta, cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, taudot, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
+			else if (!usedem)Interaction_Forces_t1<psingle, tker, FTMODE_Sph>(lamsps, tdelta, cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, taudot, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
+			else            Interaction_Forces_t1<psingle, tker, FTMODE_Dem>(lamsps, tdelta, cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, taudot, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
 		}
 	}
 	else if (tkernel == KERNEL_Gaussian) {
 		const TpKernel tker = KERNEL_Gaussian;
 		if (psingle) {
 			const bool psingle = true;
-			if (!floating)   Interaction_Forces_t1<psingle, tker, FTMODE_None>(lamsps, tdelta, cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
-			else if (!usedem)Interaction_Forces_t1<psingle, tker, FTMODE_Sph>(lamsps, tdelta, cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
-			else            Interaction_Forces_t1<psingle, tker, FTMODE_Dem>(lamsps, tdelta, cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
+			if (!floating)   Interaction_Forces_t1<psingle, tker, FTMODE_None>(lamsps, tdelta, cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, taudot, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
+			else if (!usedem)Interaction_Forces_t1<psingle, tker, FTMODE_Sph>(lamsps, tdelta, cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, taudot, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
+			else            Interaction_Forces_t1<psingle, tker, FTMODE_Dem>(lamsps, tdelta, cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, taudot, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
 		}
 		else {
 			const bool psingle = false;
-			if (!floating)   Interaction_Forces_t1<psingle, tker, FTMODE_None>(lamsps, tdelta, cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
-			else if (!usedem)Interaction_Forces_t1<psingle, tker, FTMODE_Sph>(lamsps, tdelta, cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
-			else            Interaction_Forces_t1<psingle, tker, FTMODE_Dem>(lamsps, tdelta, cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
+			if (!floating)   Interaction_Forces_t1<psingle, tker, FTMODE_None>(lamsps, tdelta, cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, taudot, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
+			else if (!usedem)Interaction_Forces_t1<psingle, tker, FTMODE_Sph>(lamsps, tdelta, cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, taudot, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
+			else            Interaction_Forces_t1<psingle, tker, FTMODE_Dem>(lamsps, tdelta, cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, taudot, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
 		}
 	}
 	else if (tkernel == KERNEL_Cubic) {
 		const TpKernel tker = KERNEL_Cubic;
 		if (psingle) {
 			const bool psingle = true;
-			if (!floating)   Interaction_Forces_t1<psingle, tker, FTMODE_None>(lamsps, tdelta, cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
-			else if (!usedem)Interaction_Forces_t1<psingle, tker, FTMODE_Sph>(lamsps, tdelta, cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
-			else            Interaction_Forces_t1<psingle, tker, FTMODE_Dem>(lamsps, tdelta, cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
+			if (!floating)   Interaction_Forces_t1<psingle, tker, FTMODE_None>(lamsps, tdelta, cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, taudot, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
+			else if (!usedem)Interaction_Forces_t1<psingle, tker, FTMODE_Sph>(lamsps, tdelta, cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, taudot, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
+			else            Interaction_Forces_t1<psingle, tker, FTMODE_Dem>(lamsps, tdelta, cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, taudot, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
 		}
 		else {
 			const bool psingle = false;
-			if (!floating)   Interaction_Forces_t1<psingle, tker, FTMODE_None>(lamsps, tdelta, cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
-			else if (!usedem)Interaction_Forces_t1<psingle, tker, FTMODE_Sph>(lamsps, tdelta, cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
-			else            Interaction_Forces_t1<psingle, tker, FTMODE_Dem>(lamsps, tdelta, cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
+			if (!floating)   Interaction_Forces_t1<psingle, tker, FTMODE_None>(lamsps, tdelta, cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, taudot, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
+			else if (!usedem)Interaction_Forces_t1<psingle, tker, FTMODE_Sph>(lamsps, tdelta, cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, taudot, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
+			else            Interaction_Forces_t1<psingle, tker, FTMODE_Dem>(lamsps, tdelta, cellmode, viscob, viscof, bsbound, bsfluid, np, npb, npbok, ncells, begincell, cellmin, dcell, posxy, posz, pospress, velrhop, code, idp, pore, mass, tau, taudot, straindot, spin, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect, simulate2d, kerinfo, bsauto);
 		}
 	}
 }
@@ -1978,65 +1714,6 @@ void ComputeSpsTau(unsigned np,unsigned npb,float smag,float blin
   }
 }
 
-//##############################################################################
-//# Kernels for Solid dynamics - Matthias
-//##############################################################################
-//------------------------------------------------------------------------------
-/// Computes Tau dot
-//------------------------------------------------------------------------------
-__global__ void KerComputeJauTauDot(unsigned n, unsigned pini
-	, const float4 *velrhop, const float2 *tauff, float2 *taudotff, const float2 *straindotff, const float2 *spinff)
-{
-	unsigned p = blockIdx.y*gridDim.x*blockDim.x + blockIdx.x*blockDim.x + threadIdx.x;
-	if (p<n) {
-		const unsigned p1 = p + pini;
-
-		// Tau, Straindot and Spin assignation
-		const float tau_xx = tauff[p1 * 3].x; const float tau_xy = tauff[p1 * 3].y;
-		const float tau_xz = tauff[p1 * 3 + 1].x; const float tau_yy = tauff[p1 * 3 + 1].y;
-		const float tau_yz = tauff[p1 * 3 + 2].x; const float tau_zz = tauff[p1 * 3 + 2].y;
-		const float straindot_xx = straindotff[p1 * 3].x; const float straindot_xy = straindotff[p1 * 3].y;
-		const float straindot_xz = straindotff[p1 * 3 + 1].x; const float straindot_yy = straindotff[p1 * 3 + 1].y;
-		const float straindot_yz = straindotff[p1 * 3 + 2].x; const float straindot_zz = straindotff[p1 * 3 + 2].y;
-		const float spin_xy = spinff[p1 * 3].y;
-		const float spin_xz = spinff[p1 * 3 + 1].x;
-		const float spin_yz = spinff[p1 * 3 + 2].x;
-
-		// PC matrix (E in CpuCode)
-		const float PC_xx = (2.0f / 3.0f*CTE.C1 - 1.0f / 3.0f*CTE.C12 - 1.0f / 3.0f*CTE.C13)*straindot_xx 
-			+ (2.0f / 3.0f*CTE.C12 - 1.0f / 3.0f*CTE.C2 - 1.0f / 3.0f*CTE.C23)*straindot_yy 
-			+ (2.0f / 3.0f*CTE.C13 - 1.0f / 3.0f*CTE.C23 - 1.0f / 3.0f*CTE.C3) * straindot_zz;
-		const float PC_xy = CTE.C4*straindot_xy;
-		const float PC_xz = CTE.C5*straindot_xz;
-		const float PC_yy = (-1.0f / 3.0f*CTE.C1 + 2.0f / 3.0f*CTE.C12 - 1.0f / 3.0f*CTE.C13)*straindot_xx 
-			+ (-1.0f / 3.0f*CTE.C12 + 2.0f / 3.0f*CTE.C2 - 1.0f / 3.0f*CTE.C23)*straindot_yy 
-			+ (-1.0f / 3.0f*CTE.C13 + 2.0f / 3.0f*CTE.C23 - 1.0f / 3.0f*CTE.C3)*straindot_zz;
-		const float PC_yz = CTE.C6*straindot_yz;
-		const float PC_zz = (-1.0f / 3.0f*CTE.C1 - 1.0f / 3.0f*CTE.C12 + 2.0f / 3.0f*CTE.C13)*straindot_xx 
-			+ (-1.0f / 3.0f*CTE.C12 - 1.0f / 3.0f*CTE.C2 + 2.0f / 3.0f*CTE.C23)*straindot_yy 
-			+ (-1.0f / 3.0f*CTE.C13 - 1.0f / 3.0f*CTE.C23 + 2.0f / 3.0f*CTE.C3)*straindot_zz;
-
-		// Compute new values of TauDot with rotation
-		taudotff[p1 * 3].x     = PC_xx + 2.0f*tau_xy*spin_xy + 2.0f*tau_xz*spin_xz;
-		taudotff[p1 * 3].y     = PC_xy + (tau_yy - tau_xx)*spin_xy + tau_xz * spin_yz + tau_yz * spin_xz;
-		taudotff[p1 * 3 + 1].x = PC_xz + (tau_zz - tau_xx)*spin_xz - tau_xy * spin_yz + tau_yz * spin_xy;
-		taudotff[p1 * 3 + 1].y = PC_yy - 2.0f*tau_xy*spin_xy + 2.0f*tau_yz*spin_yz;
-		taudotff[p1 * 3 + 2].x = PC_yz + (tau_zz - tau_yy)*spin_yz - tau_xz * spin_xy - tau_xy * spin_xz;
-		taudotff[p1 * 3 + 2].y = PC_zz - 2.0f*tau_xz*spin_xz - 2.0f*tau_yz*spin_yz;
-	}
-}
-
-// Compute stress rate solid - Matthias
-void ComputeJauTauDot(unsigned np, unsigned npb
-	, const float4 *velrhop, const tsymatrix3f *tau, tsymatrix3f *taudot, const tsymatrix3f *straindot, const tsymatrix3f *spin)
-{
-	const unsigned npf = np - npb;
-	if (npf) {
-		dim3 sgridf = GetGridSize(npf, SPHBSIZE);
-		KerComputeJauTauDot << <sgridf, SPHBSIZE >> > (npf, npb, velrhop, (const float2*)tau, (float2*)taudot, (const float2*)straindot, (const float2*)spin);
-	}
-}
-
 
 //##############################################################################
 //# Kernels for Delta-SPH.
@@ -2183,84 +1860,6 @@ template<bool floating,bool shift> __global__ void KerComputeStepVerlet
   }
 }
 
-//------------------------------------------------------------------------------
-// KerComputeStepVerlet Solid - Matthias
-//------------------------------------------------------------------------------
-template<bool floating, bool shift> __global__ void KerComputeStepVerlet_M
-(unsigned n, unsigned npb, float rhopoutmin, float rhopoutmax
-	, const float4 *velrhop1, const float4 *velrhop2
-	, const tsymatrix3f *taup1, const tsymatrix3f *taup2
-	, const float *massp1, const float *massp2
-	, const float *ar, const float3 *ace, const float3 *shiftpos
-	, const tsymatrix3f *atau
-	, double dt, double dt205, double dt2
-	, double2 *movxy, double *movz, typecode *code
-	, float4 *velrhopnew, tsymatrix3f *taupnew, float *masspnew)
-{
-	unsigned p = blockIdx.y*gridDim.x*blockDim.x + blockIdx.x*blockDim.x + threadIdx.x; //-Number of particle.
-
-	if (p<n) {
-		if (p<npb) { //-Particles: Fixed & Moving.
-			float rrhop = float(double(velrhop2[p].w) + dt2 * ar[p]);
-			rrhop = (rrhop<CTE.rhopzero ? CTE.rhopzero : rrhop); //-To prevent absorption of fluid particles by boundaries. | Evita q las boundary absorvan a las fluidas.
-			velrhopnew[p] = make_float4(0, 0, 0, rrhop);
-		}
-		else { //-Particles: Floating & Fluid.
-			   //-Updates density.
-			float4 rvelrhop2 = velrhop2[p];
-			rvelrhop2.w = float(double(rvelrhop2.w) + dt2 * ar[p]);
-			float4 rvel1 = velrhop1[p];
-
-			if (!floating || CODE_IsFluid(code[p])) { //-Particles: Fluid.
-													  //-Checks rhop limits.
-				if (rvelrhop2.w<rhopoutmin || rvelrhop2.w>rhopoutmax) { //-Only brands as excluded normal particles (not periodic). | Solo marca como excluidas las normales (no periodicas).
-					const typecode rcode = code[p];
-					if (CODE_IsNormal(rcode))code[p] = CODE_SetOutRhop(rcode);
-				}
-				//-Computes and stores position displacement.
-				const float3 race = ace[p];
-				double dx = double(rvel1.x)*dt + double(race.x)*dt205;
-				double dy = double(rvel1.y)*dt + double(race.y)*dt205;
-				double dz = double(rvel1.z)*dt + double(race.z)*dt205;
-				if (shift) {
-					const float3 rshiftpos = shiftpos[p];
-					dx += double(rshiftpos.x);
-					dy += double(rshiftpos.y);
-					dz += double(rshiftpos.z);
-				}
-				movxy[p] = make_double2(dx, dy);
-				movz[p] = dz;
-
-				//-Updates velocity.
-				rvelrhop2.x = float(double(rvelrhop2.x) + double(race.x)*dt2);
-				rvelrhop2.y = float(double(rvelrhop2.y) + double(race.y)*dt2);
-				rvelrhop2.z = float(double(rvelrhop2.z) + double(race.z)*dt2);
-				//velrhopnew[p] = rvelrhop2;
-
-				// Update Shear stress
-				taupnew[p].xx = float(double(taup2[p].xx) + double(atau[p].xx)*dt2);
-				taupnew[p].xy = float(double(taup2[p].xy) + double(atau[p].xy)*dt2);
-				taupnew[p].xz = float(double(taup2[p].xz) + double(atau[p].xz)*dt2);
-				taupnew[p].yy = float(double(taup2[p].yy) + double(atau[p].yy)*dt2);
-				taupnew[p].yz = float(double(taup2[p].yz) + double(atau[p].yz)*dt2);
-				taupnew[p].zz = float(double(taup2[p].zz) + double(atau[p].zz)*dt2);
-
-				// Source Density and Mass
-				const float volu = float(double(massp2[p]) / double(rvelrhop2.w));
-				float adens = float(CTE.lambdamass * (CTE.rhopzero / rvelrhop2.w - 1));
-				velrhopnew[p].w = float(rvelrhop2.w + dt2 * adens);
-
-				// Update mass, velocity and density
-				masspnew[p] = float(double(massp2[p]) + dt2 * double(adens*volu));
-			}
-			else { //-Particles: Floating.
-				rvel1.w = (rvelrhop2.w<CTE.rhopzero ? CTE.rhopzero : rvelrhop2.w); //-To prevent absorption of fluid particles by boundaries. | Evita q las floating absorvan a las fluidas.
-				velrhopnew[p] = rvel1;
-			}
-		}
-	}
-}
-
 	//==============================================================================
 	/// Updates particles according to forces and dt using Verlet. 
 	/// Actualizacion de particulas segun fuerzas y dt usando Verlet.
@@ -2283,56 +1882,6 @@ template<bool floating, bool shift> __global__ void KerComputeStepVerlet_M
 		}
 	  }
 	}
-
-	//==============================================================================
-	/// Updates particles according to forces and dt using Verlet. 
-	/// Actualizacion de particulas segun fuerzas y dt usando Verlet.
-	//==============================================================================
-	void ComputeStepVerlet_M(bool floating, bool shift, unsigned np, unsigned npb
-		, const float4 *velrhop1, const float4 *velrhop2
-		, const tsymatrix3f *taup1, const tsymatrix3f *taup2
-		, const float *massp1, const float *massp2
-		, const float *ar, const float3 *ace, const float3 *shiftpos
-		, const tsymatrix3f *atau
-		, double dt, double dt2, float rhopoutmin, float rhopoutmax
-		, typecode *code, double2 *movxy, double *movz
-		, float4 *velrhopnew, tsymatrix3f *taupnew, float *masspnew)
-	{
-		double dt205 = (0.5*dt*dt);
-		if (np) {
-			dim3 sgrid = GetGridSize(np, SPHBSIZE);
-			if (shift) {
-				const bool shift = true;
-				if (floating)KerComputeStepVerlet_M<true, shift> << <sgrid, SPHBSIZE >> > (np, npb, rhopoutmin, rhopoutmax, velrhop1, velrhop2, taup1, taup2, massp1, massp2, ar, ace, shiftpos, atau, dt, dt205, dt2, movxy, movz, code, velrhopnew, taupnew, masspnew);
-				else        KerComputeStepVerlet_M<false, shift> << <sgrid, SPHBSIZE >> > (np, npb, rhopoutmin, rhopoutmax, velrhop1, velrhop2, taup1, taup2, massp1, massp2, ar, ace, shiftpos, atau, dt, dt205, dt2, movxy, movz, code, velrhopnew, taupnew, masspnew);
-			}
-			else {
-				const bool shift = false;
-				if (floating)KerComputeStepVerlet_M<true, shift> << <sgrid, SPHBSIZE >> > (np, npb, rhopoutmin, rhopoutmax, velrhop1, velrhop2, taup1, taup2, massp1, massp2, ar, ace, shiftpos, atau, dt, dt205, dt2, movxy, movz, code, velrhopnew, taupnew, masspnew);
-				else        KerComputeStepVerlet_M<false, shift> << <sgrid, SPHBSIZE >> > (np, npb, rhopoutmin, rhopoutmax, velrhop1, velrhop2, taup1, taup2, massp1, massp2, ar, ace, shiftpos, atau, dt, dt205, dt2, movxy, movz, code, velrhopnew, taupnew, masspnew);
-			}
-		}
-	}
-
-	/*void ComputeVelrhopBound(unsigned n, const float4* velrhopold, double armul, float4* velrhopnew, const float* Arg, float RhopZero)
-	{
-		if (n) {
-			dim3 sgrid = cusph::GetGridSize(n, SPHBSIZE);
-			KerComputeVelrhopBound << <sgrid, SPHBSIZE >> > (n, velrhopold, armul, velrhopnew, Arg, RhopZero);
-		}
-
-	}
-	__global__ void KerComputeVelrhopBound(unsigned n, const float4* velrhopold, double armul, float4* velrhopnew, const float* Arg, float RhopZero)
-	{
-		unsigned p = blockIdx.y*gridDim.x*blockDim.x + blockIdx.x*blockDim.x + threadIdx.x; //-Number of particle.
-		if (p < n) {
-			const float rhopnew = float(double(velrhopold[p].w) + armul * Arg[p]);
-			velrhopnew[p].x = 0;
-			velrhopnew[p].y = 0;
-			velrhopnew[p].z = 0;
-			velrhopnew[p].w = (rhopnew < RhopZero ? RhopZero : rhopnew);
-		}
-	}*/
 
 //------------------------------------------------------------------------------
 /// Computes new values for Pos, Check, Vel and Ros (used with Symplectic-Predictor).

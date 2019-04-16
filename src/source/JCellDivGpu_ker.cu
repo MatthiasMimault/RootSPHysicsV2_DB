@@ -540,7 +540,7 @@ __global__ void KerCalcBeginEndCell(unsigned n,unsigned pini,const unsigned *cel
 /// Compute first and last particle for each cell.
 /// Calcula particula inicial y final de cada celda.
 //==============================================================================
-void CalcBeginEndCell(bool full,unsigned np,unsigned npb,unsigned sizebegcell,unsigned cellfluid,const unsigned *cellpart,int2 *begcell){
+void CalcBeginEndCell(bool full,unsigned np,unsigned npb,unsigned sizebegcell, unsigned cellfluid,const unsigned *cellpart,int2 *begcell){
   if(full)cudaMemset(begcell,0,sizeof(int2)*sizebegcell);
   else cudaMemset(begcell+cellfluid,0,sizeof(int2)*(sizebegcell-cellfluid));
   const unsigned pini=(full? 0: npb);

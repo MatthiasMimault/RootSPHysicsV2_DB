@@ -402,6 +402,7 @@ void JSph::LoadConfig(const JCfgRun *cfg){
   }
   if(TDeltaSph==DELTA_Dynamic && Cpu)TDeltaSph=DELTA_DynamicExt; //-It is necessary because the interaction is divided in two steps: fluid-fluid/float and fluid-bound.
 
+  // #Shift
   if(cfg->Shifting>=0){
     switch(cfg->Shifting){
       case 0:  TShifting=SHIFT_None;     break;
@@ -701,24 +702,13 @@ void JSph::LoadCaseConfig(){
   C1 = Delta * (1.0f - nuyz) / nf;
   C2 = C3 = Delta * (1.0f - nf * nuxy*nuxy) / (1.0f + nuyz);
   C12 = C13 = Delta * nuxy;
-  C23 = Delta * (nuyz + nf * nuxy*nuxy) / (1.0f + nuyz);
+  C23 = Delta * (nuyz + nf * nuxy*nuxy) / (1.0f + nuyz); 
+
+  C4 = Ey/(2.0f+2.0f*nuxy); C5 = Gf; C6 = Gf;
   
-  /*const float alpha1 = Ey * (1 - nuyz) / (nf*(1 - nuyz) - 2.0f*nuxy*nuxy);
-  const float alpha2 = Ey * nf / (2.0f*nf*(1 - nuyz) - 4.0f*nuxy*nuxy);
-  const float alpha3 = Ey * nuyz / (nf*(1 - nuyz) - 2.0f*nuxy*nuxy);
-  const float alpha4 = Gf;
-  const float alpha5 = Ey / (2.0f*(1 + nuyz));
-
-  printf("///\n");
-  printf("Gf = %.3f, Gt = %.3f, Gt' = %.3f\n", Gf, alpha5, Ey / (2.0f*(1 + nuyz)));
-  printf("///\n");
-
-  C1 = alpha1; C12 = alpha3; C13 = alpha3;
-  C2 = alpha2 + alpha5; C23 = alpha2 - alpha5; C3 = alpha2 + alpha5;
-  C4 = alpha5; C5 = alpha4; C6 = alpha4;*/
-  //K = min(min(min(C1, C12), min(C13, C2)), min(C3, C23)) / 3.0f;
+  
   K = (C1 + C2 + C3) / 3.0f;
-  //K_M = TFloat3((C1 + C12 + C13) / 3.0f, (C2 + C12 + C23) / 3.0f, (C3 + C23 + C13) / 3.0f);
+  
   S1 = 1 / Ex; S12 = -nuxy / Ex; S13 = -nuxy / Ex;
   S21 = -nuxy / Ex; S2 = 1 / Ey; S23 = -nuyz / Ey;
   S31 = -nuxy / Ex; S32 = -nuyz / Ey; S3 = 1 / Ey;
@@ -737,7 +727,7 @@ void JSph::LoadCaseConfig(){
   // New B for anisotropy
   CteB = Kani / ( Gamma ) ;
   CteB_M = TFloat3(K_M.x / Gamma, K_M.y / Gamma, K_M.z / Gamma);
-  //CteB3D = TFloat3((C1 + C12 + C13) / Gamma, (C2 + C12 + C23) / Gamma, (C3 + C13 + C23) / Gamma);
+ 
   // Pore
   PoreZero = (float)ctes.GetPoreZero();
   // Mass
@@ -2277,10 +2267,7 @@ void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, con
 			// Press
 			float *pressp = NULL;
 			pressp = new float[npok];
-			for (unsigned p = 0; p < npok; p++) {
-				pressp[p] = press[p].x;
-				printf("P: %.3f, %.3f, %.3f\n", press[p].x, press[p].y, press[p].z);
-			}
+			for (unsigned p = 0; p<npok; p++) pressp[p] = press[p].x;
 			DataBi4->AddPartData("Press", npok, pressp);
 			
 			// Mass
@@ -2416,7 +2403,11 @@ void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, con
 	, unsigned ndom, const tdouble3 *vdom, const StInfoPartPlus *infoplus) {
 	//-Stores particle data and/or information in bi4 format.
 	//-Graba datos de particulas y/o informacion en formato bi4.
-	//printf("SaveData\n");
+
+
+	for (unsigned p = 0; p < npok; p++) {
+	}
+
 	if (DataBi4) {
 		tfloat3* posf3 = NULL;
 		TimerPart.Stop();
@@ -2494,7 +2485,6 @@ void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, con
 			DataBi4->AddPartData("Qfxy", npok, qfxy);
 
 			DataBi4->SaveFilePart();
-			delete[] pressp; pressp = NULL;//-Memory must to be deallocated after saving file because DataBi4 uses this memory space.
 			delete[] mass; mass = NULL;
 			delete[] qfxx; qfxx = NULL;
 			delete[] qfyy; qfyy = NULL;
@@ -2502,6 +2492,7 @@ void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, con
 			delete[] qfyz; qfyz = NULL;
 			delete[] qfxz; qfxz = NULL;
 			delete[] qfxy; qfxy = NULL;
+			delete[] pressp; pressp = NULL;//-Memory must to be deallocated after saving file because DataBi4 uses this memory space.
 										   //delete[] gradvelSave; gradvelSave = NULL;				
 
 		}
@@ -2527,13 +2518,12 @@ void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, con
 		if (idp) { fields[nfields] = JFormatFiles2::DefineField("Idp", JFormatFiles2::UInt32, 1, idp);   nfields++; }
 		if (vel) { fields[nfields] = JFormatFiles2::DefineField("Vel", JFormatFiles2::Float32, 3, vel);   nfields++; }
 		if (rhop) { fields[nfields] = JFormatFiles2::DefineField("Rhop", JFormatFiles2::Float32, 1, rhop);  nfields++; }
-		//if (pore) { fields[nfields] = JFormatFiles2::DefineField("Porep", JFormatFiles2::Float32, 1, pore);  nfields++; }
-		//if (massp) { fields[nfields] = JFormatFiles2::DefineField("Massp", JFormatFiles2::Float32, 1, massp);  nfields++; }
+		if (pore) { fields[nfields] = JFormatFiles2::DefineField("Porep", JFormatFiles2::Float32, 1, pore);  nfields++; }
+		if (massp) { fields[nfields] = JFormatFiles2::DefineField("Massp", JFormatFiles2::Float32, 1, massp);  nfields++; }
+		if (press) { fields[nfields] = JFormatFiles2::DefineField("Pressp", JFormatFiles2::Float32, 1, press);  nfields++; }
 		if (type) { fields[nfields] = JFormatFiles2::DefineField("Type", JFormatFiles2::UChar8, 1, type);  nfields++; }
-
 		if (SvData&SDAT_Vtk)JFormatFiles2::SaveVtk(DirDataOut + fun::FileNameSec("PartVtk.vtk", Part), npok, posf3, nfields, fields);
-		//if (SvData&SDAT_Csv)JFormatFiles2::SaveCsv(DirDataOut + fun::FileNameSec("PartCsv.csv", Part), CsvSepComa, npok, posf3, nfields, fields);
-
+		if (SvData&SDAT_Csv)JFormatFiles2::SaveCsv(DirDataOut + fun::FileNameSec("PartCsv.csv", Part), CsvSepComa, npok, posf3, nfields, fields);
 		//-libera memoria.
 		//-release of memory.
 		delete[] posf3;
@@ -2565,7 +2555,6 @@ void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, con
 void JSph::SaveData_M(unsigned npok, const unsigned *idp, const tdouble3 *pos, const tfloat3 *vel, const float *rhop, const float *pore
 	, const float *press, const float *mass, const tsymatrix3f *qf, unsigned ndom, const tdouble3 *vdom, const StInfoPartPlus *infoplus)
 {
-	const char met[] = "SaveData";
 	string suffixpartx = fun::PrintStr("_%04d", Part);
 
 	//-Contabiliza nuevas particulas excluidas.

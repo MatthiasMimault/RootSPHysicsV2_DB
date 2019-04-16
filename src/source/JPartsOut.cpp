@@ -98,10 +98,12 @@ llong JPartsOut::GetAllocMemory()const{
 
 //==============================================================================
 /// Resizes arrays for particles.
+// #Disparition
 //==============================================================================
 void JPartsOut::AddParticles(unsigned np,const unsigned* idp,const tdouble3* pos
   ,const tfloat3* vel,const float* rhop,const typecode* code)
 {
+	// #Disparition #Outparticles
   if(Count+np>Size)AllocMemory(Count+np+SizeIni,false);
   memcpy(Idp+Count,idp,sizeof(unsigned)*np);
   memcpy(Pos+Count,pos,sizeof(tdouble3)*np);
@@ -111,9 +113,9 @@ void JPartsOut::AddParticles(unsigned np,const unsigned* idp,const tdouble3* pos
   unsigned outpos=0,outrhop=0,outmove=0;
   for(unsigned c=0;c<np;c++){
     switch(CODE_GetSpecialValue(code[c])){
-      case CODE_OUTPOS:   Motive[Count+c]=1; outpos++;   break;
-      case CODE_OUTRHOP:  Motive[Count+c]=2; outrhop++;  break; 
-      case CODE_OUTMOVE:  Motive[Count+c]=3; outmove++;  break; 
+	case CODE_OUTPOS:   Motive[Count + c] = 1; outpos++;   break;
+	case CODE_OUTRHOP:  Motive[Count + c] = 2; outrhop++;  break;
+	case CODE_OUTMOVE:  Motive[Count + c] = 3; outmove++;  break;
     }
   }
   //-Updates numbers.

@@ -85,6 +85,12 @@ protected:
 	tfloat4 *VelrhopPrec;
 	double DtPre;
 
+	// Additional variables for #Symplectic_M
+	float *MassPrec_M;
+	tsymatrix3f *TauPrec_M;
+	tsymatrix3f *QuadFormPrec_M;
+
+
 	//-Variables for floating bodies.
 	unsigned *FtRidp;             ///<Identifier to access to the particles of the floating object [CaseNfloat].
 	StFtoForces *FtoForces;       ///<Stores forces of floatings [FtCount].
@@ -106,7 +112,7 @@ protected:
 
 						  //-Variables for computing forces [INTER_Forces,INTER_ForcesCorr] | Vars. derivadas para computo de fuerzas [INTER_Forces,INTER_ForcesCorr]
 	float *Pressc;       ///< Press[]=B*((Rhop/Rhop0)^gamma-1)
-	tfloat3 *Press3Dc_M;       ///< Press[]=B*((Rhop/Rhop0)^gamma-1)
+	//tfloat3 *Press3Dc_M;       ///< Press[]=B*((Rhop/Rhop0)^gamma-1)
 
 	// Matthias - Pore pressure
 	bool *Divisionc_M;
@@ -265,6 +271,44 @@ protected:
 		, tmatrix3f *L
 		, float &viscdt, float *ar, tfloat3 *ace, float *delta
 		, TpShifting tshifting, tfloat3 *shiftpos, float *shiftdetect)const;
+
+	template<bool psingle, TpKernel tker> void ComputeNsphCorrection
+	(unsigned n, unsigned pinit, tint4 nc, int hdiv, unsigned cellinitial
+		, const unsigned *beginendcell, tint3 cellzero, const unsigned *dcell
+		, const tdouble3 *pos, const tfloat3 *pspos, const tfloat4 *velrhop
+		, const float *mass, tmatrix3f *L)const;
+
+	template<bool psingle, TpKernel tker> void ComputeNsphCorrection11
+	(unsigned n, unsigned pinit, tint4 nc, int hdiv, unsigned cellinitial
+		, const unsigned *beginendcell, tint3 cellzero, const unsigned *dcell
+		, const tdouble3 *pos, const tfloat3 *pspos, const tfloat4 *velrhop
+		, const float *mass, tmatrix3f *L)const;
+
+	template<bool psingle, TpKernel tker> void ComputeNsphCorrectionX
+	(unsigned n, unsigned pinit, tint4 nc, int hdiv, unsigned cellinitial
+		, const unsigned *beginendcell, tint3 cellzero, const unsigned *dcell
+		, const tdouble3 *pos, const tfloat3 *pspos, const tfloat4 *velrhop
+		, const float *mass, tmatrix3f *L)const;
+
+	template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph tdelta, bool shift> void InteractionForcesNSPH11_M
+	(unsigned n, unsigned pinit, tint4 nc, int hdiv, unsigned cellinitial, float visco
+		, const unsigned *beginendcell, tint3 cellzero, const unsigned *dcell
+		, const tsymatrix3f* tau, tsymatrix3f* gradvel, tsymatrix3f* omega
+		, const tdouble3 *pos, const tfloat3 *pspos, const tfloat4 *velrhop, const typecode *code, const unsigned *idp
+		, const float *press, const float *pore, const float *mass
+		, tmatrix3f *L
+		, float &viscdt, float *ar, tfloat3 *ace, float *delta
+		, TpShifting tshifting, tfloat3 *shiftpos, float *shiftdetect)const;
+
+	template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph tdelta, bool shift> void InteractionForces_VelCst_M
+	(unsigned n, unsigned pinit, tint4 nc, int hdiv, unsigned cellinitial, float visco
+		, const unsigned *beginendcell, tint3 cellzero, const unsigned *dcell
+		, const tsymatrix3f* tau, tsymatrix3f* gradvel, tsymatrix3f* omega
+		, const tdouble3 *pos, const tfloat3 *pspos, const tfloat4 *velrhop, const typecode *code, const unsigned *idp
+		, const float *press, const float *pore, const float *mass
+		, tmatrix3f *L
+		, float &viscdt, float *ar, tfloat3 *ace, float *delta
+		, TpShifting tshifting, tfloat3 *shiftpos, float *shiftdetect)const;	
 
 	template<bool psingle> void InteractionForcesDEM
 	(unsigned nfloat, tint4 nc, int hdiv, unsigned cellfluid
@@ -460,6 +504,17 @@ protected:
 	double DtVariable(bool final);
 	// Matthias
 	void ComputeEuler_M(double dt);
+
+	template<bool shift> void ComputeSymplecticPreT_M(double dt);
+	void ComputeSymplecticPre_M(double dt);
+	template<bool shift> void ComputeSymplecticCorrT_M(double dt);
+	void ComputeSymplecticCorr_M(double dt);
+
+	template<bool shift> void ComputeSymplecticPreVcT_M(double dt);
+	void ComputeSymplecticPre_VelCst_M(double dt);
+	template<bool shift> void ComputeSymplecticCorrVcT_M(double dt);
+	void ComputeSymplecticCorr_VelCst_M(double dt);
+	// End Matthias
 
 	void RunShifting(double dt);
 
