@@ -2161,8 +2161,7 @@ void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, con
 			}*/
 
 			DataBi4->SaveFilePart();
-			//			delete[] press; press = NULL;//-Memory must to be deallocated after saving file because DataBi4 uses this memory space.
-			//delete[] gradvelSave; gradvelSave = NULL;				
+			//			delete[] press; press = NULL;//-Memory must to be deallocated after saving file because DataBi4 uses this memory space.		
 
 		}
 		if (SvData&SDAT_Info)DataBi4->SaveFileInfo();
@@ -2320,8 +2319,7 @@ void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, con
 			delete[] gyy; gyy = NULL;
 			delete[] gyz; gyz = NULL;
 			delete[] gzz; gzz = NULL;
-			delete[] pressp; pressp = NULL;//-Memory must to be deallocated after saving file because DataBi4 uses this memory space.
-			//delete[] gradvelSave; gradvelSave = NULL;				
+			delete[] pressp; pressp = NULL;//-Memory must to be deallocated after saving file because DataBi4 uses this memory space.		
 
 		}
 		if (SvData&SDAT_Info)DataBi4->SaveFileInfo();
@@ -2820,8 +2818,6 @@ void JSph::SaveData_M(unsigned npok, const unsigned *idp, const tdouble3 *pos, c
 	//-Graba ficheros con datos de particulas.
 	//-Stores data files of particles.
 	SavePartData_M(npok, nout, idp, pos, vel, rhop, pore, press, mass, qf, nabvx, ndom, vdom, infoplus);
-	//SavePartData_M(npok, nout, idp, pos, vel, rhop, pore, press, mass, qf, ndom, vdom, infoplus);
-	//SavePartData(npok, nout, idp, pos, vel, rhop, ndom, vdom, infoplus);
 
 	//-Reinicia limites de dt.
 	//-Reinitialises limits of dt.

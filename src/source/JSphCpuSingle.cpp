@@ -1740,8 +1740,6 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
   Log->Print(string("\n[Initialising simulation (")+RunCode+")  "+fun::GetDateTime()+"]");
   PrintHeadPart();
 
-  //printf("---Start loop---");
-
   while(TimeStep<TimeMax){
     if(ViscoTime)Visco=ViscoTime->GetVisco(float(TimeStep));
 
@@ -1822,7 +1820,6 @@ void JSphCpuSingle::SaveData() {
 	//-Stores particle data. | Graba datos de particulas.
 	const tdouble3 vdom[2] = { OrderDecode(CellDivSingle->GetDomainLimits(true)),OrderDecode(CellDivSingle->GetDomainLimits(false)) };
 	JSph::SaveData(npsave, idp, pos, vel, rhop, 1, vdom, &infoplus);
-	//JSph::SaveData(npsave, idp, pos, vel, rhop, 1, vdom, &infoplus);
 	//-Free auxiliary memory for particle data. | Libera memoria auxiliar para datos de particulas.
 	ArraysCpu->Free(idp);
 	ArraysCpu->Free(pos);
@@ -1864,7 +1861,6 @@ void JSphCpuSingle::SaveData_M() {
 		qf = ArraysCpu->ReserveSymatrix3f();
 		nablavx = ArraysCpu->ReserveFloat();
 
-		//unsigned npnormal = GetParticlesData_M(Np, 0, true, PeriActive != 0, idp, pos, vel, rhop, pore, press, mass, qf, NULL);
 		unsigned npnormal = GetParticlesData_M(Np, 0, true, PeriActive != 0, idp, pos, vel, rhop, pore, press, mass, qf, nablavx, NULL);
 		if (npnormal != npsave)RunException("SaveData", "The number of particles is invalid.");
 	}
@@ -1887,7 +1883,6 @@ void JSphCpuSingle::SaveData_M() {
 	//-Stores particle data. | Graba datos de particulas.
 	const tdouble3 vdom[2] = { OrderDecode(CellDivSingle->GetDomainLimits(true)),OrderDecode(CellDivSingle->GetDomainLimits(false)) };
 
-	//JSph::SaveData_M(npsave, idp, pos, vel, rhop, pore, press, mass, qf, 1, vdom, &infoplus);
 	JSph::SaveData_M(npsave, idp, pos, vel, rhop, pore, press, mass, qf, nablavx, 1, vdom, &infoplus);
 	//-Free auxiliary memory for particle data. | Libera memoria auxiliar para datos de particulas.
 	ArraysCpu->Free(idp);

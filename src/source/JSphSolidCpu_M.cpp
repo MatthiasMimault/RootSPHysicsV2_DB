@@ -77,7 +77,7 @@ void JSphSolidCpu::InitVars() {
 	PsPosc = NULL;                    //-Interaccion Pos-Single.
 	SpsTauc = NULL; SpsGradvelc = NULL; //-Laminar+SPS. 
 										// Matthias
-	//JauTauc_M = NULL; JauGradvelc_M = NULL; // Jaumann Solid
+
 	Tauc_M = NULL; StrainDotc_M = NULL; // Jaumann Solid
 	TauM1c_M = NULL;
 	MassM1c_M = NULL;
@@ -93,7 +93,6 @@ void JSphSolidCpu::InitVars() {
 	NabVx_M = NULL;
 	Divisionc_M = NULL;
 	QuadFormc_M = NULL;	QuadFormM1c_M = NULL;
-	//Voluc_M = NULL;
 	L_M = NULL;
 
 	RidpMove = NULL;
@@ -200,7 +199,6 @@ void JSphSolidCpu::AllocCpuMemoryParticles(unsigned np, float over) {
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_24B, 4); //-JauGradvel, JauTau2, Omega and Taudot, QuadForm
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_4B, 4); // SaveFields
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_36B, 1); // Matrix3f L_M
-	//ArraysCpu->AddArrayCount(JArraysCpu::SIZE_12B, 1); // Press3D //Require a deep cleaning, somewhere is required a 12b array
 
 	//-Shows the allocated memory.
 	MemCpuParticles = ArraysCpu->GetAllocMemoryCpu();
@@ -228,8 +226,6 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	float		  *mass = SaveArrayCpu(Np, Massc_M);
 	float		  *nabvx = SaveArrayCpu(Np, NabVx_M);
 	float		  *massm1 = SaveArrayCpu(Np, MassM1c_M);
-	//float		  *volu = SaveArrayCpu(Np, Voluc_M);	
-	//tmatrix3f *jautau = SaveArrayCpu(Np, JauTauc_M);
 	tsymatrix3f *jautau2 = SaveArrayCpu(Np, Tauc_M);
 	tsymatrix3f *jautaum12 = SaveArrayCpu(Np, TauM1c_M);
 	tsymatrix3f *quadform = SaveArrayCpu(Np, QuadFormc_M);
@@ -251,8 +247,6 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	ArraysCpu->Free(Massc_M);
 	ArraysCpu->Free(NabVx_M);
 	ArraysCpu->Free(MassM1c_M);
-	//ArraysCpu->Free(Voluc_M);
-	//ArraysCpu->Free(JauTauc_M);
 	ArraysCpu->Free(Tauc_M);
 	ArraysCpu->Free(TauM1c_M);
 	ArraysCpu->Free(QuadFormc_M);
@@ -279,8 +273,6 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	Massc_M = ArraysCpu->ReserveFloat();
 	NabVx_M = ArraysCpu->ReserveFloat();
 	if (massm1) MassM1c_M = ArraysCpu->ReserveFloat();
-	//Voluc_M = ArraysCpu->ReserveFloat();
-	//JauTauc_M = ArraysCpu->ReserveMatrix3f_M();
 	Tauc_M = ArraysCpu->ReserveSymatrix3f();
 	if (jautaum12) TauM1c_M = ArraysCpu->ReserveSymatrix3f();
 	QuadFormc_M = ArraysCpu->ReserveSymatrix3f();
@@ -302,8 +294,6 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	RestoreArrayCpu(Np, mass, Massc_M);
 	RestoreArrayCpu(Np, nabvx, NabVx_M);
 	RestoreArrayCpu(Np, massm1, MassM1c_M);
-	//RestoreArrayCpu(Np, volu, Porec_M);
-	//RestoreArrayCpu(Np, jautau, JauTauc_M);
 	RestoreArrayCpu(Np, jautau2, Tauc_M);
 	RestoreArrayCpu(Np, jautaum12, TauM1c_M);
 	RestoreArrayCpu(Np, quadform, QuadFormc_M);
@@ -361,7 +351,6 @@ void JSphSolidCpu::ReserveBasicArraysCpu() {
 	Porec_M = ArraysCpu->ReserveFloat();
 	Massc_M = ArraysCpu->ReserveFloat();
 	NabVx_M = ArraysCpu->ReserveFloat();
-	//JauTauc_M = ArraysCpu->ReserveMatrix3f_M();
 	Tauc_M = ArraysCpu->ReserveSymatrix3f();
 	QuadFormc_M = ArraysCpu->ReserveSymatrix3f();
 }
@@ -482,14 +471,6 @@ unsigned JSphSolidCpu::GetParticlesData_M(unsigned n, unsigned pini, bool cellor
 
 	// Matthias
 	if (pore)memcpy(pore, Porec_M + pini, sizeof(float)*n); 
-	/*if (press) {
-		for (unsigned p = 0; p<n; p++) {
-			//tfloat3 pre = AnisotropyK_M * TFloat3(CteB * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f));
-			tfloat3 pre =CteB3D * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f);
-			press[p] = TFloat3(pre.x, pre.y, pre.z);
-		}
-	}*/
-	//if (press)memcpy(press, Press3Dc + pini, sizeof(tfloat3)*n); // Not used, but Pressure seems to be recorded anyway, as well for tau
 	if (mass)memcpy(mass, Massc_M + pini, sizeof(float)*n);
 	if (tau)memcpy(tau, Tauc_M + pini, sizeof(tsymatrix3f)*n);
 
@@ -746,7 +727,6 @@ unsigned JSphSolidCpu::GetParticlesData_M(unsigned n, unsigned pini, bool cellor
 	if (pore)memcpy(pore, Porec_M + pini, sizeof(float)*n);
 	if (press) {
 		for (unsigned p = 0; p<n; p++) {
-			//tfloat3 pre = AnisotropyK_M * TFloat3(CteB * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f));
 			tfloat3 pre = CteB_M * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f);
 			press[p] = TFloat3(pre.x, pre.y, pre.z);
 		}
@@ -754,9 +734,7 @@ unsigned JSphSolidCpu::GetParticlesData_M(unsigned n, unsigned pini, bool cellor
 	//if (press)memcpy(press, Press3Dc + pini, sizeof(tfloat3)*n); // Not used, but Pressure seems to be recorded anyway, as well for tau
 	if (mass)memcpy(mass, Massc_M + pini, sizeof(float)*n);
 	if (tau)memcpy(tau, Tauc_M + pini, sizeof(tsymatrix3f)*n);
-	//if (gradvel)memcpy(tau, StrainDotc_M + pini, sizeof(tsymatrix3f)*n);
 	if (qf)memcpy(qf, QuadFormc_M + pini, sizeof(tsymatrix3f)*n);
-	//if (gradvel)memcpy(gradvel, StrainDot_M + pini, sizeof(tsymatrix3f)*n);
 
 	//-Eliminate non-normal particles (periodic & others). | Elimina particulas no normales (periodicas y otras).
 	if (onlynormal) {
