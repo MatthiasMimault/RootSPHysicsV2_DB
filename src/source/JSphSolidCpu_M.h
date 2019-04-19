@@ -118,6 +118,7 @@ protected:
 	bool *Divisionc_M;
 	float *Porec_M; 
 	float *Massc_M; // Mass, Delta mass
+	float *NabVx_M;
 	//float TimeGoing;
 
 						 //-Variables for Laminar+SPS viscosity.  
@@ -193,6 +194,8 @@ protected:
 		, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, tfloat3 *press, float* mass, tsymatrix3f *gradvel, tsymatrix3f *tau, tsymatrix3f *qf, typecode *code);
 	unsigned GetParticlesData_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
 		, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, float *press, float* mass, tsymatrix3f *qf, typecode *code);
+	unsigned GetParticlesData_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
+		, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, float *press, float* mass, tsymatrix3f *qf, float *nabvx, typecode *code);
 
 	void ConfigOmp(const JCfgRun *cfg);
 
@@ -308,7 +311,17 @@ protected:
 		, const float *press, const float *pore, const float *mass
 		, tmatrix3f *L
 		, float &viscdt, float *ar, tfloat3 *ace, float *delta
-		, TpShifting tshifting, tfloat3 *shiftpos, float *shiftdetect)const;	
+		, TpShifting tshifting, tfloat3 *shiftpos, float *shiftdetect)const;
+
+	template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph tdelta, bool shift> void InteractionForces_CstSig_M
+	(unsigned n, unsigned pinit, tint4 nc, int hdiv, unsigned cellinitial, float visco
+		, const unsigned *beginendcell, tint3 cellzero, const unsigned *dcell
+		, const tsymatrix3f* tau, tsymatrix3f* gradvel, tsymatrix3f* omega
+		, const tdouble3 *pos, const tfloat3 *pspos, const tfloat4 *velrhop, const typecode *code, const unsigned *idp
+		, const float *press, const float *pore, const float *mass
+		, tmatrix3f *L
+		, float &viscdt, float *ar, tfloat3 *ace, float *delta
+		, TpShifting tshifting, tfloat3 *shiftpos, float *shiftdetect)const;
 
 	template<bool psingle> void InteractionForcesDEM
 	(unsigned nfloat, tint4 nc, int hdiv, unsigned cellfluid
@@ -514,6 +527,11 @@ protected:
 	void ComputeSymplecticPre_VelCst_M(double dt);
 	template<bool shift> void ComputeSymplecticCorrVcT_M(double dt);
 	void ComputeSymplecticCorr_VelCst_M(double dt);
+
+	template<bool shift> void ComputeSymplecticPreT_SigCst_M(double dt);
+	void ComputeSymplecticPre_SigCst_M(double dt);
+	template<bool shift> void ComputeSymplecticCorrT_SigCst_M(double dt);
+	void ComputeSymplecticCorr_SigCst_M(double dt);
 	// End Matthias
 
 	void RunShifting(double dt);

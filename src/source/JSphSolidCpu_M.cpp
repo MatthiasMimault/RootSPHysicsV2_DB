@@ -90,6 +90,7 @@ void JSphSolidCpu::InitVars() {
 	// Matthias
 	Porec_M = NULL;
 	Massc_M = NULL;
+	NabVx_M = NULL;
 	Divisionc_M = NULL;
 	QuadFormc_M = NULL;	QuadFormM1c_M = NULL;
 	//Voluc_M = NULL;
@@ -150,10 +151,10 @@ void JSphSolidCpu::FreeCpuMemoryParticles() {
 //==============================================================================
 /// Allocte memory on CPU for the particles. 
 /// Reserva memoria en Cpu para las particulas. 
+// #AllocMem
 //==============================================================================
 void JSphSolidCpu::AllocCpuMemoryParticles(unsigned np, float over) {
 	const char* met = "AllocCpuMemoryParticles";
-	printf("AllocCpuMemPart\n");
 	//-Calculate number of partices with reserved memory | Calcula numero de particulas para las que se reserva memoria.
 	const unsigned np2 = (over>0 ? unsigned(over*np) : np);
 	CpuParticlesSize = np2 + PARTICLES_OVERMEMORY_MIN;
@@ -195,11 +196,11 @@ void JSphSolidCpu::AllocCpuMemoryParticles(unsigned np, float over) {
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_1B, 1);  //division
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_4B, 1); // Pore
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_4B, 1); // Mass
-	//ArraysCpu->AddArrayCount(JArraysCpu::SIZE_36B, 1); //-JauGradvel, JauTau
+	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_4B, 1); // NabVx
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_24B, 4); //-JauGradvel, JauTau2, Omega and Taudot, QuadForm
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_4B, 4); // SaveFields
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_36B, 1); // Matrix3f L_M
-	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_12B, 1); // Press3D //Require a deep cleaning, somewhere is required a 12b array
+	//ArraysCpu->AddArrayCount(JArraysCpu::SIZE_12B, 1); // Press3D //Require a deep cleaning, somewhere is required a 12b array
 
 	//-Shows the allocated memory.
 	MemCpuParticles = ArraysCpu->GetAllocMemoryCpu();
@@ -225,6 +226,7 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	bool		  *division = SaveArrayCpu(Np, Divisionc_M);
 	float		  *pore = SaveArrayCpu(Np, Porec_M);
 	float		  *mass = SaveArrayCpu(Np, Massc_M);
+	float		  *nabvx = SaveArrayCpu(Np, NabVx_M);
 	float		  *massm1 = SaveArrayCpu(Np, MassM1c_M);
 	//float		  *volu = SaveArrayCpu(Np, Voluc_M);	
 	//tmatrix3f *jautau = SaveArrayCpu(Np, JauTauc_M);
@@ -247,6 +249,7 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	ArraysCpu->Free(Divisionc_M);
 	ArraysCpu->Free(Porec_M);
 	ArraysCpu->Free(Massc_M);
+	ArraysCpu->Free(NabVx_M);
 	ArraysCpu->Free(MassM1c_M);
 	//ArraysCpu->Free(Voluc_M);
 	//ArraysCpu->Free(JauTauc_M);
@@ -274,6 +277,7 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	Divisionc_M = ArraysCpu->ReserveBool();
 	Porec_M = ArraysCpu->ReserveFloat();
 	Massc_M = ArraysCpu->ReserveFloat();
+	NabVx_M = ArraysCpu->ReserveFloat();
 	if (massm1) MassM1c_M = ArraysCpu->ReserveFloat();
 	//Voluc_M = ArraysCpu->ReserveFloat();
 	//JauTauc_M = ArraysCpu->ReserveMatrix3f_M();
@@ -296,6 +300,7 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	RestoreArrayCpu(Np, division, Divisionc_M);
 	RestoreArrayCpu(Np, pore, Porec_M);
 	RestoreArrayCpu(Np, mass, Massc_M);
+	RestoreArrayCpu(Np, nabvx, NabVx_M);
 	RestoreArrayCpu(Np, massm1, MassM1c_M);
 	//RestoreArrayCpu(Np, volu, Porec_M);
 	//RestoreArrayCpu(Np, jautau, JauTauc_M);
@@ -355,6 +360,7 @@ void JSphSolidCpu::ReserveBasicArraysCpu() {
 	Divisionc_M = ArraysCpu->ReserveBool();
 	Porec_M = ArraysCpu->ReserveFloat();
 	Massc_M = ArraysCpu->ReserveFloat();
+	NabVx_M = ArraysCpu->ReserveFloat();
 	//JauTauc_M = ArraysCpu->ReserveMatrix3f_M();
 	Tauc_M = ArraysCpu->ReserveSymatrix3f();
 	QuadFormc_M = ArraysCpu->ReserveSymatrix3f();
@@ -594,21 +600,21 @@ unsigned JSphSolidCpu::GetParticlesData_M(unsigned n, unsigned pini, bool cellor
 	if (idp)memcpy(idp, Idpc + pini, sizeof(unsigned)*n);
 	if (pos)memcpy(pos, Posc + pini, sizeof(tdouble3)*n);
 	if (vel && rhop) {
-		for (unsigned p = 0; p<n; p++) {
+		for (unsigned p = 0; p < n; p++) {
 			tfloat4 vr = Velrhopc[p + pini];
 			vel[p] = TFloat3(vr.x, vr.y, vr.z);
 			rhop[p] = vr.w;
 		}
 	}
 	else {
-		if (vel) for (unsigned p = 0; p<n; p++) { tfloat4 vr = Velrhopc[p + pini]; vel[p] = TFloat3(vr.x, vr.y, vr.z); }
-		if (rhop)for (unsigned p = 0; p<n; p++)rhop[p] = Velrhopc[p + pini].w;
+		if (vel) for (unsigned p = 0; p < n; p++) { tfloat4 vr = Velrhopc[p + pini]; vel[p] = TFloat3(vr.x, vr.y, vr.z); }
+		if (rhop)for (unsigned p = 0; p < n; p++)rhop[p] = Velrhopc[p + pini].w;
 	}
 
 	// Matthias
 	if (pore)memcpy(pore, Porec_M + pini, sizeof(float)*n);
 	if (press) {
-		for (unsigned p = 0; p<n; p++) {
+		for (unsigned p = 0; p < n; p++) {
 			press[p] = CteB * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f);
 		}
 	}
@@ -625,7 +631,73 @@ unsigned JSphSolidCpu::GetParticlesData_M(unsigned n, unsigned pini, bool cellor
 			memcpy(code2, Codec + pini, sizeof(typecode)*n);
 		}
 		unsigned ndel = 0;
-		for (unsigned p = 0; p<n; p++) {
+		for (unsigned p = 0; p < n; p++) {
+			bool normal = CODE_IsNormal(code2[p]);
+			if (ndel && normal) {
+				const unsigned pdel = p - ndel;
+				idp[pdel] = idp[p];
+				pos[pdel] = pos[p];
+				vel[pdel] = vel[p];
+				rhop[pdel] = rhop[p];
+				code2[pdel] = code2[p];
+			}
+			if (!normal)ndel++;
+		}
+		num -= ndel;
+		if (!code)ArraysCpu->Free(code2);
+	}
+	//-Reorder components in their original order. | Reordena componentes en su orden original.
+	if (cellorderdecode)DecodeCellOrder(n, pos, vel);
+	return(num);
+}
+
+//////////////////////////////////////
+// Surcharge of GetParticlesData_M with Nabvx -- Matthias
+// #SigCst
+//////////////////////////////////////
+unsigned JSphSolidCpu::GetParticlesData_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
+	, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, float *press, float* mass, tsymatrix3f *qf, float *nabvx, typecode *code)
+{
+	const char met[] = "GetParticlesData";
+	unsigned num = n;
+	//-Copy selected values.
+	if (code)memcpy(code, Codec + pini, sizeof(typecode)*n);
+	if (idp)memcpy(idp, Idpc + pini, sizeof(unsigned)*n);
+	if (pos)memcpy(pos, Posc + pini, sizeof(tdouble3)*n);
+	if (vel && rhop) {
+		for (unsigned p = 0; p < n; p++) {
+			tfloat4 vr = Velrhopc[p + pini];
+			vel[p] = TFloat3(vr.x, vr.y, vr.z);
+			rhop[p] = vr.w;
+		}
+	}
+	else {
+		if (vel) for (unsigned p = 0; p < n; p++) { tfloat4 vr = Velrhopc[p + pini]; vel[p] = TFloat3(vr.x, vr.y, vr.z); }
+		if (rhop)for (unsigned p = 0; p < n; p++)rhop[p] = Velrhopc[p + pini].w;
+	}
+
+	// Matthias
+	if (pore)memcpy(pore, Porec_M + pini, sizeof(float)*n);
+	if (press) {
+		for (unsigned p = 0; p < n; p++) {
+			press[p] = CteB * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f);
+		}
+	}
+	if (mass)memcpy(mass, Massc_M + pini, sizeof(float)*n);
+	if (qf)memcpy(qf, QuadFormc_M + pini, sizeof(tsymatrix3f)*n);
+	if (nabvx) memcpy(nabvx, NabVx_M + pini, sizeof(float)*n);
+
+	//-Eliminate non-normal particles (periodic & others). | Elimina particulas no normales (periodicas y otras).
+	if (onlynormal) {
+		printf("NonNormalPart_SavePart\n");
+		if (!idp || !pos || !vel || !rhop)RunException(met, "Pointers without data.");
+		typecode *code2 = code;
+		if (!code2) {
+			code2 = ArraysCpu->ReserveTypeCode();
+			memcpy(code2, Codec + pini, sizeof(typecode)*n);
+		}
+		unsigned ndel = 0;
+		for (unsigned p = 0; p < n; p++) {
 			bool normal = CODE_IsNormal(code2[p]);
 			if (ndel && normal) {
 				const unsigned pdel = p - ndel;
@@ -782,6 +854,7 @@ void JSphSolidCpu::InitRun() {
 
 	// Matthias
 	memset(Tauc_M, 0, sizeof(tsymatrix3f)*Np);
+	memset(NabVx_M, 0, sizeof(float)*Np);
 	memset(Divisionc_M, 0, sizeof(bool)*Np);
 	for (unsigned p = 0; p < Np; p++) {
 		Massc_M[p] = MassFluid;	
@@ -2959,6 +3032,219 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 	for (int th = 0; th < OmpThreads; th++)if (viscdt < viscth[th*OMP_STRIDE])viscdt = viscth[th*OMP_STRIDE];
 }
 
+
+// #GradVel #Sigma
+// Version with constant quadratic pressure field
+template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph tdelta, bool shift> void JSphSolidCpu::InteractionForces_CstSig_M
+(unsigned n, unsigned pinit, tint4 nc, int hdiv, unsigned cellinitial, float visco
+	, const unsigned *beginendcell, tint3 cellzero, const unsigned *dcell
+	, const tsymatrix3f* tau, tsymatrix3f* gradvel, tsymatrix3f* omega
+	, const tdouble3 *pos, const tfloat3 *pspos, const tfloat4 *velrhop, const typecode *code, const unsigned *idp
+	, const float *press, const float *pore, const float *mass
+	, tmatrix3f *L
+	, float &viscdt, float *ar, tfloat3 *ace, float *delta
+	, TpShifting tshifting, tfloat3 *shiftpos, float *shiftdetect)const
+{
+	const bool boundp2 = (!cellinitial); //-Interaction with type boundary (Bound). | Interaccion con Bound.
+										 //-Initialize viscth to calculate viscdt maximo con OpenMP. | Inicializa viscth para calcular visdt maximo con OpenMP.
+	float viscth[OMP_MAXTHREADS*OMP_STRIDE];
+	for (int th = 0; th < OmpThreads; th++)viscth[th*OMP_STRIDE] = 0;
+	//-Initialise execution with OpenMP. | Inicia ejecucion con OpenMP..
+	const int pfin = int(pinit + n);
+
+#ifdef OMP_USE
+#pragma omp parallel for schedule (guided)
+#endif
+
+	for (int p1 = int(pinit); p1 < pfin; p1++) {
+		float visc = 0, arp1 = 0, deltap1 = 0;
+		tfloat3 acep1 = TFloat3(0);
+
+		// Matthias
+		tsymatrix3f gradvelp1 = { 0, 0, 0, 0, 0, 0 };
+		tsymatrix3f omegap1 = { 0, 0, 0, 0, 0, 0 };
+		tfloat3 shiftposp1 = TFloat3(0);
+		float shiftdetectp1 = 0;
+
+		//-Obtain data of particle p1 in case of floating objects. | Obtiene datos de particula p1 en caso de existir floatings.
+		bool ftp1 = false;     //-Indicate if it is floating. | Indica si es floating.
+		float ftmassp1 = 1.f;  //-Contains floating particle mass or 1.0f if it is fluid. | Contiene masa de particula floating o 1.0f si es fluid..
+		if (USE_FLOATING) {
+			ftp1 = CODE_IsFloating(code[p1]);
+			if (ftp1)ftmassp1 = FtObjs[CODE_GetTypeValue(code[p1])].massp;
+			if (ftp1 && (tdelta == DELTA_Dynamic || tdelta == DELTA_DynamicExt))deltap1 = FLT_MAX;
+			if (ftp1 && shift)shiftposp1.x = FLT_MAX;  //-For floating objects do not calculate shifting. | Para floatings no se calcula shifting.
+		}
+
+		//-Obtain data of particle p1.
+		const tfloat3 velp1 = TFloat3(velrhop[p1].x, velrhop[p1].y, velrhop[p1].z);
+		const float rhopp1 = velrhop[p1].w;
+		const tfloat3 psposp1 = (psingle ? pspos[p1] : TFloat3(0));
+		const tdouble3 posp1 = (psingle ? TDouble3(0) : pos[p1]);
+		const float pressp1 = press[p1];
+		// Matthias
+		const tsymatrix3f taup1 = tau[p1];
+		const float porep1 = pore[p1];
+
+		//-Obtain interaction limits.
+		int cxini, cxfin, yini, yfin, zini, zfin;
+		GetInteractionCells(dcell[p1], hdiv, nc, cellzero, cxini, cxfin, yini, yfin, zini, zfin);
+
+		//-Search for neighbours in adjacent cells.
+		for (int z = zini; z < zfin; z++) {
+			const int zmod = (nc.w)*z + cellinitial; //-Sum from start of fluid or boundary cells. | Le suma donde empiezan las celdas de fluido o bound.
+			for (int y = yini; y < yfin; y++) {
+				int ymod = zmod + nc.x*y;
+				const unsigned pini = beginendcell[cxini + ymod];
+				const unsigned pfin = beginendcell[cxfin + ymod];
+				//printf("Zmod %d Ymod %d\n", zmod, ymod);
+
+				//-Interaction of Fluid with type Fluid or Bound. | Interaccion de Fluid con varias Fluid o Bound.
+				//------------------------------------------------------------------------------------------------
+				for (unsigned p2 = pini; p2 < pfin; p2++) {
+					const float drx = (psingle ? psposp1.x - pspos[p2].x : float(posp1.x - pos[p2].x));
+					const float dry = (psingle ? psposp1.y - pspos[p2].y : float(posp1.y - pos[p2].y));
+					const float drz = (psingle ? psposp1.z - pspos[p2].z : float(posp1.z - pos[p2].z));
+					const float rr2 = drx * drx + dry * dry + drz * drz;
+					if (rr2 <= Fourh2 && rr2 >= ALMOSTZERO) {
+						//-Cubic Spline, Wendland or Gaussian kernel.
+						float frx, fry, frz; // Here will be put Fac (for diffusion)
+						if (tker == KERNEL_Wendland)GetKernelWendland(rr2, drx, dry, drz, frx, fry, frz);
+						else if (tker == KERNEL_Gaussian)GetKernelGaussian(rr2, drx, dry, drz, frx, fry, frz);
+						else if (tker == KERNEL_Cubic)GetKernelCubic(rr2, drx, dry, drz, frx, fry, frz);
+
+						//===== Get mass of particle p2 ===== 
+						float massp2 = (boundp2 ? MassBound : mass[p2]); //-Contiene masa de particula segun sea bound o fluid.
+						bool ftp2 = false;    //-Indicate if it is floating | Indica si es floating.
+						bool compute = true;  //-Deactivate when using DEM and if it is of type float-float or float-bound | Se desactiva cuando se usa DEM y es float-float o float-bound.
+						if (USE_FLOATING) {
+
+							ftp2 = CODE_IsFloating(code[p2]);
+							if (ftp2)massp2 = FtObjs[CODE_GetTypeValue(code[p2])].massp;
+#ifdef DELTA_HEAVYFLOATING
+							if (ftp2 && massp2 <= (MassFluid*1.2f) && (tdelta == DELTA_Dynamic || tdelta == DELTA_DynamicExt))deltap1 = FLT_MAX;
+#else
+							if (ftp2 && (tdelta == DELTA_Dynamic || tdelta == DELTA_DynamicExt))deltap1 = FLT_MAX;
+#endif
+							if (ftp2 && shift && tshifting == SHIFT_NoBound)shiftposp1.x = FLT_MAX; //-With floating objects do not use shifting. | Con floatings anula shifting.
+							compute = !(USE_DEM && ftp1 && (boundp2 || ftp2)); //-Deactivate when using DEM and if it is of type float-float or float-bound. | Se desactiva cuando se usa DEM y es float-float o float-bound.
+						}
+
+						//===== Acceleration ===== 
+						if (compute) {
+							const tsymatrix3f prs = {
+								(1.0f / 3.0f*(psingle ? psposp1.x*psposp1.x : float(posp1.x*posp1.x)) 
+								+ 1.0f / 3.0f*(psingle ? pspos[p2].x*pspos[p2].x : float(pos[p2].x*pos[p2].x))) / (rhopp1*velrhop[p2].w),
+								0.0f, 0.0f,	0.0f ,0.0f,0.0f };
+							const tsymatrix3f p_vpm3 = {
+								-prs.xx*massp2*ftmassp1, -prs.xy*massp2*ftmassp1, -prs.xz*massp2*ftmassp1,
+								-prs.yy*massp2*ftmassp1, -prs.yz*massp2*ftmassp1, -prs.zz*massp2*ftmassp1
+							};
+
+							acep1.x += p_vpm3.xx*frx*L[p1].a11 + p_vpm3.xy*fry*L[p1].a12 + p_vpm3.xz*frz*L[p1].a13;
+							acep1.y += p_vpm3.xy*frx*L[p1].a21 + p_vpm3.yy*fry*L[p1].a22 + p_vpm3.yz*frz*L[p1].a23;
+							acep1.z += p_vpm3.xz*frx*L[p1].a31 + p_vpm3.yz*fry*L[p1].a32 + p_vpm3.zz*frz*L[p1].a33;
+						}
+
+						//-Density derivative.
+						const float dvx = velp1.x - velrhop[p2].x, dvy = velp1.y - velrhop[p2].y, dvz = velp1.z - velrhop[p2].z;
+						if (compute)arp1 += massp2 * (dvx*frx*L[p1].a11 + dvy * fry*L[p1].a22 + dvz * frz*L[p1].a33);
+
+						const float cbar = (float)Cs0;
+						//-Density derivative (DeltaSPH Molteni).
+						if ((tdelta == DELTA_Dynamic || tdelta == DELTA_DynamicExt) && deltap1 != FLT_MAX) {
+							const float rhop1over2 = rhopp1 / velrhop[p2].w;
+							const float visc_densi = Delta2H * cbar*(rhop1over2 - 1.f) / (rr2 + Eta2);
+							const float dot3 = (drx*frx + dry * fry + drz * frz);
+							const float delta = visc_densi * dot3*massp2;
+							deltap1 = (boundp2 ? FLT_MAX : deltap1 + delta);
+						}
+
+						//-Shifting correction.
+						if (shift && shiftposp1.x != FLT_MAX) {
+							const float massrhop = massp2 / velrhop[p2].w;
+							const bool noshift = (boundp2 && (tshifting == SHIFT_NoBound || (tshifting == SHIFT_NoFixed && CODE_IsFixed(code[p2]))));
+							shiftposp1.x = (noshift ? FLT_MAX : shiftposp1.x + massrhop * frx); //-For boundary do not use shifting. | Con boundary anula shifting.
+							shiftposp1.y += massrhop * fry;
+							shiftposp1.z += massrhop * frz;
+							shiftdetectp1 -= massrhop * (drx*frx + dry * fry + drz * frz);
+						}
+
+						//===== Viscosity ======
+						if (compute) {
+							const float dot = drx * dvx + dry * dvy + drz * dvz;
+							const float dot_rr2 = dot / (rr2 + Eta2);
+							visc = max(dot_rr2, visc);
+							if (!lamsps) {//-Artificial viscosity.
+								if (dot < 0) {
+									const float amubar = H * dot_rr2;  //amubar=CTE.h*dot/(rr2+CTE.eta2);
+									const float robar = (rhopp1 + velrhop[p2].w)*0.5f;
+									const float pi_visc = (-visco * cbar*amubar / robar)*massp2*ftmassp1;
+									acep1.x -= pi_visc * frx; acep1.y -= pi_visc * fry; acep1.z -= pi_visc * frz;
+								}
+							}
+						}
+
+						//===== Velocity gradients ===== 
+						if (compute) {
+							if (!ftp1) {//-When p1 is a fluid particle / Cuando p1 es fluido. 
+								const float volp2 = -massp2 / velrhop[p2].w;
+
+								// Velocity gradient NSPH
+								float dv = dvx * volp2;
+								gradvelp1.xx += dv * frx*L[p1].a11; gradvelp1.xy += 0.5f*dv*fry*L[p1].a12; gradvelp1.xz += 0.5f*dv*frz*L[p1].a13;
+								omegap1.xy += 0.5f*dv*fry*L[p1].a12; omegap1.xz += 0.5f*dv*frz*L[p1].a13;
+
+								dv = dvy * volp2;
+								gradvelp1.xy += 0.5f*dv*frx*L[p1].a21; gradvelp1.yy += dv * fry*L[p1].a22; gradvelp1.yz += 0.5f*dv*frz*L[p1].a23;
+								omegap1.xy -= 0.5f*dv*frx*L[p1].a21; omegap1.yz += 0.5f*dv*frz*L[p1].a23;
+
+								dv = dvz * volp2;
+								gradvelp1.xz += 0.5f*dv*frx*L[p1].a31; gradvelp1.yz += 0.5f*dv*fry*L[p1].a32; gradvelp1.zz += dv * frz*L[p1].a33;
+								omegap1.xz -= 0.5f*dv*frx*L[p1].a31; omegap1.yz -= 0.5f*dv*fry*L[p1].a32;
+							}
+						}
+					}
+				}
+			}
+		}
+
+		//-Sum results together.
+		if (shift || arp1 || acep1.x || acep1.y || acep1.z || visc) {
+			if (tdelta == DELTA_Dynamic && deltap1 != FLT_MAX)arp1 += deltap1;
+			if (tdelta == DELTA_DynamicExt)delta[p1] = (delta[p1] == FLT_MAX || deltap1 == FLT_MAX ? FLT_MAX : delta[p1] + deltap1);
+			ar[p1] += arp1;
+			ace[p1] = ace[p1] + acep1;
+			const int th = omp_get_thread_num();
+			if (visc > viscth[th*OMP_STRIDE])viscth[th*OMP_STRIDE] = visc;
+
+			if (shift && shiftpos[p1].x != FLT_MAX) {
+				shiftpos[p1] = (shiftposp1.x == FLT_MAX ? TFloat3(FLT_MAX, 0, 0) : shiftpos[p1] + shiftposp1);
+				if (shiftdetect)shiftdetect[p1] += shiftdetectp1;
+			}
+
+			// Gradvel and rotation tensor .
+			gradvel[p1].xx += gradvelp1.xx;
+			gradvel[p1].xy += gradvelp1.xy;
+			gradvel[p1].xz += gradvelp1.xz;
+			gradvel[p1].yy += gradvelp1.yy;
+			gradvel[p1].yz += gradvelp1.yz;
+			gradvel[p1].zz += gradvelp1.zz;
+
+			omega[p1].xx += omegap1.xx;
+			omega[p1].xy += omegap1.xy;
+			omega[p1].xz += omegap1.xz;
+			omega[p1].yy += omegap1.yy;
+			omega[p1].yz += omegap1.yz;
+			omega[p1].zz += omegap1.zz;
+
+		}
+	}
+
+	//-Keep max value in viscdt. | Guarda en viscdt el valor maximo.
+	for (int th = 0; th < OmpThreads; th++)if (viscdt < viscth[th*OMP_STRIDE])viscdt = viscth[th*OMP_STRIDE];
+}
+
 //==============================================================================
 /// Interaction particles with SPM and Press3D - Matthias
 //==============================================================================
@@ -3462,24 +3748,24 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 				, pos, pspos, velrhop, mass, L);
 		
 		//-Interaction Fluid-Fluid.
-		InteractionForcesNSPH11_M<psingle, tker, ftmode, lamsps, tdelta, shift>
+		/*InteractionForcesNSPH11_M<psingle, tker, ftmode, lamsps, tdelta, shift>
 			(npf, npb, nc, hdiv, cellfluid, Visco, begincell, cellzero, dcell
 				, jautau, jaugradvel, jauomega, pos, pspos, velrhop, code, idp, press, pore, mass, L, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);
 
 		//-Interaction Fluid-Bound.
 		InteractionForcesNSPH11_M<psingle, tker, ftmode, lamsps, tdelta, shift>
-			(npf, npb, nc, hdiv, 0, Visco*ViscoBoundFactor, begincell, cellzero, dcell
-				, jautau, jaugradvel, jauomega, pos, pspos, velrhop, code, idp, press, pore, mass, L, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);
-
-		/*//-Interaction Fluid-Fluid.
-		InteractionForces_VelCst_M<psingle, tker, ftmode, lamsps, tdelta, shift>
-			(npf, npb, nc, hdiv, cellfluid, Visco, begincell, cellzero, dcell
-				, jautau, jaugradvel, jauomega, pos, pspos, velrhop, code, idp, press, pore, mass, L, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);
-
-		//-Interaction Fluid-Bound.
-		InteractionForces_VelCst_M<psingle, tker, ftmode, lamsps, tdelta, shift>
 			(npf, npb, nc, hdiv, 0, Visco*ViscoBoundFactor, begincell, cellzero, dcell
 				, jautau, jaugradvel, jauomega, pos, pspos, velrhop, code, idp, press, pore, mass, L, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);*/
+				
+		//-Interaction Fluid-Fluid.
+		InteractionForces_CstSig_M<psingle, tker, ftmode, lamsps, tdelta, shift>
+			(npf, npb, nc, hdiv, cellfluid, Visco, begincell, cellzero, dcell
+				, jautau, jaugradvel, jauomega, pos, pspos, velrhop, code, idp, press, pore, mass, L, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);
+
+		//-Interaction Fluid-Bound.
+		InteractionForces_CstSig_M<psingle, tker, ftmode, lamsps, tdelta, shift>
+			(npf, npb, nc, hdiv, 0, Visco*ViscoBoundFactor, begincell, cellzero, dcell
+				, jautau, jaugradvel, jauomega, pos, pspos, velrhop, code, idp, press, pore, mass, L, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);
 
 		//-Interaction of DEM Floating-Bound & Floating-Floating. //(DEM)
 		if (USE_DEM)InteractionForcesDEM<psingle>(CaseNfloat, nc, hdiv, cellfluid, begincell, cellzero, dcell, FtRidp, DemData, pos, pspos, velrhop, code, idp, viscdt, ace);
@@ -8232,7 +8518,7 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT(double dt) {
 /// /////////////////////////////////////////////
 // Symplectic code, Matthias version
 // With NSPH, solid dynamics and Cell geometry
-// #Symplectic_M
+// #Symplectic_M #Version
 /// /////////////////////////////////////////////
 void JSphSolidCpu::ComputeSymplecticPre_M(double dt) {
 	if (TShifting)ComputeSymplecticPreT_M<false>(dt); //-We strongly recommend running the shifting correction only for the corrector. 
@@ -8302,7 +8588,7 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticPreT_M(double dt) {
 			//-Update velocity & density. | Actualiza velocidad y densidad.
 			Velrhopc[p].x = float(double(VelrhopPrec[p].x) + double(Acec[p].x)* dt05);
 			Velrhopc[p].y = float(double(VelrhopPrec[p].y) + double(Acec[p].y)* dt05);
-			Velrhopc[p].z = float(double(VelrhopPrec[p].z) + double(Acec[p].z)* dt05);			
+			Velrhopc[p].z = float(double(VelrhopPrec[p].z) + double(Acec[p].z)* dt05);
 
 			// Update Shear stress
 			Tauc_M[p].xx = float(double(TauPrec_M[p].xx) + double(TauDotc_M[p].xx)* dt05);
@@ -8363,7 +8649,6 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticPreT_M(double dt) {
 void JSphSolidCpu::ComputeSymplecticCorr_M(double dt) {
 	if (TShifting)ComputeSymplecticCorrT_M<true>(dt);
 	else         ComputeSymplecticCorrT_M<false>(dt);
-
 }
 
 template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT_M(double dt) {
@@ -8430,7 +8715,7 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT_M(double dt) {
 				, StrainDotc_M[p].xy, StrainDotc_M[p].yy, StrainDotc_M[p].yz
 				, StrainDotc_M[p].xz, StrainDotc_M[p].yz, StrainDotc_M[p].zz) + TMatrix3f(Spinc_M[p].xx, Spinc_M[p].xy, Spinc_M[p].xz
 					, -Spinc_M[p].xy, Spinc_M[p].yy, Spinc_M[p].yz
-					, -Spinc_M[p].xz, -Spinc_M[p].yz, Spinc_M[p].zz);
+					, -Spinc_M[p].xz, -Spinc_M[p].yz, Spinc_M[p].zz); 
 
 			tmatrix3f DQD = ToTMatrix3f((TMatrix3d(1, 0, 0, 0, 1, 0, 0, 0, 1) - dt
 				* ToTMatrix3d(Ttransp(GdVel))) * ToTMatrix3d(Q) * (TMatrix3d(1, 0, 0, 0, 1, 0, 0, 0, 1) - dt * ToTMatrix3d(GdVel)));
@@ -8445,8 +8730,14 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT_M(double dt) {
 			// Source Density and Mass - To be moved upward, with E_rdot
 			const float volu = float(double(MassPrec_M[p]) / double(rhopnew));
 			float adens = float(LambdaMass * (RhopZero / rhopnew - 1));
-			rhopnew = float(rhopnew + dt * adens);
 
+			// #Growth
+			/*if (Posc[p].x > 0.3f && Posc[p].x <= 1.6) {
+				rhopnew = float(rhopnew + dt * adens);
+				Massc_M[p] = float(double(MassPrec_M[p]) + dt * double(adens*volu));
+			}*/
+			// #Grad #Gx
+			rhopnew = float(rhopnew + dt * adens);
 			Massc_M[p] = float(double(MassPrec_M[p]) + dt * double(adens*volu));
 
 			Velrhopc[p].w = rhopnew;
@@ -8474,7 +8765,6 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT_M(double dt) {
 	ArraysCpu->Free(QuadFormPrec_M);  QuadFormPrec_M = NULL;
 	TmcStop(Timers, TMC_SuComputeStep);
 }
-
 // End Symplectic_M
 
 // #CstVel - Special reformulation of Update with constant velocity
@@ -8676,6 +8966,277 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrVcT_M(double dt) {
 			}
 			if ((Part == 25 || Part == 50 || Part == 75 || Part == 100) && Posc[p].y > 0.9 && Posc[p].z > 0.9) {
 				printf("BorderId %d Posx %.8f Vx %.8f Gvx %.8f (Part %d - Nsteps %d)\n", Idpc[p]
+					, Posc[p].x, Velrhopc[p].x, GdVel.a11, Part, Nstep);
+			}*/
+		}
+		else {//-Floating Particles.
+			Velrhopc[p] = VelrhopPrec[p];
+			Velrhopc[p].w = (rhopnew < RhopZero ? RhopZero : rhopnew); //-Avoid fluid particles being absorbed by floating ones. | Evita q las floating absorvan a las fluidas.
+																	 //-Copy position. | Copia posicion.
+			Posc[p] = PosPrec[p];
+		}
+	}
+
+
+
+	//-Free memory assigned to variables Pre and ComputeSymplecticPre(). | Libera memoria asignada a variables Pre en ComputeSymplecticPre().
+	ArraysCpu->Free(PosPrec);         PosPrec = NULL;
+	ArraysCpu->Free(VelrhopPrec);	  VelrhopPrec = NULL;
+	ArraysCpu->Free(MassPrec_M);	  MassPrec_M = NULL;
+	ArraysCpu->Free(TauPrec_M);		  TauPrec_M = NULL;
+	ArraysCpu->Free(QuadFormPrec_M);  QuadFormPrec_M = NULL;
+	TmcStop(Timers, TMC_SuComputeStep);
+}
+
+/// /////////////////////////////////////////////
+// Code version with sigma=1/3x^2
+// Approximation evaluation
+/// /////////////////////////////////////////////
+void JSphSolidCpu::ComputeSymplecticPre_SigCst_M(double dt) {
+	if (TShifting)ComputeSymplecticPreT_SigCst_M<false>(dt); //-We strongly recommend running the shifting correction only for the corrector. 
+	else         ComputeSymplecticPreT_SigCst_M<false>(dt); // If you want to re-enable shifting in the predictor, change the value here to "true".	
+
+}
+
+template<bool shift> void JSphSolidCpu::ComputeSymplecticPreT_SigCst_M(double dt) {
+	TmcStart(Timers, TMC_SuComputeStep);
+	//-Assign memory to variables Pre. | Asigna memoria a variables Pre.
+	PosPrec = ArraysCpu->ReserveDouble3();
+	VelrhopPrec = ArraysCpu->ReserveFloat4();
+	MassPrec_M = ArraysCpu->ReserveFloat();
+	TauPrec_M = ArraysCpu->ReserveSymatrix3f();
+	QuadFormPrec_M = ArraysCpu->ReserveSymatrix3f();
+
+	//-Change data to variables Pre to calculate new data. | Cambia datos a variables Pre para calcular nuevos datos.
+	swap(PosPrec, Posc);         //Put value of Pos[] in PosPre[].         | Es decir... PosPre[] <= Pos[].
+	swap(VelrhopPrec, Velrhopc); //Put value of Velrhop[] in VelrhopPre[]. | Es decir... VelrhopPre[] <= Velrhop[].
+								 //-Calculate new values of particles. | Calcula nuevos datos de particulas.
+
+	// Swap MTQ
+	swap(Massc_M, MassPrec_M);
+	swap(Tauc_M, TauPrec_M);
+	swap(QuadFormc_M, QuadFormPrec_M);
+
+	const double dt05 = dt * .5;
+
+	//-Calculate new density for boundary and copy velocity. | Calcula nueva densidad para el contorno y copia velocidad.
+	const int npb = int(Npb);
+#ifdef OMP_USE
+#pragma omp parallel for schedule (static) if(npb>OMP_LIMIT_COMPUTESTEP)
+#endif
+	for (int p = 0; p < npb; p++) {
+		const tfloat4 vr = VelrhopPrec[p];
+		const float rhopnew = float(double(vr.w) + dt05 * Arc[p]);
+		Velrhopc[p] = TFloat4(vr.x, vr.y, vr.z, (rhopnew < RhopZero ? RhopZero : rhopnew));//-Avoid fluid particles being absorbed by boundary ones. | Evita q las boundary absorvan a las fluidas.
+
+		Tauc_M[p] = TauPrec_M[p];
+		QuadFormc_M[p] = QuadFormPrec_M[p];
+		Massc_M[p] = MassPrec_M[p];
+	}
+
+	//-Calculate new values of fluid. | Calcula nuevos datos del fluido.
+	const int np = int(Np);
+#ifdef OMP_USE
+#pragma omp parallel for schedule (static) if(np>OMP_LIMIT_COMPUTESTEP)
+#endif
+	for (int p = npb; p < np; p++) {
+		//-Calculate density.
+		//const float rhopnew = float(double(VelrhopPrec[p].w) + dt05 * Arc[p]); // Not const because of source update 
+		const float rhopnew = RhopZero - RhopZero /2.0f*float(TimeStep)*float(TimeStep);
+
+		if (!WithFloating || CODE_IsFluid(Codec[p])) {//-Fluid Particles.
+
+			//-Calculate displacement & update position. | Calcula desplazamiento y actualiza posicion.
+			double dx = double(VelrhopPrec[p].x)*dt05;
+			double dy = double(VelrhopPrec[p].y)*dt05;
+			double dz = double(VelrhopPrec[p].z)*dt05;
+			if (shift) {
+				dx += double(ShiftPosc[p].x);
+				dy += double(ShiftPosc[p].y);
+				dz += double(ShiftPosc[p].z);
+			}
+			bool outrhop = (rhopnew<RhopOutMin || rhopnew>RhopOutMax);
+			UpdatePos(PosPrec[p], dx, dy, dz, outrhop, p, Posc, Dcellc, Codec);
+
+			//-Update velocity & density. | Actualiza velocidad y densidad.
+			/*Velrhopc[p].x = float(double(VelrhopPrec[p].x) + double(Acec[p].x)* dt05);
+			Velrhopc[p].y = float(double(VelrhopPrec[p].y) + double(Acec[p].y)* dt05);
+			Velrhopc[p].z = float(double(VelrhopPrec[p].z) + double(Acec[p].z)* dt05);*/
+			// #Grad #Gx #SigCst	
+			Velrhopc[p].x = float(RhopZero / rhopnew *Posc[p].x*TimeStep);
+			Velrhopc[p].y = 0.0f;
+			Velrhopc[p].z = 0.0f; 
+			/*Velrhopc[p].x = float(double(VelrhopPrec[p].x) + 1.0 / 3.0*Posc[p].x*Posc[p].x * dt05);
+			Velrhopc[p].y = float(double(VelrhopPrec[p].y) + 0.0 * dt05);
+			Velrhopc[p].z = float(double(VelrhopPrec[p].z) + 0.0 * dt05);*/
+
+			// Update Shear stress
+			Tauc_M[p].xx = float(double(TauPrec_M[p].xx) + double(TauDotc_M[p].xx)* dt05);
+			Tauc_M[p].xy = float(double(TauPrec_M[p].xy) + double(TauDotc_M[p].xy)* dt05);
+			Tauc_M[p].xz = float(double(TauPrec_M[p].xz) + double(TauDotc_M[p].xz)* dt05);
+			Tauc_M[p].yy = float(double(TauPrec_M[p].yy) + double(TauDotc_M[p].yy)* dt05);
+			Tauc_M[p].yz = float(double(TauPrec_M[p].yz) + double(TauDotc_M[p].yz)* dt05);
+			Tauc_M[p].zz = float(double(TauPrec_M[p].zz) + double(TauDotc_M[p].zz)* dt05);
+
+			// Update Quadratic form - Commented since Defor only in CorrT
+			/*tmatrix3f Q = TMatrix3f(QuadFormPrec_M[p].xx, QuadFormPrec_M[p].xy, QuadFormPrec_M[p].xz
+				, QuadFormPrec_M[p].xy, QuadFormPrec_M[p].yy, QuadFormPrec_M[p].yz, QuadFormPrec_M[p].xz, QuadFormPrec_M[p].yz, QuadFormPrec_M[p].zz);
+			tmatrix3f GdVel = 0.5* TMatrix3f(StrainDotc_M[p].xx, StrainDotc_M[p].xy, StrainDotc_M[p].xz
+				, StrainDotc_M[p].xy, StrainDotc_M[p].yy, StrainDotc_M[p].yz
+				, StrainDotc_M[p].xz, StrainDotc_M[p].yz, StrainDotc_M[p].zz) - 0.5f* TMatrix3f(Spinc_M[p].xx, Spinc_M[p].xy, Spinc_M[p].xz
+					, -Spinc_M[p].xy, Spinc_M[p].yy, Spinc_M[p].yz
+					, -Spinc_M[p].xz, -Spinc_M[p].yz, Spinc_M[p].zz);
+
+			tmatrix3f DQD = ToTMatrix3f((TMatrix3d(1, 0, 0, 0, 1, 0, 0, 0, 1) - dt05
+				* ToTMatrix3d(Ttransp(GdVel))) * ToTMatrix3d(Q) * (TMatrix3d(1, 0, 0, 0, 1, 0, 0, 0, 1) - dt05 * ToTMatrix3d(GdVel)));
+			//27/03/19 - Is it possible to reduce this DQD line ?
+			QuadFormc_M[p].xx = float(DQD.a11);
+			QuadFormc_M[p].xy = float(DQD.a12);
+			QuadFormc_M[p].xz = float(DQD.a13);
+			QuadFormc_M[p].yy = float(DQD.a22);
+			QuadFormc_M[p].yz = float(DQD.a23);
+			QuadFormc_M[p].zz = float(DQD.a33);*/
+			QuadFormc_M[p] = QuadFormPrec_M[p];
+
+			// Source Density and Mass - Commented since Source/Mass only in CorrT
+			//27/03/19 - Maybe the source should only apply in ComputeCorr, comparaison a prevoir
+			/*const float volu = float(double(MassPrec_M[p]) / double(rhopnew));
+			float adens = float(LambdaMass * (RhopZero / rhopnew - 1));
+			rhopnew = float(rhopnew + dt05 * adens);
+
+			Massc_M[p] = float(double(MassPrec_M[p]) + dt05 * double(adens*volu));*/
+			Velrhopc[p].w = rhopnew;
+
+			Massc_M[p] = MassPrec_M[p];
+
+		}
+
+		else {//-Floating Particles.
+			Velrhopc[p] = VelrhopPrec[p];
+			Velrhopc[p].w = (rhopnew < RhopZero ? RhopZero : rhopnew); //-Avoid fluid particles being absorbed by floating ones. | Evita q las floating absorvan a las fluidas.
+																	 //-Copy position. | Copia posicion.
+			Posc[p] = PosPrec[p];
+		}
+	}
+
+	//-Copy previous position of boundary. | Copia posicion anterior del contorno.
+	memcpy(Posc, PosPrec, sizeof(tdouble3)*Npb);
+
+	TmcStop(Timers, TMC_SuComputeStep);
+
+}
+
+void JSphSolidCpu::ComputeSymplecticCorr_SigCst_M(double dt) {
+	if (TShifting)ComputeSymplecticCorrT_SigCst_M<true>(dt);
+	else         ComputeSymplecticCorrT_SigCst_M<false>(dt);
+}
+
+template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT_SigCst_M(double dt) {
+	TmcStart(Timers, TMC_SuComputeStep);
+
+	//-Calculate rhop of boudary and set velocity=0. | Calcula rhop de contorno y vel igual a cero.
+	const int npb = int(Npb);
+#ifdef OMP_USE
+#pragma omp parallel for schedule (static) if(npb>OMP_LIMIT_COMPUTESTEP)
+#endif
+	for (int p = 0; p < npb; p++) {
+		const double epsilon_rdot = (-double(Arc[p]) / double(Velrhopc[p].w))*dt;
+		//const float rhopnew = float(double(VelrhopPrec[p].w) * (2. - epsilon_rdot) / (2. + epsilon_rdot));
+		const float rhopnew = RhopZero - RhopZero /2.0f*float(TimeStep)*float(TimeStep);
+		Velrhopc[p] = TFloat4(0, 0, 0, (rhopnew < RhopZero ? RhopZero : rhopnew));//-Avoid fluid particles being absorbed by boundary ones. | Evita q las boundary absorvan a las fluidas.
+	}
+
+	//-Calculate fluid values. | Calcula datos de fluido.
+	const double dt05 = dt * .5;
+	const int np = int(Np);
+#ifdef OMP_USE
+#pragma omp parallel for schedule (static) if(np>OMP_LIMIT_COMPUTESTEP)
+#endif
+	for (int p = npb; p < np; p++) {
+		const double epsilon_rdot = (-double(Arc[p]) / double(Velrhopc[p].w))*dt;
+
+		//float rhopnew = float(double(VelrhopPrec[p].w) * (2. - epsilon_rdot) / (2. + epsilon_rdot));
+		float rhopnew = RhopZero - RhopZero / 2.0f*float(TimeStep)*float(TimeStep);
+
+		// 27/03/19 - I need to find references for this equation, report on it
+
+		if (!WithFloating || CODE_IsFluid(Codec[p])) {//-Fluid Particles.
+													  //-Update velocity & density. | Actualiza velocidad y densidad.
+			/*Velrhopc[p].x = float(double(VelrhopPrec[p].x) + double(Acec[p].x) * dt);
+			Velrhopc[p].y = float(double(VelrhopPrec[p].y) + double(Acec[p].y) * dt);
+			Velrhopc[p].z = float(double(VelrhopPrec[p].z) + double(Acec[p].z) * dt);*/
+			// #Grad #Gx	
+			Velrhopc[p].x = float(RhopZero / rhopnew * Posc[p].x*TimeStep);
+			Velrhopc[p].y = 0.0f;
+			Velrhopc[p].z = 0.0f;
+			/*Velrhopc[p].x = float(double(VelrhopPrec[p].x) + 1.0 / 3.0*Posc[p].x*Posc[p].x * dt);
+			Velrhopc[p].y = float(double(VelrhopPrec[p].y) + 0.0 * dt);
+			Velrhopc[p].z = float(double(VelrhopPrec[p].z) + 0.0 * dt);*/
+
+			Velrhopc[p].w = rhopnew;
+
+			//-Calculate displacement and update position. | Calcula desplazamiento y actualiza posicion.
+			double dx = (double(VelrhopPrec[p].x) + double(Velrhopc[p].x)) * dt05;
+			double dy = (double(VelrhopPrec[p].y) + double(Velrhopc[p].y)) * dt05;
+			double dz = (double(VelrhopPrec[p].z) + double(Velrhopc[p].z)) * dt05;
+			if (shift) {
+				dx += double(ShiftPosc[p].x);
+				dy += double(ShiftPosc[p].y);
+				dz += double(ShiftPosc[p].z);
+			}
+			bool outrhop = (rhopnew<RhopOutMin || rhopnew>RhopOutMax);
+			UpdatePos(PosPrec[p], dx, dy, dz, outrhop, p, Posc, Dcellc, Codec);
+
+			// Update Shear stress
+			Tauc_M[p].xx = float(double(TauPrec_M[p].xx) + double(TauDotc_M[p].xx)* dt);
+			Tauc_M[p].xy = float(double(TauPrec_M[p].xy) + double(TauDotc_M[p].xy)* dt);
+			Tauc_M[p].xz = float(double(TauPrec_M[p].xz) + double(TauDotc_M[p].xz)* dt);
+			Tauc_M[p].yy = float(double(TauPrec_M[p].yy) + double(TauDotc_M[p].yy)* dt);
+			Tauc_M[p].yz = float(double(TauPrec_M[p].yz) + double(TauDotc_M[p].yz)* dt);
+			Tauc_M[p].zz = float(double(TauPrec_M[p].zz) + double(TauDotc_M[p].zz)* dt);
+
+			// Update Quadratic form
+			// ep+om modified 09042019
+			// #Velocity #Gradient
+			tmatrix3f Q = TMatrix3f(QuadFormPrec_M[p].xx, QuadFormPrec_M[p].xy, QuadFormPrec_M[p].xz
+				, QuadFormPrec_M[p].xy, QuadFormPrec_M[p].yy, QuadFormPrec_M[p].yz, QuadFormPrec_M[p].xz, QuadFormPrec_M[p].yz, QuadFormPrec_M[p].zz);
+
+			// #Grad #Gx	
+			/*tmatrix3f GdVel = TMatrix3f(StrainDotc_M[p].xx, StrainDotc_M[p].xy, StrainDotc_M[p].xz
+				, StrainDotc_M[p].xy, StrainDotc_M[p].yy, StrainDotc_M[p].yz
+				, StrainDotc_M[p].xz, StrainDotc_M[p].yz, StrainDotc_M[p].zz) + TMatrix3f(Spinc_M[p].xx, Spinc_M[p].xy, Spinc_M[p].xz
+					, -Spinc_M[p].xy, Spinc_M[p].yy, Spinc_M[p].yz
+					, -Spinc_M[p].xz, -Spinc_M[p].yz, Spinc_M[p].zz);*/
+			tmatrix3f GdVel = TMatrix3f(RhopZero / rhopnew *float(TimeStep), 0, 0, 0, 0, 0, 0, 0, 0);
+			NabVx_M[p] = GdVel.a11;
+
+			tmatrix3f DQD = ToTMatrix3f((TMatrix3d(1, 0, 0, 0, 1, 0, 0, 0, 1) - dt
+				* ToTMatrix3d(Ttransp(GdVel))) * ToTMatrix3d(Q) * (TMatrix3d(1, 0, 0, 0, 1, 0, 0, 0, 1) - dt * ToTMatrix3d(GdVel)));
+			//27/03/19 - Is it possible to reduce this DQD line ? -> no because there is the complete multiplication of three dense matrices.
+			QuadFormc_M[p].xx = float(DQD.a11);
+			QuadFormc_M[p].xy = float(DQD.a12);
+			QuadFormc_M[p].xz = float(DQD.a13);
+			QuadFormc_M[p].yy = float(DQD.a22);
+			QuadFormc_M[p].yz = float(DQD.a23);
+			QuadFormc_M[p].zz = float(DQD.a33);
+
+			// Source Density and Mass - To be moved upward, with E_rdot
+			const float volu = float(double(MassPrec_M[p]) / double(rhopnew));
+			float adens = float(LambdaMass * (RhopZero / rhopnew - 1));
+
+			// #Growth
+			/*if (Posc[p].x > 0.3f && Posc[p].x <= 1.6) {
+				rhopnew = float(rhopnew + dt * adens);
+				Massc_M[p] = float(double(MassPrec_M[p]) + dt * double(adens*volu));
+			}*/
+			// #Grad #Gx
+			rhopnew = float(rhopnew + dt * adens);
+			Massc_M[p] = float(double(MassPrec_M[p]) + dt * double(adens*volu));
+
+			Velrhopc[p].w = rhopnew;
+
+			/*if ((Nstep == 200 || Nstep == 250 || Nstep == 300) && abs(Posc[p].y) < 0.05 && abs(Posc[p].z) < 0.05) {
+				printf("CenterId %d Posx %.8f Vx %.8f Gvx %.8f (Part %d - Nsteps %d)\n", Idpc[p]
 					, Posc[p].x, Velrhopc[p].x, GdVel.a11, Part, Nstep);
 			}*/
 		}

@@ -2549,6 +2549,163 @@ void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, con
 	PartsOut->Clear();
 }
 
+////////////////////////////////////////////////////
+// Surchage SavePartData w Nabvx - Matthias
+////////////////////////////////////////////////////
+void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, const tdouble3 *pos, const tfloat3 *vel
+	, const float *rhop, const float *pore, const float *press, const float *massp, const tsymatrix3f *qfp, const float *nabvx
+	, unsigned ndom, const tdouble3 *vdom, const StInfoPartPlus *infoplus) {
+	//-Stores particle data and/or information in bi4 format.
+	//-Graba datos de particulas y/o informacion en formato bi4.
+
+	if (DataBi4) {
+		tfloat3* posf3 = NULL;
+		TimerPart.Stop();
+		JBinaryData* bdpart = DataBi4->AddPartInfo(Part, TimeStep, npok, nout, Nstep, TimerPart.GetElapsedTimeD() / 1000., vdom[0], vdom[1], TotalNp);
+		if (infoplus && SvData&SDAT_Info) {
+			bdpart->SetvDouble("dtmean", (!Nstep ? 0 : (TimeStep - TimeStepM1) / (Nstep - PartNstep)));
+			bdpart->SetvDouble("dtmin", (!Nstep ? 0 : PartDtMin));
+			bdpart->SetvDouble("dtmax", (!Nstep ? 0 : PartDtMax));
+			if (DtFixed)bdpart->SetvDouble("dterror", DtFixed->GetDtError(true));
+			bdpart->SetvDouble("timesim", infoplus->timesim);
+			bdpart->SetvUint("nct", infoplus->nct);
+			bdpart->SetvUint("npbin", infoplus->npbin);
+			bdpart->SetvUint("npbout", infoplus->npbout);
+			bdpart->SetvUint("npf", infoplus->npf);
+			bdpart->SetvUint("npbper", infoplus->npbper);
+			bdpart->SetvUint("npfper", infoplus->npfper);
+			bdpart->SetvLlong("cpualloc", infoplus->memorycpualloc);
+			if (infoplus->gpudata) {
+				bdpart->SetvLlong("nctalloc", infoplus->memorynctalloc);
+				bdpart->SetvLlong("nctused", infoplus->memorynctused);
+				bdpart->SetvLlong("npalloc", infoplus->memorynpalloc);
+				bdpart->SetvLlong("npused", infoplus->memorynpused);
+			}
+		}
+		if (SvData&SDAT_Binx) {
+			if (SvDouble)DataBi4->AddPartData(npok, idp, pos, vel, rhop);
+			else {
+				posf3 = GetPointerDataFloat3(npok, pos);
+				DataBi4->AddPartData(npok, idp, posf3, vel, rhop);
+			}
+			// Press
+			float *pressp = NULL;
+			pressp = new float[npok];
+			for (unsigned p = 0; p < npok; p++) pressp[p] = press[p];
+			DataBi4->AddPartData("Press", npok, pressp);
+
+			// Mass
+			float *mass = NULL;
+			mass = new float[npok];
+			for (unsigned p = 0; p < npok; p++) mass[p] = massp[p];
+			DataBi4->AddPartData("Mass", npok, mass);
+
+			// Nabla vx
+			float *nvx = NULL;
+			nvx = new float[npok];
+			for (unsigned p = 0; p < npok; p++) nvx[p] = nabvx[p];
+			DataBi4->AddPartData("NabVx", npok, nvx);
+
+
+			/*// Quadratic form -- Blocked formulation since PartVtk does not seem to read tsymatrix
+			tsymatrix3f *qf = NULL;
+			qf = new tsymatrix3f[npok];
+			for (unsigned p = 0; p < npok; p++) qf[p] = qfp[p];
+			DataBi4->AddPartData("Qf", npok, qf);*/
+			// Quadratic form -- term to term formulation (Voigt notation)
+			float *qfxx = NULL;
+			float *qfyy = NULL;
+			float *qfzz = NULL;
+			float *qfyz = NULL;
+			float *qfxz = NULL;
+			float *qfxy = NULL;
+			qfxx = new float[npok];
+			qfyy = new float[npok];
+			qfzz = new float[npok];
+			qfyz = new float[npok];
+			qfxz = new float[npok];
+			qfxy = new float[npok];
+			for (unsigned p = 0; p < npok; p++) {
+				qfxx[p] = qfp[p].xx;
+				qfyy[p] = qfp[p].yy;
+				qfzz[p] = qfp[p].zz;
+				qfyz[p] = qfp[p].yz;
+				qfxz[p] = qfp[p].xz;
+				qfxy[p] = qfp[p].xy;
+			}
+			DataBi4->AddPartData("Qfxx", npok, qfxx);
+			DataBi4->AddPartData("Qfyy", npok, qfyy);
+			DataBi4->AddPartData("Qfzz", npok, qfzz);
+			DataBi4->AddPartData("Qfyz", npok, qfyz);
+			DataBi4->AddPartData("Qfxz", npok, qfxz);
+			DataBi4->AddPartData("Qfxy", npok, qfxy);
+
+			DataBi4->SaveFilePart();
+			delete[] mass; mass = NULL;
+			delete[] nvx; nvx = NULL;
+			delete[] qfxx; qfxx = NULL;
+			delete[] qfyy; qfyy = NULL;
+			delete[] qfzz; qfzz = NULL;
+			delete[] qfyz; qfyz = NULL;
+			delete[] qfxz; qfxz = NULL;
+			delete[] qfxy; qfxy = NULL;
+			delete[] pressp; pressp = NULL;//-Memory must to be deallocated after saving file because DataBi4 uses this memory space.
+										   //delete[] gradvelSave; gradvelSave = NULL;				
+
+		}
+		if (SvData&SDAT_Info)DataBi4->SaveFileInfo();
+		delete[] posf3;
+	}
+
+	//-Graba ficheros VKT y/o CSV.
+	//-Stores VTK nd/or CSV files.
+	if ((SvData&SDAT_Csv) || (SvData&SDAT_Vtk)) {
+		//-Genera array con posf3 y tipo de particula.
+		//-Generates array with posf3 and type of particle.
+		tfloat3* posf3 = GetPointerDataFloat3(npok, pos);
+		byte *type = new byte[npok];
+		for (unsigned p = 0; p < npok; p++) {
+			const unsigned id = idp[p];
+			type[p] = (id >= CaseNbound ? 3 : (id < CaseNfixed ? 0 : (id < CaseNpb ? 1 : 2)));
+		}
+		//-Define campos a grabar.
+		//-Defines fields to be stored.
+		JFormatFiles2::StScalarData fields[16];
+		unsigned nfields = 0;
+		if (idp) { fields[nfields] = JFormatFiles2::DefineField("Idp", JFormatFiles2::UInt32, 1, idp);   nfields++; }
+		if (vel) { fields[nfields] = JFormatFiles2::DefineField("Vel", JFormatFiles2::Float32, 3, vel);   nfields++; }
+		if (rhop) { fields[nfields] = JFormatFiles2::DefineField("Rhop", JFormatFiles2::Float32, 1, rhop);  nfields++; }
+		if (pore) { fields[nfields] = JFormatFiles2::DefineField("Porep", JFormatFiles2::Float32, 1, pore);  nfields++; }
+		if (massp) { fields[nfields] = JFormatFiles2::DefineField("Massp", JFormatFiles2::Float32, 1, massp);  nfields++; }
+		if (press) { fields[nfields] = JFormatFiles2::DefineField("Pressp", JFormatFiles2::Float32, 1, press);  nfields++; }
+		if (type) { fields[nfields] = JFormatFiles2::DefineField("Type", JFormatFiles2::UChar8, 1, type);  nfields++; }
+		if (SvData&SDAT_Vtk)JFormatFiles2::SaveVtk(DirDataOut + fun::FileNameSec("PartVtk.vtk", Part), npok, posf3, nfields, fields);
+		if (SvData&SDAT_Csv)JFormatFiles2::SaveCsv(DirDataOut + fun::FileNameSec("PartCsv.csv", Part), CsvSepComa, npok, posf3, nfields, fields);
+		//-libera memoria.
+		//-release of memory.
+		delete[] posf3;
+		delete[] type;
+	}
+
+	//-Graba datos de particulas excluidas.
+	//-Stores data of excluded particles.
+	if (DataOutBi4 && PartsOut->GetCount()) {
+		DataOutBi4->SavePartOut(SvDouble, Part, TimeStep, PartsOut->GetCount(), PartsOut->GetIdpOut(), NULL, PartsOut->GetPosOut(), PartsOut->GetVelOut(), PartsOut->GetRhopOut(), PartsOut->GetMotiveOut());
+	}
+
+	//-Graba datos de floatings.
+	//-Stores data of floatings.
+	if (DataFloatBi4) {
+		if (CellOrder == ORDER_XYZ)for (unsigned cf = 0; cf < FtCount; cf++)DataFloatBi4->AddPartData(cf, FtObjs[cf].center, FtObjs[cf].fvel, FtObjs[cf].fomega);
+		else                    for (unsigned cf = 0; cf < FtCount; cf++)DataFloatBi4->AddPartData(cf, OrderDecodeValue(CellOrder, FtObjs[cf].center), OrderDecodeValue(CellOrder, FtObjs[cf].fvel), OrderDecodeValue(CellOrder, FtObjs[cf].fomega));
+		DataFloatBi4->SavePartFloat(Part, TimeStep, (UseDEM ? DemDtForce : 0));
+	}
+
+	//-Vacia almacen de particulas excluidas.
+	//-Empties stock of excluded particles.
+	PartsOut->Clear();
+}
+
 ///////////////////////////
 // SaveData surcharge with Qf -- Matthias
 ///////////////////////////
@@ -2645,6 +2802,56 @@ void JSph::SaveData_M(unsigned npok, const unsigned *idp, const tdouble3 *pos, c
 	if (GaugeSystem)GaugeSystem->SaveResults(Part);
 }
 
+
+///////////////////////////
+// SaveData surcharge with nabVx -- Matthias
+///////////////////////////
+void JSph::SaveData_M(unsigned npok, const unsigned *idp, const tdouble3 *pos, const tfloat3 *vel, const float *rhop, const float *pore
+	, const float *press, const float *mass, const tsymatrix3f *qf, const float *nabvx, unsigned ndom, const tdouble3 *vdom, const StInfoPartPlus *infoplus)
+{
+	string suffixpartx = fun::PrintStr("_%04d", Part);
+
+	//-Contabiliza nuevas particulas excluidas.
+	//-Counts new excluded particles.
+	const unsigned noutpos = PartsOut->GetOutPosCount(), noutrhop = PartsOut->GetOutRhopCount(), noutmove = PartsOut->GetOutMoveCount();
+	const unsigned nout = noutpos + noutrhop + noutmove;
+	AddOutCount(noutpos, noutrhop, noutmove);
+
+	//-Graba ficheros con datos de particulas.
+	//-Stores data files of particles.
+	SavePartData_M(npok, nout, idp, pos, vel, rhop, pore, press, mass, qf, nabvx, ndom, vdom, infoplus);
+	//SavePartData_M(npok, nout, idp, pos, vel, rhop, pore, press, mass, qf, ndom, vdom, infoplus);
+	//SavePartData(npok, nout, idp, pos, vel, rhop, ndom, vdom, infoplus);
+
+	//-Reinicia limites de dt.
+	//-Reinitialises limits of dt.
+	PartDtMin = DBL_MAX; PartDtMax = -DBL_MAX;
+
+	//-Calculo de tiempo.
+	//-Computation of time.
+	if (Part > PartIni || Nstep) {
+		TimerPart.Stop();
+		double tpart = TimerPart.GetElapsedTimeD() / 1000;
+		double tseg = tpart / (TimeStep - TimeStepM1);
+		TimerSim.Stop();
+		double tcalc = TimerSim.GetElapsedTimeD() / 1000;
+		double tleft = (tcalc / (TimeStep - TimeStepIni))*(TimeMax - TimeStep);
+		Log->Printf("Part%s  %12.6f  %12d  %7d  %9.2f  %14s", suffixpartx.c_str(), TimeStep, (Nstep + 1), Nstep - PartNstep, tseg, fun::GetDateTimeAfter(int(tleft)).c_str());
+	}
+	else Log->Printf("Part%s        %u particles successfully stored", suffixpartx.c_str(), npok);
+
+
+	//-Muestra info de particulas excluidas
+	//-Shows info of the excluded particles
+	if (nout) {
+		PartOut += nout;
+		Log->Printf("  Particles out: %u  (total: %u)", nout, PartOut);
+	}
+
+	if (SvDomainVtk)SaveDomainVtk(ndom, vdom);
+	if (SaveDt)SaveDt->SaveData();
+	if (GaugeSystem)GaugeSystem->SaveResults(Part);
+}
 
 //==============================================================================
 /// Generates VTK file with domain of the particles.
