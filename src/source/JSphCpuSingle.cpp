@@ -1444,23 +1444,15 @@ double JSphCpuSingle::ComputeStep_Eul_M() {
 //=============================================================================
 double JSphCpuSingle::ComputeStep_Sym(){
   const double dt=DtPre;
+
   //-Predictor
   //-----------
   DemDtForce=dt*0.5f;                     //(DEM)
   Interaction_Forces(INTER_Forces);       //-Interaction.
-  //printf("Predictor\n");
-  /*for (unsigned p = 0; p < Np; p++) {
-	  if (Idpc[p] < 1764 || Idpc[p] > 16316) {
-		  Acec[p].x = Posc[p].x;
-	  }
-  }
-  cin.get();
-  printf("\n");*/
-
   const double ddt_p=DtVariable(false);   //-Calculate dt of predictor step.
   if(TShifting)RunShifting(dt*.5);        //-Shifting.
-  // ComputeSymplecticPre_M(dt);               //-Apply Symplectic-Predictor to particles.
-  ComputeSymplecticPre_SigCst_M(dt);               
+  ComputeSymplecticPre_M(dt);               //-Apply Symplectic-Predictor to particles.
+  // ComputeSymplecticPre_SigCst_M(dt);               
   if(CaseNfloat)RunFloating(dt*.5,true);  //-Control of floating bodies.
   PosInteraction_Forces();                //-Free memory used for interaction.
 
@@ -1469,23 +1461,10 @@ double JSphCpuSingle::ComputeStep_Sym(){
   DemDtForce=dt;                          //(DEM)
   RunCellDivide(true);
   Interaction_Forces(INTER_ForcesCorr);   //Interaction.
-  /*for (unsigned p = 0; p < Np; p++) {
-  if (Idpc[p] < 1764 || Idpc[p] > 16316) {
-	  Acec[p].x = Posc[p].x;
-  }
-}
-  printf("Corrector\n");
-  for (unsigned p = 0; p < Np; p++) {
-	  if (Idpc[p] == 400) {
-		  printf("Id: %d - Pos: %.8f - Ace Exact: %.8f - Approx: %.8f\n", Idpc[p], Posc[p].x, -RhopZero * Posc[p].x / Velrhopc[p].w, Acec[p].x);
-	  }
-  }
-  cin.get();
-  printf("\n");*/
   const double ddt_c=DtVariable(true);    //-Calculate dt of corrector step.
   if(TShifting)RunShifting(dt);           //-Shifting.
-  // ComputeSymplecticCorr_M(dt);              //-Apply Symplectic-Corrector to particles.
-  ComputeSymplecticCorr_SigCst_M(dt);   
+  ComputeSymplecticCorr_M(dt);              //-Apply Symplectic-Corrector to particles.
+  // ComputeSymplecticCorr_SigCst_M(dt);   
   if(CaseNfloat)RunFloating(dt,false);    //-Control of floating bodies.
   PosInteraction_Forces();                //-Free memory used for interaction.
   if(Damping)RunDamping(dt,Np,Npb,Posc,Codec,Velrhopc); //-Applies Damping.
