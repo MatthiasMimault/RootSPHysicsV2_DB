@@ -100,7 +100,7 @@ void JArraysCpuSize::FreePointer(void* pointer)const{
   switch(ElementSize){
     case 1:   delete[] ((char*)pointer);    pointer=NULL;   break;
     case 2:   delete[] ((word*)pointer);    pointer=NULL;   break;
-	case 4:   delete[]((int*)pointer);      pointer = NULL; printf("PtNull\n");   break;
+	case 4:   delete[]((int*)pointer);      pointer = NULL; break;
     case 8:   delete[] ((double*)pointer);  pointer=NULL;   break;
     case 12:  delete[] ((int*)pointer);     pointer=NULL;   break;
     case 16:  delete[] ((int*)pointer);     pointer=NULL;   break;

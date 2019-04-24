@@ -661,7 +661,9 @@ unsigned JSphSolidCpu::GetParticlesData_M(unsigned n, unsigned pini, bool cellor
 	if (pore)memcpy(pore, Porec_M + pini, sizeof(float)*n);
 	if (press) {
 		for (unsigned p = 0; p < n; p++) {
-			press[p] = CteB * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f);
+			//#Save
+			//press[p] = CteB * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f);
+			press[p] = -0.5f*RhopZero*float(Posc[p].x*Posc[p].x);
 		}
 	}
 	if (mass)memcpy(mass, Massc_M + pini, sizeof(float)*n);
@@ -1092,10 +1094,11 @@ void JSphSolidCpu::PreInteractionVars_Forces(TpInter tinter, unsigned np, unsign
 #ifdef OMP_USE
 #pragma omp parallel for schedule (static) if(n>OMP_LIMIT_COMPUTELIGHT)
 #endif
-	// #Pore Matthias
+	// #Pore #Pressure Matthias
 	for (int p = 0; p<n; p++) {
 		const float rhop = Velrhopc[p].w, rhop_r0 = rhop / RhopZero;
-		Pressc[p] = CteB * (pow(rhop_r0, Gamma) - 1.0f);
+		//Pressc[p] = CteB * (pow(rhop_r0, Gamma) - 1.0f);
+		Pressc[p] = -0.5f*RhopZero * float(Posc[p].x*Posc[p].x);
 		
 		//Pore Pressure -0.5 < x < 0.5
 		// if (p > int(npb) && Posc[p].x < 0.5f && Posc[p].x > -0.5f)
@@ -3110,10 +3113,16 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 
 						//===== Acceleration ===== 
 						if (compute) {
+							/*const float prs = (pressp1 + press[p2]) / (RhopZero*velrhop[p2].w) + (tker == KERNEL_Cubic ? GetKernelCubicTensil(rr2, rhopp1, pressp1, velrhop[p2].w, press[p2]) : 0);
+							const float p_vpm = -prs * massp2*ftmassp1;
+							acep1.x += p_vpm * frx; acep1.y += p_vpm * fry; acep1.z += p_vpm * frz;*/
+							/*if (idp[p1] == 400) {
+								printf("Id: %d-%d - Pos %.4f-%.4f, Pressp1: %.4f-%.4f, frx: %.8f, massp2 %.8f, Acep1.x %.8f\n", Idpc[p1], Idpc[p2], Posc[p1].x, Posc[p2].x, pressp1, press[p2], frx, massp2, acep1.x);
+								//cin.get();
+							}*/
 							const tsymatrix3f prs = {
-								(1.0f / 3.0f*(psingle ? psposp1.x*psposp1.x : float(posp1.x*posp1.x)) 
-								+ 1.0f / 3.0f*(psingle ? pspos[p2].x*pspos[p2].x : float(pos[p2].x*pos[p2].x))) / (rhopp1*velrhop[p2].w),
-								0.0f, 0.0f,	0.0f ,0.0f,0.0f };
+								//(pressp1 + press[p2]) / (RhopZero*velrhop[p2].w), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
+								(pressp1 / rhopp1 + press[p2] / velrhop[p2].w) / RhopZero, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
 							const tsymatrix3f p_vpm3 = {
 								-prs.xx*massp2*ftmassp1, -prs.xy*massp2*ftmassp1, -prs.xz*massp2*ftmassp1,
 								-prs.yy*massp2*ftmassp1, -prs.yz*massp2*ftmassp1, -prs.zz*massp2*ftmassp1
@@ -3122,6 +3131,15 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 							acep1.x += p_vpm3.xx*frx*L[p1].a11 + p_vpm3.xy*fry*L[p1].a12 + p_vpm3.xz*frz*L[p1].a13;
 							acep1.y += p_vpm3.xy*frx*L[p1].a21 + p_vpm3.yy*fry*L[p1].a22 + p_vpm3.yz*frz*L[p1].a23;
 							acep1.z += p_vpm3.xz*frx*L[p1].a31 + p_vpm3.yz*fry*L[p1].a32 + p_vpm3.zz*frz*L[p1].a33;
+							/*acep1.x += p_vpm3.xx*frx + p_vpm3.xy*fry + p_vpm3.xz*frz;
+							acep1.y += p_vpm3.xy*frx + p_vpm3.yy*fry + p_vpm3.yz*frz;
+							acep1.z += p_vpm3.xz*frx + p_vpm3.yz*fry + p_vpm3.zz*frz;*/
+							/*if (idp[p1] == 500) {
+							//if (idp[p1] == 17415) {
+								printf("Id: %d - Pressp1: %.8f - Pressp2: %.8f - frx: %.8f - massp2 %.8f - Lp1 %.8f\n", Idpc[p1], pressp1, press[p2], frx, massp2, L[p1].a11);
+								printf("Id: %d - Prs: %.8f - P_vpm3: %.8f - Acep1.x: %.8f - Exact %.8f\n", Idpc[p1], prs.xx, p_vpm3.xx, acep1.x, RhopZero*Posc[p1].x);
+								//cin.get();
+							}*/
 						}
 
 						//-Density derivative.
@@ -3193,6 +3211,11 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 			if (tdelta == DELTA_DynamicExt)delta[p1] = (delta[p1] == FLT_MAX || deltap1 == FLT_MAX ? FLT_MAX : delta[p1] + deltap1);
 			ar[p1] += arp1;
 			ace[p1] = ace[p1] + acep1;
+			/*if (abs(posp1.x)<0.2 ) {
+				//if (idp[p1] == 17415) {
+				printf("Id: %d - Acep1.x: %.8f - Exact %.8f\n", Idpc[p1], ace[p1].x, RhopZero*Posc[p1].x);
+				//cin.get();
+			}*/
 			const int th = omp_get_thread_num();
 			if (visc > viscth[th*OMP_STRIDE])viscth[th*OMP_STRIDE] = visc;
 
@@ -3752,7 +3775,7 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 		//if (lamsps)ComputeSpsTau(npf, npb, velrhop, spsgradvel, spstau);
 
 		// Compute Sdot
-		ComputeJauTauDot_M(npf, npb, jaugradvel, jautau, jautaudot, jauomega);
+		//ComputeJauTauDot_M(npf, npb, jaugradvel, jautau, jautaudot, jauomega);
 	}
 	if (npbok) {
 		//-Interaction Bound-Fluid.
@@ -9020,7 +9043,7 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticPreT_SigCst_M(double dt
 	for (int p = npb; p < np; p++) {
 		//-Calculate density.
 		//const float rhopnew = float(double(VelrhopPrec[p].w) + dt05 * Arc[p]); // Not const because of source update 
-		const float rhopnew = RhopZero - RhopZero /2.0f*float(TimeStep)*float(TimeStep);
+		const float rhopnew = RhopZero * exp(float(-0.5*TimeStep*TimeStep));
 
 		if (!WithFloating || CODE_IsFluid(Codec[p])) {//-Fluid Particles.
 
@@ -9037,16 +9060,16 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticPreT_SigCst_M(double dt
 			UpdatePos(PosPrec[p], dx, dy, dz, outrhop, p, Posc, Dcellc, Codec);
 
 			//-Update velocity & density. | Actualiza velocidad y densidad.
-			/*Velrhopc[p].x = float(double(VelrhopPrec[p].x) + double(Acec[p].x)* dt05);
+			Velrhopc[p].x = float(double(VelrhopPrec[p].x) + double(Acec[p].x)* dt05);
 			Velrhopc[p].y = float(double(VelrhopPrec[p].y) + double(Acec[p].y)* dt05);
-			Velrhopc[p].z = float(double(VelrhopPrec[p].z) + double(Acec[p].z)* dt05);*/
+			Velrhopc[p].z = float(double(VelrhopPrec[p].z) + double(Acec[p].z)* dt05); 
+			if ((Idpc[p] < 1764 || Idpc[p] > 16316) ) {
+				Velrhopc[p].x = TimeStep * Posc[p].x;
+			}
 			// #Grad #Gx #SigCst	
-			Velrhopc[p].x = float(RhopZero / rhopnew *Posc[p].x*TimeStep);
+			/*Velrhopc[p].x = float(Posc[p].x*TimeStep);
 			Velrhopc[p].y = 0.0f;
-			Velrhopc[p].z = 0.0f; 
-			/*Velrhopc[p].x = float(double(VelrhopPrec[p].x) + 1.0 / 3.0*Posc[p].x*Posc[p].x * dt05);
-			Velrhopc[p].y = float(double(VelrhopPrec[p].y) + 0.0 * dt05);
-			Velrhopc[p].z = float(double(VelrhopPrec[p].z) + 0.0 * dt05);*/
+			Velrhopc[p].z = 0.0f;*/
 
 			// Update Shear stress
 			Tauc_M[p].xx = float(double(TauPrec_M[p].xx) + double(TauDotc_M[p].xx)* dt05);
@@ -9134,23 +9157,23 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT_SigCst_M(double d
 		const double epsilon_rdot = (-double(Arc[p]) / double(Velrhopc[p].w))*dt;
 
 		//float rhopnew = float(double(VelrhopPrec[p].w) * (2. - epsilon_rdot) / (2. + epsilon_rdot));
-		float rhopnew = RhopZero - RhopZero / 2.0f*float(TimeStep)*float(TimeStep);
+		float rhopnew = RhopZero*exp(float(-0.5*TimeStep*TimeStep));
 
 		// 27/03/19 - I need to find references for this equation, report on it
 
 		if (!WithFloating || CODE_IsFluid(Codec[p])) {//-Fluid Particles.
 													  //-Update velocity & density. | Actualiza velocidad y densidad.
-			/*Velrhopc[p].x = float(double(VelrhopPrec[p].x) + double(Acec[p].x) * dt);
+			Velrhopc[p].x = float(double(VelrhopPrec[p].x) + double(Acec[p].x) * dt);
 			Velrhopc[p].y = float(double(VelrhopPrec[p].y) + double(Acec[p].y) * dt);
-			Velrhopc[p].z = float(double(VelrhopPrec[p].z) + double(Acec[p].z) * dt);*/
-			// #Grad #Gx	
-			Velrhopc[p].x = float(RhopZero / rhopnew * Posc[p].x*TimeStep);
-			Velrhopc[p].y = 0.0f;
-			Velrhopc[p].z = 0.0f;
-			/*Velrhopc[p].x = float(double(VelrhopPrec[p].x) + 1.0 / 3.0*Posc[p].x*Posc[p].x * dt);
-			Velrhopc[p].y = float(double(VelrhopPrec[p].y) + 0.0 * dt);
-			Velrhopc[p].z = float(double(VelrhopPrec[p].z) + 0.0 * dt);*/
+			Velrhopc[p].z = float(double(VelrhopPrec[p].z) + double(Acec[p].z) * dt);
+				if ((Idpc[p] < 1764 || Idpc[p] > 16316) ) {
+					Velrhopc[p].x = TimeStep*Posc[p].x;
+				}
 
+			// #Grad #Gx	
+			/*Velrhopc[p].x = float(Posc[p].x*TimeStep);
+			Velrhopc[p].y = 0.0f;
+			Velrhopc[p].z = 0.0f;*/
 			Velrhopc[p].w = rhopnew;
 
 			//-Calculate displacement and update position. | Calcula desplazamiento y actualiza posicion.
@@ -9180,12 +9203,12 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT_SigCst_M(double d
 				, QuadFormPrec_M[p].xy, QuadFormPrec_M[p].yy, QuadFormPrec_M[p].yz, QuadFormPrec_M[p].xz, QuadFormPrec_M[p].yz, QuadFormPrec_M[p].zz);
 
 			// #Grad #Gx	
-			/*tmatrix3f GdVel = TMatrix3f(StrainDotc_M[p].xx, StrainDotc_M[p].xy, StrainDotc_M[p].xz
+			tmatrix3f GdVel = TMatrix3f(StrainDotc_M[p].xx, StrainDotc_M[p].xy, StrainDotc_M[p].xz
 				, StrainDotc_M[p].xy, StrainDotc_M[p].yy, StrainDotc_M[p].yz
 				, StrainDotc_M[p].xz, StrainDotc_M[p].yz, StrainDotc_M[p].zz) + TMatrix3f(Spinc_M[p].xx, Spinc_M[p].xy, Spinc_M[p].xz
 					, -Spinc_M[p].xy, Spinc_M[p].yy, Spinc_M[p].yz
-					, -Spinc_M[p].xz, -Spinc_M[p].yz, Spinc_M[p].zz);*/
-			tmatrix3f GdVel = TMatrix3f(RhopZero / rhopnew *float(TimeStep), 0, 0, 0, 0, 0, 0, 0, 0);
+					, -Spinc_M[p].xz, -Spinc_M[p].yz, Spinc_M[p].zz);
+			/*tmatrix3f GdVel = TMatrix3f(float(TimeStep), 0, 0, 0, 0, 0, 0, 0, 0);*/
 			NabVx_M[p] = GdVel.a11;
 
 			tmatrix3f DQD = ToTMatrix3f((TMatrix3d(1, 0, 0, 0, 1, 0, 0, 0, 1) - dt
