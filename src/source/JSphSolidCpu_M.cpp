@@ -8917,7 +8917,7 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT_M(double dt) {
 			float adens = float(LambdaMass * (RhopZero / rhopnew - 1));
 
 			// #Growth
-			if (Posc[p].x > 0.3f && Posc[p].x <= 1.6) {
+			if (Posc[p].x > 0.0f && Posc[p].x <= 1.6) {
 				rhopnew = float(rhopnew + dt * adens);
 				Massc_M[p] = float(double(MassPrec_M[p]) + dt * double(adens*volu));
 			}
