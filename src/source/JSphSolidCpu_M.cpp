@@ -1100,11 +1100,11 @@ void JSphSolidCpu::PreInteractionVars_Forces(TpInter tinter, unsigned np, unsign
 		Pressc[p] = CteB * (pow(rhop_r0, Gamma) - 1.0f);
 		//Pressc[p] = -0.5f*RhopZero * float(Posc[p].x*Posc[p].x);
 		
-		//Pore Pressure -0.5 < x < 0.5
-		// if (p > int(npb) && Posc[p].x < 0.5f && Posc[p].x > -0.5f)
-		if (p > int(npb) && Posc[p].x > 0.3f && Posc[p].x <= 1.3f) Porec_M[p] = PoreZero;
-		else if (p > int(npb) && Posc[p].x > 0.0f && Posc[p].x <= 0.3f) Porec_M[p] = PoreZero / 0.3f * (float) Posc[p].x;
-		else if (p > int(npb) && Posc[p].x > 1.3f && Posc[p].x <= 1.6f) Porec_M[p] = PoreZero * (-(float)Posc[p].x / 0.3f + 5.33f);
+		//Pore Pressure 1 < x < 2
+		/*if (p > int(npb) && Posc[p].x > 1.0f && Posc[p].x < 2.0f) Porec_M[p] = PoreZero;*/
+		if (p > int(npb) && Posc[p].x > 1.0f && Posc[p].x <= 2.0f) Porec_M[p] = PoreZero;
+		//else if (p > int(npb) && Posc[p].x > 1.0f - H && Posc[p].x <= 1.0f) Porec_M[p] = PoreZero / H * ((float)Posc[p].x + H - 1.0f);
+		//else if (p > int(npb) && Posc[p].x > 2.0f && Posc[p].x <= 2.0f + H) Porec_M[p] = PoreZero / H * ((float)(-Posc[p].x) + H + 2.0f);
 		else Porec_M[p] = 0.0f;
 	}
 }
@@ -8763,7 +8763,8 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticPreT_M(double dt) {
 	for (int p = 0; p < npb; p++) {
 		const tfloat4 vr = VelrhopPrec[p];
 		const float rhopnew = float(double(vr.w) + dt05 * Arc[p]);
-		Velrhopc[p] = TFloat4(vr.x, vr.y, vr.z, (rhopnew < RhopZero ? RhopZero : rhopnew));//-Avoid fluid particles being absorbed by boundary ones. | Evita q las boundary absorvan a las fluidas.
+		//Velrhopc[p] = TFloat4(vr.x, vr.y, vr.z, (rhopnew < RhopZero ? RhopZero : rhopnew));//-Avoid fluid particles being absorbed by boundary ones. | Evita q las boundary absorvan a las fluidas.
+		Velrhopc[p] = TFloat4(vr.x, vr.y, vr.z, rhopnew);//-Avoid fluid particles being absorbed by boundary ones. | Evita q las boundary absorvan a las fluidas.
 		
 		Tauc_M[p] = TauPrec_M[p];
 		QuadFormc_M[p] = QuadFormPrec_M[p];
@@ -8847,7 +8848,8 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT_M(double dt) {
 	for (int p = 0; p < npb; p++) {
 		const double epsilon_rdot = (-double(Arc[p]) / double(Velrhopc[p].w))*dt;
 		const float rhopnew = float(double(VelrhopPrec[p].w) * (2. - epsilon_rdot) / (2. + epsilon_rdot));
-		Velrhopc[p] = TFloat4(0, 0, 0, (rhopnew < RhopZero ? RhopZero : rhopnew));//-Avoid fluid particles being absorbed by boundary ones. | Evita q las boundary absorvan a las fluidas.
+		//Velrhopc[p] = TFloat4(0, 0, 0, (rhopnew < RhopZero ? RhopZero : rhopnew));//-Avoid fluid particles being absorbed by boundary ones. | Evita q las boundary absorvan a las fluidas.
+		Velrhopc[p] = TFloat4(0, 0, 0, rhopnew);
 	}
 
 	//-Calculate fluid values. | Calcula datos de fluido.
@@ -8917,7 +8919,7 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT_M(double dt) {
 			float adens = float(LambdaMass * (RhopZero / rhopnew - 1));
 
 			// #Growth
-			if (Posc[p].x > 0.0f && Posc[p].x <= 1.6) {
+			if (Posc[p].x > 1.0f-2*H && Posc[p].x <= 2.0f+2*H) {
 				rhopnew = float(rhopnew + dt * adens);
 				Massc_M[p] = float(double(MassPrec_M[p]) + dt * double(adens*volu));
 			}
