@@ -8927,8 +8927,8 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT_M(double dt) {
 				Massc_M[p] = float(double(MassPrec_M[p]) + dt * double(adens*volu));
 			}*/
 
-			/*rhopnew = float(rhopnew + dt * adens);
-			Massc_M[p] = float(double(MassPrec_M[p]) + dt * double(adens*volu));*/
+			rhopnew = float(rhopnew + dt * adens);
+			Massc_M[p] = float(double(MassPrec_M[p]) + dt * double(adens*volu));
 
 			Velrhopc[p].w = rhopnew;
 		}
