@@ -1101,11 +1101,14 @@ void JSphSolidCpu::PreInteractionVars_Forces(TpInter tinter, unsigned np, unsign
 		//Pressc[p] = -0.5f*RhopZero * float(Posc[p].x*Posc[p].x);
 		
 		//Pore Pressure 1 < x < 2
-		/*if (p > int(npb) && Posc[p].x > 1.0f && Posc[p].x < 2.0f) Porec_M[p] = PoreZero;*/
-		if (p > int(npb) && Posc[p].x > 1.0f && Posc[p].x <= 2.0f) Porec_M[p] = PoreZero;
+		if (p > int(npb) && Posc[p].x > 0.3f && Posc[p].x <= 1.3f) Porec_M[p] = PoreZero;
+		else if (p > int(npb) && Posc[p].x > 0.0f && Posc[p].x <= 0.3f) Porec_M[p] = PoreZero / 0.3f * (float)Posc[p].x;
+		else if (p > int(npb) && Posc[p].x > 1.3f && Posc[p].x <= 1.6f) Porec_M[p] = PoreZero * (-(float)Posc[p].x / 0.3f + 5.33f);
+		else Porec_M[p] = 0.0f;
+		/*if (p > int(npb) && Posc[p].x > 1.0f && Posc[p].x <= 2.0f) Porec_M[p] = PoreZero;
 		//else if (p > int(npb) && Posc[p].x > 1.0f - H && Posc[p].x <= 1.0f) Porec_M[p] = PoreZero / H * ((float)Posc[p].x + H - 1.0f);
 		//else if (p > int(npb) && Posc[p].x > 2.0f && Posc[p].x <= 2.0f + H) Porec_M[p] = PoreZero / H * ((float)(-Posc[p].x) + H + 2.0f);
-		else Porec_M[p] = 0.0f;
+		else Porec_M[p] = 0.0f;*/
 	}
 }
 
@@ -3966,12 +3969,12 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 				, pos, pspos, velrhop, mass, L);
 		
 		//-Interaction Fluid-Fluid.
-		InteractionForcesNSPH12_M<psingle, tker, ftmode, lamsps, tdelta, shift>
+		InteractionForcesNSPH11_M<psingle, tker, ftmode, lamsps, tdelta, shift>
 			(npf, npb, nc, hdiv, cellfluid, Visco, begincell, cellzero, dcell
 				, jautau, jaugradvel, jauomega, pos, pspos, velrhop, code, idp, press, pore, mass, L, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);
 
 		//-Interaction Fluid-Bound.
-		InteractionForcesNSPH12_M<psingle, tker, ftmode, lamsps, tdelta, shift>
+		InteractionForcesNSPH11_M<psingle, tker, ftmode, lamsps, tdelta, shift>
 			(npf, npb, nc, hdiv, 0, Visco*ViscoBoundFactor, begincell, cellzero, dcell
 				, jautau, jaugradvel, jauomega, pos, pspos, velrhop, code, idp, press, pore, mass, L, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);
 
@@ -8919,7 +8922,11 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT_M(double dt) {
 			float adens = float(LambdaMass * (RhopZero / rhopnew - 1));
 
 			// #Growth
-			if (Posc[p].x > 1.0f-2*H && Posc[p].x <= 2.0f+2*H) {
+			/*if (Posc[p].x > 1.0f - 2 * H && Posc[p].x <= 2.0f + 2 * H) {
+				rhopnew = float(rhopnew + dt * adens);
+				Massc_M[p] = float(double(MassPrec_M[p]) + dt * double(adens*volu));
+			}*/
+			if (Posc[p].x > 0.3f && Posc[p].x <= 1.6f) {
 				rhopnew = float(rhopnew + dt * adens);
 				Massc_M[p] = float(double(MassPrec_M[p]) + dt * double(adens*volu));
 			}
