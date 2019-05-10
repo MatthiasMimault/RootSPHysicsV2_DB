@@ -1286,6 +1286,7 @@ void JSphCpuSingle::Interaction_Forces(TpInter tinter){
 
   const char met[]="Interaction_Forces";
   PreInteraction_Forces(tinter);
+
   TmcStart(Timers,TMC_CfForces);
 
   //-Interaction of Fluid-Fluid/Bound & Bound-Fluid (forces and DEM). | Interaccion Fluid-Fluid/Bound & Bound-Fluid (forces and DEM).
@@ -1440,7 +1441,7 @@ double JSphCpuSingle::ComputeStep_Eul_M() {
 /// Realiza interaccion y actualizacion de particulas segun las fuerzas 
 /// calculadas en la interaccion usando Symplectic.
 
-// Modified with #Symplectic_M
+// Modified with #Symplectic_M #Update
 //=============================================================================
 double JSphCpuSingle::ComputeStep_Sym(){
   const double dt=DtPre;
@@ -1449,21 +1450,9 @@ double JSphCpuSingle::ComputeStep_Sym(){
   //-----------
   DemDtForce=dt*0.5f;                     //(DEM)
   Interaction_Forces(INTER_Forces);       //-Interaction.
-  const double ddt_p=DtVariable(false);   //-Calculate dt of predictor step.
-  if(TShifting)RunShifting(dt*.5);        //-Shifting.
-  /*for (unsigned p = 0; p < Np; p++) {
-	  if (Posc[p].x<0.8f && Posc[p].x > 0.4f && abs(Posc[p].y) < 0.2&& abs(Posc[p].z) < 0.2) printf(
-		  "Pre0 Id %d Pos %.8f - Mass %.8f Rho %.8f\n", Idpc[p], Posc[p].x, Massc_M[p], Velrhopc[p].w
-	  );
-  }*/
+    const double ddt_p=DtVariable(false);   //-Calculate dt of predictor step.
+  if(TShifting)RunShifting(dt*.5);        //-Shifting. 
   ComputeSymplecticPre_M(dt);               //-Apply Symplectic-Predictor to particles.
-  // ComputeSymplecticPre_SigCst_M(dt);               
-  // #Print
-  /*for (unsigned p = 0; p < Np; p++) {
-	  if (PosPrec[p].x<0.8f && PosPrec[p].x > 0.4f && abs(PosPrec[p].y) < 0.2&& abs(PosPrec[p].z) < 0.2) printf(
-		  "Pre1 Id %d Pos %.8f - Mass %.8f Rho %.8f\n", Idpc[p], Posc[p].x, Massc_M[p], Velrhopc[p].w
-	  );
-  }*/
   
   if(CaseNfloat)RunFloating(dt*.5,true);  //-Control of floating bodies.
   PosInteraction_Forces();                //-Free memory used for interaction.
@@ -1475,27 +1464,13 @@ double JSphCpuSingle::ComputeStep_Sym(){
   Interaction_Forces(INTER_ForcesCorr);   //Interaction.
   const double ddt_c=DtVariable(true);    //-Calculate dt of corrector step.
   if(TShifting)RunShifting(dt);           //-Shifting.
-  /*for (unsigned p = 0; p < Np; p++) {
-	  if (Posc[p].x<0.8f && Posc[p].x > 0.4f && abs(Posc[p].y) < 0.2&& abs(Posc[p].z) < 0.2) printf(
-		  "Cor0 Id %d Pos %.8f - Mass %.8f Rho %.8f\n", Idpc[p], Posc[p].x, Massc_M[p], Velrhopc[p].w
-	  );
-  }*/
   ComputeSymplecticCorr_M(dt);              //-Apply Symplectic-Corrector to particles.
-  // ComputeSymplecticCorr_SigCst_M(dt);   
-
-  /*for (unsigned p = 0; p < Np; p++) {
-	  if (Posc[p].x<0.8f && Posc[p].x > 0.4f && abs(Posc[p].y) < 0.2&& abs(Posc[p].z) < 0.2) printf(
-		  "Cor1 Id %d Pos %.8f - Mass %.8f Rho %.8f\n", Idpc[p], Posc[p].x, Massc_M[p], Velrhopc[p].w
-	  );
-  }*/
 
   if(CaseNfloat)RunFloating(dt,false);    //-Control of floating bodies.
   PosInteraction_Forces();                //-Free memory used for interaction.
   if(Damping)RunDamping(dt,Np,Npb,Posc,Codec,Velrhopc); //-Applies Damping.
 
-  DtPre=min(ddt_p,ddt_c);        
-  //#pause
-  //cin.get();
+  DtPre=min(ddt_p,ddt_c);      
 
   return(dt);
 

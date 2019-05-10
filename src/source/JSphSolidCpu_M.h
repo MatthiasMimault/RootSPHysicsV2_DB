@@ -229,6 +229,12 @@ protected:
 		, const tdouble3 *pos, const tfloat3 *pspos, const tfloat4 *velrhopp, const typecode *code, const unsigned *id
 		, float &viscdt, float *ar)const;
 
+	template<bool psingle, TpKernel tker, TpFtMode ftmode> void InteractionForcesBound11_M
+	(unsigned n, unsigned pini, tint4 nc, int hdiv, unsigned cellinitial
+		, const unsigned *beginendcell, tint3 cellzero, const unsigned *dcell
+		, const tdouble3 *pos, const tfloat3 *pspos, const tfloat4 *velrhopp, const typecode *code, const unsigned *id
+		, float &viscdt, float *ar, tsymatrix3f* gradvel, tsymatrix3f* omega, tmatrix3f* L)const;
+
 	template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph tdelta, bool shift> void InteractionForcesFluid
 	(unsigned n, unsigned pini, tint4 nc, int hdiv, unsigned cellfluid, float visco
 		, const unsigned *beginendcell, tint3 cellzero, const unsigned *dcell
@@ -282,6 +288,12 @@ protected:
 		, const float *mass, tmatrix3f *L)const;
 
 	template<bool psingle, TpKernel tker> void ComputeNsphCorrection11
+	(unsigned n, unsigned pinit, tint4 nc, int hdiv, unsigned cellinitial
+		, const unsigned *beginendcell, tint3 cellzero, const unsigned *dcell
+		, const tdouble3 *pos, const tfloat3 *pspos, const tfloat4 *velrhop
+		, const float *mass, tmatrix3f *L)const;
+
+	template<bool psingle, TpKernel tker> void ComputeNsphCorrection12
 	(unsigned n, unsigned pinit, tint4 nc, int hdiv, unsigned cellinitial
 		, const unsigned *beginendcell, tint3 cellzero, const unsigned *dcell
 		, const tdouble3 *pos, const tfloat3 *pspos, const tfloat4 *velrhop
