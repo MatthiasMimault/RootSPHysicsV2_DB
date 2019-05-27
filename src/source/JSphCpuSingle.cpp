@@ -656,21 +656,29 @@ void JSphCpuSingle::RunSizeDivision_M() {
 	TmcStart(Timers, TMC_SuPeriodic); // Use of Periodic timer for creation of particles
 	bool run = true;
 	unsigned count = 0;
-	// 1. Test division cellulaire
-	/*for (unsigned p = Npb; p < Np; p++) {
-		printf("\nMasse : %d %f", (int)p, Massc_M[p]);
-		
-	}*/
-	//printf("RuSizeDivn0\n");
 
+	// 1. Test division cellulaire
 	for (unsigned p = Npb; p < Np; p++) {
-		if ((Massc_M[p] / Velrhopc[p].w) > (SizeDivision_M*MassFluid / RhopZero)) {
+		// Version originale
+		//if ((Massc_M[p] / Velrhopc[p].w) > (SizeDivision_M*MassFluid / RhopZero)) {
+
+		// Version stochastique
+		//float phi1 = 1.0f - pow(1.0f - float(rand() % 100) / 100.0f, 30.0f);
+		float phi1 = 1.0f - exp(-200.0f*float(rand())/float(RAND_MAX));
+		//float phi2 = 1.0f - pow(min(1.0f, float(2.0*(sqrt(pow(Posc[p].y, 2) + pow(Posc[p].z, 2))))), 30.0f);
+		float phi2 = 1.0f;
+		float sizeDev = float(SizeDivision_M) * phi1*phi2 + 1.2f*(1.0f - phi1 * phi2);
+
+		if ((Massc_M[p] / Velrhopc[p].w) > (sizeDev*MassFluid / RhopZero)) {
 			Divisionc_M[p] = true;
 			count++;
-			//printf("DivisionMarquee\n");
+			//if (Posc[p].x>0.0 && Posc[p].x < 1.0) printf("Id %d SizeDef %.8f  Phi (%.8f %.1f)\n", Idpc[p], sizeDev, phi1, phi2);
+			//printf("Id %d", Idpc[p]);
+			//printf("DivisionMarquee ");
 		}
+		//#Print
 	}
-	//printf("RUnsizeDivision1\n");
+
 	while (run) {
 
 		// 2. Prepare memory for count particles
@@ -695,8 +703,7 @@ void JSphCpuSingle::RunSizeDivision_M() {
 			// Divide the selected particles in X direction
 			if (TStep == STEP_Verlet) {
 				MarkedDivision_M(count, Np, Npb, DomCells, Idpc, Codec, Dcellc
-					, Posc, Velrhopc, Tauc_M, Divisionc_M, Porec_M, Massc_M, QuadFormc_M, VelrhopM1c, TauM1c_M, MassM1c_M, QuadFormM1c_M);
-				
+					, Posc, Velrhopc, Tauc_M, Divisionc_M, Porec_M, Massc_M, QuadFormc_M, VelrhopM1c, TauM1c_M, MassM1c_M, QuadFormM1c_M);				
 			}
 			else {
 				/*MarkedDivisionSymp_M(count, Np, Npb, DomCells, Idpc, Codec, Dcellc
