@@ -60,7 +60,9 @@ void JArraysCpuSize::Reset(){
 /// Frees allocated memory.
 //==============================================================================
 void JArraysCpuSize::FreeMemory(){
-  for(unsigned c=0;c<Count;c++)if(Pointers[c]){ FreePointer(Pointers[c]); Pointers[c]=NULL; }
+	for (unsigned c = 0; c < Count; c++) {
+		if (Pointers[c]) { FreePointer(Pointers[c]); Pointers[c] = NULL; }
+	}
   CountUsed=Count=0;
 }
 
@@ -71,7 +73,6 @@ void JArraysCpuSize::FreeMemory(){
 void* JArraysCpuSize::AllocPointer(unsigned size)const{
   void* pointer=NULL;
   try{
-	  //printf("AllocPointer - %d\n", ElementSize);
     switch(ElementSize){
       case 1:   pointer=new char[size];      break;
       case 2:   pointer=new word[size];      break;
@@ -96,17 +97,16 @@ void* JArraysCpuSize::AllocPointer(unsigned size)const{
 /// Frees memory allocated to pointers.
 //==============================================================================
 void JArraysCpuSize::FreePointer(void* pointer)const{
-	//printf("FreePointer - %d\n", ElementSize);
   switch(ElementSize){
     case 1:   delete[] ((char*)pointer);    pointer=NULL;   break;
     case 2:   delete[] ((word*)pointer);    pointer=NULL;   break;
-    case 4:   delete[] ((int*)pointer);     pointer=NULL;   break;
+	case 4:   delete[]((int*)pointer);      pointer = NULL; break;
     case 8:   delete[] ((double*)pointer);  pointer=NULL;   break;
     case 12:  delete[] ((int*)pointer);     pointer=NULL;   break;
     case 16:  delete[] ((int*)pointer);     pointer=NULL;   break;
     case 24:  delete[] ((double*)pointer);  pointer=NULL;   break;
 	case 32:  delete[] ((double*)pointer);  pointer = NULL; break;
-	case 36:  delete[]((int*)pointer);      pointer = NULL; break;
+	case 36:  delete[] ((int*)pointer);     pointer = NULL; break;
   }
   if(pointer)RunException("FreePointer","The elementsize value is invalid.");
 }
@@ -227,10 +227,10 @@ JArraysCpu::~JArraysCpu(){
 /// Initialisation of variables.
 //==============================================================================
 void JArraysCpu::Reset(){
-  Arrays1b->Reset(); 
-  Arrays2b->Reset(); 
-  Arrays4b->Reset(); 
-  Arrays8b->Reset(); 
+  Arrays1b->Reset();
+  Arrays2b->Reset();
+  Arrays4b->Reset();
+  Arrays8b->Reset();
   Arrays12b->Reset();
   Arrays16b->Reset();
   Arrays24b->Reset();

@@ -470,7 +470,7 @@ void JSphGpuSingle::Interaction_Forces(TpInter tinter){
 
    // Solid interaction - Matthias
    printf("SolidSolid, SolidBound, ");
-   cusph::Interaction_Forces_M(Psingle, TKernel, WithFloating, UseDEM, lamsps
+   /*cusph::Interaction_Forces_M(Psingle, TKernel, WithFloating, UseDEM, lamsps
 	   , TDeltaSph, CellMode
 	   , Visco*ViscoBoundFactor, Visco, bsbound, bsfluid
 	   , Np, Npb, NpbOk, CellDivSingle->GetNcells()
@@ -481,7 +481,7 @@ void JSphGpuSingle::Interaction_Forces(TpInter tinter){
 	   , StrainDotg_M, Sping_M
 	   , ViscDtg, Arg, Aceg, Deltag
 	   , TShifting, ShiftPosg, ShiftDetectg
-	   , Simulate2D, NULL, NULL);
+	   , Simulate2D, NULL, NULL);*/
 
   //-Interaction DEM Floating-Bound & Floating-Floating.//(DEM) ..
   printf("DEM\n");
@@ -496,7 +496,7 @@ void JSphGpuSingle::Interaction_Forces(TpInter tinter){
   if(lamsps)cusph::ComputeSpsTau(Np,Npb,SpsSmag,SpsBlin,Velrhopg,SpsGradvelg,SpsTaug);
 
   // Compute TauDot for Solid dynamics
-  cusph::ComputeJauTauDot(Np, Npb, Velrhopg, Taug_M, TauDotg_M, StrainDotg_M, Sping_M);
+  //cusph::ComputeJauTauDot(Np, Npb, Velrhopg, Taug_M, TauDotg_M, StrainDotg_M, Sping_M);
   //ComputeJauTauDot()
 
   if(Deltag)cusph::AddDelta(Np-Npb,Deltag+Npb,Arg+Npb);//-Adds the Delta-SPH correction for the density. | Añade correccion de Delta-SPH a Arg[]. 

@@ -140,7 +140,7 @@ int main(int argc, char** argv){
       log.Print(license,JLog2::Out_File);
       log.Print(appname,JLog2::Out_File);
       log.Print(appnamesub,JLog2::Out_File);
-      //-SPH Execution.
+      //-SPH Execution. #Run
       #ifndef _WITHGPU
         cfg.Cpu=true;
       #endif

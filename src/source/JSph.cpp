@@ -402,6 +402,7 @@ void JSph::LoadConfig(const JCfgRun *cfg){
   }
   if(TDeltaSph==DELTA_Dynamic && Cpu)TDeltaSph=DELTA_DynamicExt; //-It is necessary because the interaction is divided in two steps: fluid-fluid/float and fluid-bound.
 
+  // #Shift
   if(cfg->Shifting>=0){
     switch(cfg->Shifting){
       case 0:  TShifting=SHIFT_None;     break;
@@ -692,52 +693,63 @@ void JSph::LoadCaseConfig(){
   // Solid anisotropic
   Ex = (float)ctes.GetYoungX();
   Ey = (float)ctes.GetYoungY();
-  const float  nf = Ey/Ex;
   nuxy = (float)ctes.GetPoissonXY();
   nuyz = (float)ctes.GetPoissonYZ();
   Gf = (float)ctes.GetShear();
 
-  const float Delta = nf * Ex / (1.0f - nuyz - 2.0f*nf*nuxy*nuxy);
-  C1 = Delta * (1.0f - nuyz) / nf;
-  C2 = C3 = Delta * (1.0f - nf * nuxy*nuxy) / (1.0f + nuyz);
-  C12 = C13 = Delta * nuxy;
-  C23 = Delta * (nuyz + nf * nuxy*nuxy) / (1.0f + nuyz);
+  //#Constants
+  printf("Si2D %d\n", Simulate2D);
+  /*if (Simulate2D) {
+	  printf("Choix 2D\n");
+	  C1 = Delta * (1.0f - nuyz) / nf;
+	  C2 = 0.0f;
+	  C3 = Delta * (1.0f - nf * nuxy*nuxy) / (1.0f + nuyz);
+	  C12 = 0.0f;
+	  C13 = Delta * nuxy;
+	  C23 = 0.0f;
+
+	  C4 = Ey / (2.0f + 2.0f*nuxy); C5 = 0.0f; C6 = Gf;
+
+	  //K = (C1 + C3) / 2.0f;
+
+	  S1 = 1 / Ex;		S12 = 0.0f; S13 = -nuxy / Ex;
+	  S21 = 0.0f;		S2 = 0.0f;	S23 = 0.0f;
+	  S31 = -nuxy / Ex; S32 = 0.0f; S3 = 1 / Ey;
+	  Kani = 1 / (S1 + S12 + S13 + S21 + S2 + S23 + S31 + S32 + S3);
+
+  }
+  else {
+	  printf("Choix 3D\n");
+	  C1 = Delta * (1.0f - nuyz) / nf;
+	  C2 = C3 = Delta * (1.0f - nf * nuxy*nuxy) / (1.0f + nuyz);
+	  C12 = C13 = Delta * nuxy;
+	  C23 = Delta * (nuyz + nf * nuxy*nuxy) / (1.0f + nuyz);
+
+	  C4 = Ey / (2.0f + 2.0f*nuxy); C5 = Gf; C6 = Gf;
   
-  /*const float alpha1 = Ey * (1 - nuyz) / (nf*(1 - nuyz) - 2.0f*nuxy*nuxy);
-  const float alpha2 = Ey * nf / (2.0f*nf*(1 - nuyz) - 4.0f*nuxy*nuxy);
-  const float alpha3 = Ey * nuyz / (nf*(1 - nuyz) - 2.0f*nuxy*nuxy);
-  const float alpha4 = Gf;
-  const float alpha5 = Ey / (2.0f*(1 + nuyz));
-
-  printf("///\n");
-  printf("Gf = %.3f, Gt = %.3f, Gt' = %.3f\n", Gf, alpha5, Ey / (2.0f*(1 + nuyz)));
-  printf("///\n");
-
-  C1 = alpha1; C12 = alpha3; C13 = alpha3;
-  C2 = alpha2 + alpha5; C23 = alpha2 - alpha5; C3 = alpha2 + alpha5;
-  C4 = alpha5; C5 = alpha4; C6 = alpha4;*/
-  //K = min(min(min(C1, C12), min(C13, C2)), min(C3, C23)) / 3.0f;
-  K = (C1 + C2 + C3) / 3.0f;
-  //K_M = TFloat3((C1 + C12 + C13) / 3.0f, (C2 + C12 + C23) / 3.0f, (C3 + C23 + C13) / 3.0f);
-  S1 = 1 / Ex; S12 = -nuxy / Ex; S13 = -nuxy / Ex;
-  S21 = -nuxy / Ex; S2 = 1 / Ey; S23 = -nuyz / Ey;
-  S31 = -nuxy / Ex; S32 = -nuyz / Ey; S3 = 1 / Ey;
-  Kani = 1 / (S1 + S12 + S13 + S21 + S2 + S23 + S31 + S32 + S3);
-  K_M = TFloat3(Kani, Kani, Kani);
+	  //K = (C1 + C2 + C3) / 3.0f;
+  
+	  S1 = 1 / Ex; S12 = -nuxy / Ex; S13 = -nuxy / Ex;
+	  S21 = -nuxy / Ex; S2 = 1 / Ey; S23 = -nuyz / Ey;
+	  S31 = -nuxy / Ex; S32 = -nuyz / Ey; S3 = 1 / Ey;
+	  Kani = 1 / (S1 + S12 + S13 + S21 + S2 + S23 + S31 + S32 + S3);
+	  //K_M = TFloat3(Kani, Kani, Kani);
+  }
+  
 
   printf("///\n");
   printf("C1 = %.3f, C12 = %.3f, C13 = %.3f\n", C1, C12, C13);
   printf("C12 = %.3f, C2 = %.3f, C23 = %.3f\n", C12, C2, C23);
   printf("C13 = %.3f, C23 = %.3f, C3 = %.3f\n", C13, C23, C3);
-  printf("K_M = (%.3f,%.3f,%.3f)\n", K_M.x, K_M.y, K_M.z);
+  //printf("K_M = (%.3f,%.3f,%.3f)\n", K_M.x, K_M.y, K_M.z);
   printf("S1 = %.8f, S12 = %.8f, S13 = %.8f\n", S1, S12, S13);
   printf("S12 = %.8f, S2 = %.8f, S23 = %.8f\n", S12, S2, S23);
   printf("S13 = %.8f, S23 = %.8f, S3 = %.8f\n", S13, S23, S3);
 
   // New B for anisotropy
-  CteB = Kani / ( Gamma ) ;
-  CteB_M = TFloat3(K_M.x / Gamma, K_M.y / Gamma, K_M.z / Gamma);
-  //CteB3D = TFloat3((C1 + C12 + C13) / Gamma, (C2 + C12 + C23) / Gamma, (C3 + C13 + C23) / Gamma);
+  CteB = Kani / ( Gamma ) ;*/
+  //CteB_M = TFloat3(K_M.x / Gamma, K_M.y / Gamma, K_M.z / Gamma);
+ 
   // Pore
   PoreZero = (float)ctes.GetPoreZero();
   // Mass
@@ -1021,42 +1033,67 @@ void JSph::LoadCaseConfig_T() {
 	MassFluid = (float)ctes.GetMassFluid();
 	MassBound = (float)ctes.GetMassBound();
 	//Matthias
-	// Extension domain
+  // Extension domain
 	BordDomain = (float)ctes.GetBordDomain();
 	// Solid anisotropic
 	Ex = (float)ctes.GetYoungX();
 	Ey = (float)ctes.GetYoungY();
-	const float  nf = Ey / Ex;
 	nuxy = (float)ctes.GetPoissonXY();
 	nuyz = (float)ctes.GetPoissonYZ();
 	Gf = (float)ctes.GetShear();
 
-	const float alpha1 = Ex * (1 - nuxy) / (nf*(1 - nuxy) - 2.0f*nuyz*nuyz);
-	const float alpha2 = Ex * nf / (2.0f*nf*(1 - nuxy) - 4.0f*nuyz*nuyz);
-	const float alpha3 = Ex * nuyz / (nf*(1 - nuxy) - 2.0f*nuyz*nuyz);
-	const float alpha4 = Gf;
-	const float alpha5 = Ex / (2.0f*(1 + nuxy));
+	/*const float  nf = Ey / Ex;
+	const float Delta = nf * Ex / (1.0f - nuyz - 2.0f*nf*nuxy*nuxy);
+
+	if (Simulate2D) {
+		C1 = Delta * (1.0f - nuyz) / nf;
+		C2 = 0.0f;
+		C3 = Delta * (1.0f - nf * nuxy*nuxy) / (1.0f + nuyz);
+		C12 = 0.0f;
+		C13 = Delta * nuxy;
+		C23 = 0.0f;
+
+		C4 = Ey / (2.0f + 2.0f*nuxy); C5 = 0.0f; C6 = Gf;
+
+		//K = (C1 + C3) / 2.0f;
+
+		S1 = 1 / Ex;		S12 = 0.0f; S13 = -nuxy / Ex;
+		S21 = 0.0f;		S2 = 0.0f;	S23 = 0.0f;
+		S31 = -nuxy / Ex; S32 = 0.0f; S3 = 1 / Ey;
+		Kani = 1 / (S1 + S12 + S13 + S21 + S2 + S23 + S31 + S32 + S3);
+
+	}
+	else {
+		C1 = Delta * (1.0f - nuyz) / nf;
+		C2 = C3 = Delta * (1.0f - nf * nuxy*nuxy) / (1.0f + nuyz);
+		C12 = C13 = Delta * nuxy;
+		C23 = Delta * (nuyz + nf * nuxy*nuxy) / (1.0f + nuyz);
+
+		C4 = Ey / (2.0f + 2.0f*nuxy); C5 = Gf; C6 = Gf;
+
+		//K = (C1 + C2 + C3) / 3.0f;
+
+		S1 = 1 / Ex; S12 = -nuxy / Ex; S13 = -nuxy / Ex;
+		S21 = -nuxy / Ex; S2 = 1 / Ey; S23 = -nuyz / Ey;
+		S31 = -nuxy / Ex; S32 = -nuyz / Ey; S3 = 1 / Ey;
+		Kani = 1 / (S1 + S12 + S13 + S21 + S2 + S23 + S31 + S32 + S3);
+		//K_M = TFloat3(Kani, Kani, Kani);
+	}
+
 
 	printf("///\n");
-	printf("Gf = %.3f, Gt = %.3f, Gt' = %.3f\n", Gf, alpha5, Ey / (2.0f*(1 + nuyz)));
-	printf("///\n");
-
-	C1 = alpha1; C12 = alpha3; C13 = alpha3;
-	C2 = alpha2 + alpha5; C23 = alpha2 - alpha5; C3 = alpha2 + alpha5;
-	C4 = alpha5; C5 = alpha4; C6 = alpha4;
-	//K = min(min(min(C1, C12), min(C13, C2)), min(C3, C23)) / 3.0f;
-	K = (C1 + C2 + C3) / 3.0f;
-	//K_M = TFloat3((C1 + C12 + C13) / 3.0f, (C2 + C12 + C23) / 3.0f, (C3 + C23 + C13) / 3.0f);
-	S1 = 1 / Ex; S12 = -nuxy / Ex; S13 = -nuxy / Ex;
-	S21 = -nuxy / Ex; S2 = 1 / Ey; S23 = -nuyz / Ey;
-	S31 = -nuxy / Ex; S32 = -nuyz / Ey; S3 = 1 / Ey;
-	Kani = 1 / (S1 + S12 + S13 + S21 + S2 + S23 + S31 + S32 + S3);
-	K_M = TFloat3(Kani, Kani, Kani);
+	printf("C1 = %.3f, C12 = %.3f, C13 = %.3f\n", C1, C12, C13);
+	printf("C12 = %.3f, C2 = %.3f, C23 = %.3f\n", C12, C2, C23);
+	printf("C13 = %.3f, C23 = %.3f, C3 = %.3f\n", C13, C23, C3);
+	//printf("K_M = (%.3f,%.3f,%.3f)\n", K_M.x, K_M.y, K_M.z);
+	printf("S1 = %.8f, S12 = %.8f, S13 = %.8f\n", S1, S12, S13);
+	printf("S12 = %.8f, S2 = %.8f, S23 = %.8f\n", S12, S2, S23);
+	printf("S13 = %.8f, S23 = %.8f, S3 = %.8f\n", S13, S23, S3);
 
 	// New B for anisotropy
 	CteB = Kani / (Gamma);
-	CteB_M = TFloat3(K_M.x / Gamma, K_M.y / Gamma, K_M.z / Gamma);
-	//CteB3D = TFloat3((C1 + C12 + C13) / Gamma, (C2 + C12 + C23) / Gamma, (C3 + C13 + C23) / Gamma);
+	//CteB_M = TFloat3(K_M.x / Gamma, K_M.y / Gamma, K_M.z / Gamma);
+	//CteB3D = TFloat3((C1 + C12 + C13) / Gamma, (C2 + C12 + C23) / Gamma, (C3 + C13 + C23) / Gamma);*/
 
 	// Pore
 	PoreZero = (float)ctes.GetPoreZero();
@@ -1288,19 +1325,59 @@ void JSph::ResizeMapLimits(){
 //==============================================================================
 void JSph::ConfigConstants(bool simulate2d){
   const char* met="ConfigConstants";
+
+  // Matthias - Solid mechanics #constants
+  const float  nf = Ey / Ex;
+
+  if (Simulate2D) {
+	  const float Delta = 1.0f / (1.0f - nuxy * nuxy * nf);
+	  C1 = Delta * Ex; C12 = 0.0f; C13 = Delta * nuxy * Ey;
+	  C2 = 0.0f; C23 = 0.0f; C3 = Delta * Ey;	  
+	  
+	  C4 = 0.0f; C5 = Gf; C6 = 0.0f;
+
+	  //#S
+	  S1 = 1 / Ex;		S12 = 0.0f; S13 = -nuxy / Ex;
+	  S21 = 0.0f;		S2 = 0.0f;	S23 = 0.0f;
+	  S31 = -nuxy / Ex; S32 = 0.0f; S3 = 1 / Ey;
+	  Kani = 1 / (S1 + S12 + S13 + S21 + S2 + S23 + S31 + S32 + S3);
+
+  }
+  else {
+	  const float Delta = nf * Ex / (1.0f - nuyz - 2.0f*nf*nuxy*nuxy);
+	  C1 = Delta * (1.0f - nuyz) / nf;
+	  C2 = C3 = Delta * (1.0f - nf * nuxy*nuxy) / (1.0f + nuyz);
+	  C12 = C13 = Delta * nuxy;
+	  C23 = Delta * (nuyz + nf * nuxy*nuxy) / (1.0f + nuyz);
+
+	  C4 = Ey / (2.0f + 2.0f*nuxy); C5 = Gf; C6 = Gf;
+
+	  S1 = 1 / Ex; S12 = -nuxy / Ex; S13 = -nuxy / Ex;
+	  S21 = -nuxy / Ex; S2 = 1 / Ey; S23 = -nuyz / Ey;
+	  S31 = -nuxy / Ex; S32 = -nuyz / Ey; S3 = 1 / Ey;
+	  Kani = 1 / (S1 + S12 + S13 + S21 + S2 + S23 + S31 + S32 + S3);
+  }
+
+
+  printf("///\n");
+  printf("C1 = %.3f, C12 = %.3f, C13 = %.3f\n", C1, C12, C13);
+  printf("C12 = %.3f, C2 = %.3f, C23 = %.3f\n", C12, C2, C23);
+  printf("C13 = %.3f, C23 = %.3f, C3 = %.3f\n", C13, C23, C3);
+  printf("S1 = %.8f, S12 = %.8f, S13 = %.8f\n", S1, S12, S13);
+  printf("S12 = %.8f, S2 = %.8f, S23 = %.8f\n", S12, S2, S23);
+  printf("S13 = %.8f, S23 = %.8f, S3 = %.8f\n", S13, S23, S3);
+
+  // New B for anisotropy
+  CteB = Kani / (Gamma);
+
   //-Computation of constants.
   const double h=H;
   Delta2H=float(h*2*DeltaSph);
+
   // Cs0 version originale
-  // Cs0=sqrt(double(Gamma)*double(CteB)/double(RhopZero));
-  // 3D CteB
-  // Cs0 = sqrt(max(K_M.x, max(K_M.y, K_M.z)) / double(RhopZero));
-  Cs0 = 10*sqrt(max(K_M.x, max(K_M.y, K_M.z)) / double(RhopZero));
-  
-  // New B for anisotropy
-  // Cs0 with max(Cij)
-  //const float CteB2 = max(max(max(C1, C12), max(C13, C2)), max(C3, C23)) / (3.0f * Gamma);
-  //Cs0 = sqrt(double(Gamma)*double(CteB2) / double(RhopZero));
+  Cs0=sqrt(double(Gamma)*double(CteB)/double(RhopZero));
+
+  // Old anisotropic versions of Cs0 (vec3) removed - Matthias
 
   if(!DtIni)DtIni=h/Cs0;
   if(!DtMin)DtMin=(h/Cs0)*CoefDtMin;
@@ -2171,8 +2248,7 @@ void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, con
 			}*/
 
 			DataBi4->SaveFilePart();
-			//			delete[] press; press = NULL;//-Memory must to be deallocated after saving file because DataBi4 uses this memory space.
-			//delete[] gradvelSave; gradvelSave = NULL;				
+			//			delete[] press; press = NULL;//-Memory must to be deallocated after saving file because DataBi4 uses this memory space.		
 
 		}
 		if (SvData&SDAT_Info)DataBi4->SaveFileInfo();
@@ -2277,10 +2353,7 @@ void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, con
 			// Press
 			float *pressp = NULL;
 			pressp = new float[npok];
-			for (unsigned p = 0; p < npok; p++) {
-				pressp[p] = press[p].x;
-				printf("P: %.3f, %.3f, %.3f\n", press[p].x, press[p].y, press[p].z);
-			}
+			for (unsigned p = 0; p<npok; p++) pressp[p] = press[p].x;
 			DataBi4->AddPartData("Press", npok, pressp);
 			
 			// Mass
@@ -2333,8 +2406,7 @@ void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, con
 			delete[] gyy; gyy = NULL;
 			delete[] gyz; gyz = NULL;
 			delete[] gzz; gzz = NULL;
-			delete[] pressp; pressp = NULL;//-Memory must to be deallocated after saving file because DataBi4 uses this memory space.
-			//delete[] gradvelSave; gradvelSave = NULL;				
+			delete[] pressp; pressp = NULL;//-Memory must to be deallocated after saving file because DataBi4 uses this memory space.		
 
 		}
 		if (SvData&SDAT_Info)DataBi4->SaveFileInfo();
@@ -2416,7 +2488,11 @@ void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, con
 	, unsigned ndom, const tdouble3 *vdom, const StInfoPartPlus *infoplus) {
 	//-Stores particle data and/or information in bi4 format.
 	//-Graba datos de particulas y/o informacion en formato bi4.
-	//printf("SaveData\n");
+
+
+	for (unsigned p = 0; p < npok; p++) {
+	}
+
 	if (DataBi4) {
 		tfloat3* posf3 = NULL;
 		TimerPart.Stop();
@@ -2494,7 +2570,6 @@ void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, con
 			DataBi4->AddPartData("Qfxy", npok, qfxy);
 
 			DataBi4->SaveFilePart();
-			delete[] pressp; pressp = NULL;//-Memory must to be deallocated after saving file because DataBi4 uses this memory space.
 			delete[] mass; mass = NULL;
 			delete[] qfxx; qfxx = NULL;
 			delete[] qfyy; qfyy = NULL;
@@ -2502,6 +2577,7 @@ void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, con
 			delete[] qfyz; qfyz = NULL;
 			delete[] qfxz; qfxz = NULL;
 			delete[] qfxy; qfxy = NULL;
+			delete[] pressp; pressp = NULL;//-Memory must to be deallocated after saving file because DataBi4 uses this memory space.
 										   //delete[] gradvelSave; gradvelSave = NULL;				
 
 		}
@@ -2527,13 +2603,12 @@ void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, con
 		if (idp) { fields[nfields] = JFormatFiles2::DefineField("Idp", JFormatFiles2::UInt32, 1, idp);   nfields++; }
 		if (vel) { fields[nfields] = JFormatFiles2::DefineField("Vel", JFormatFiles2::Float32, 3, vel);   nfields++; }
 		if (rhop) { fields[nfields] = JFormatFiles2::DefineField("Rhop", JFormatFiles2::Float32, 1, rhop);  nfields++; }
-		//if (pore) { fields[nfields] = JFormatFiles2::DefineField("Porep", JFormatFiles2::Float32, 1, pore);  nfields++; }
-		//if (massp) { fields[nfields] = JFormatFiles2::DefineField("Massp", JFormatFiles2::Float32, 1, massp);  nfields++; }
+		if (pore) { fields[nfields] = JFormatFiles2::DefineField("Porep", JFormatFiles2::Float32, 1, pore);  nfields++; }
+		if (massp) { fields[nfields] = JFormatFiles2::DefineField("Massp", JFormatFiles2::Float32, 1, massp);  nfields++; }
+		if (press) { fields[nfields] = JFormatFiles2::DefineField("Pressp", JFormatFiles2::Float32, 1, press);  nfields++; }
 		if (type) { fields[nfields] = JFormatFiles2::DefineField("Type", JFormatFiles2::UChar8, 1, type);  nfields++; }
-
 		if (SvData&SDAT_Vtk)JFormatFiles2::SaveVtk(DirDataOut + fun::FileNameSec("PartVtk.vtk", Part), npok, posf3, nfields, fields);
-		//if (SvData&SDAT_Csv)JFormatFiles2::SaveCsv(DirDataOut + fun::FileNameSec("PartCsv.csv", Part), CsvSepComa, npok, posf3, nfields, fields);
-
+		if (SvData&SDAT_Csv)JFormatFiles2::SaveCsv(DirDataOut + fun::FileNameSec("PartCsv.csv", Part), CsvSepComa, npok, posf3, nfields, fields);
 		//-libera memoria.
 		//-release of memory.
 		delete[] posf3;
@@ -2559,13 +2634,169 @@ void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, con
 	PartsOut->Clear();
 }
 
+////////////////////////////////////////////////////
+// Surchage SavePartData w Nabvx - Matthias
+////////////////////////////////////////////////////
+void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, const tdouble3 *pos, const tfloat3 *vel
+	, const float *rhop, const float *pore, const float *press, const float *massp, const tsymatrix3f *qfp, const float *nabvx
+	, unsigned ndom, const tdouble3 *vdom, const StInfoPartPlus *infoplus) {
+	//-Stores particle data and/or information in bi4 format.
+	//-Graba datos de particulas y/o informacion en formato bi4.
+
+	if (DataBi4) {
+		tfloat3* posf3 = NULL;
+		TimerPart.Stop();
+		JBinaryData* bdpart = DataBi4->AddPartInfo(Part, TimeStep, npok, nout, Nstep, TimerPart.GetElapsedTimeD() / 1000., vdom[0], vdom[1], TotalNp);
+		if (infoplus && SvData&SDAT_Info) {
+			bdpart->SetvDouble("dtmean", (!Nstep ? 0 : (TimeStep - TimeStepM1) / (Nstep - PartNstep)));
+			bdpart->SetvDouble("dtmin", (!Nstep ? 0 : PartDtMin));
+			bdpart->SetvDouble("dtmax", (!Nstep ? 0 : PartDtMax));
+			if (DtFixed)bdpart->SetvDouble("dterror", DtFixed->GetDtError(true));
+			bdpart->SetvDouble("timesim", infoplus->timesim);
+			bdpart->SetvUint("nct", infoplus->nct);
+			bdpart->SetvUint("npbin", infoplus->npbin);
+			bdpart->SetvUint("npbout", infoplus->npbout);
+			bdpart->SetvUint("npf", infoplus->npf);
+			bdpart->SetvUint("npbper", infoplus->npbper);
+			bdpart->SetvUint("npfper", infoplus->npfper);
+			bdpart->SetvLlong("cpualloc", infoplus->memorycpualloc);
+			if (infoplus->gpudata) {
+				bdpart->SetvLlong("nctalloc", infoplus->memorynctalloc);
+				bdpart->SetvLlong("nctused", infoplus->memorynctused);
+				bdpart->SetvLlong("npalloc", infoplus->memorynpalloc);
+				bdpart->SetvLlong("npused", infoplus->memorynpused);
+			}
+		}
+		if (SvData&SDAT_Binx) {
+			if (SvDouble)DataBi4->AddPartData(npok, idp, pos, vel, rhop);
+			else {
+				posf3 = GetPointerDataFloat3(npok, pos);
+				DataBi4->AddPartData(npok, idp, posf3, vel, rhop);
+			}
+			// Press
+			float *pressp = NULL;
+			pressp = new float[npok];
+			for (unsigned p = 0; p < npok; p++) pressp[p] = press[p];
+			DataBi4->AddPartData("Press", npok, pressp);
+
+			// Mass
+			float *mass = NULL;
+			mass = new float[npok];
+			for (unsigned p = 0; p < npok; p++) mass[p] = massp[p];
+			DataBi4->AddPartData("Mass", npok, mass);
+
+			// Nabla vx
+			float *nvx = NULL;
+			nvx = new float[npok];
+			for (unsigned p = 0; p < npok; p++) nvx[p] = nabvx[p];
+			DataBi4->AddPartData("NabVx", npok, nvx);
+
+
+			/*// Quadratic form -- Blocked formulation since PartVtk does not seem to read tsymatrix
+			tsymatrix3f *qf = NULL;
+			qf = new tsymatrix3f[npok];
+			for (unsigned p = 0; p < npok; p++) qf[p] = qfp[p];
+			DataBi4->AddPartData("Qf", npok, qf);*/
+			// Quadratic form -- term to term formulation (Voigt notation)
+			float *qfxx = NULL;
+			float *qfyy = NULL;
+			float *qfzz = NULL;
+			float *qfyz = NULL;
+			float *qfxz = NULL;
+			float *qfxy = NULL;
+			qfxx = new float[npok];
+			qfyy = new float[npok];
+			qfzz = new float[npok];
+			qfyz = new float[npok];
+			qfxz = new float[npok];
+			qfxy = new float[npok];
+			for (unsigned p = 0; p < npok; p++) {
+				qfxx[p] = qfp[p].xx;
+				qfyy[p] = qfp[p].yy;
+				qfzz[p] = qfp[p].zz;
+				qfyz[p] = qfp[p].yz;
+				qfxz[p] = qfp[p].xz;
+				qfxy[p] = qfp[p].xy;
+			}
+			DataBi4->AddPartData("Qfxx", npok, qfxx);
+			DataBi4->AddPartData("Qfyy", npok, qfyy);
+			DataBi4->AddPartData("Qfzz", npok, qfzz);
+			DataBi4->AddPartData("Qfyz", npok, qfyz);
+			DataBi4->AddPartData("Qfxz", npok, qfxz);
+			DataBi4->AddPartData("Qfxy", npok, qfxy);
+
+			DataBi4->SaveFilePart();
+			delete[] mass; mass = NULL;
+			delete[] nvx; nvx = NULL;
+			delete[] qfxx; qfxx = NULL;
+			delete[] qfyy; qfyy = NULL;
+			delete[] qfzz; qfzz = NULL;
+			delete[] qfyz; qfyz = NULL;
+			delete[] qfxz; qfxz = NULL;
+			delete[] qfxy; qfxy = NULL;
+			delete[] pressp; pressp = NULL;//-Memory must to be deallocated after saving file because DataBi4 uses this memory space.
+										   //delete[] gradvelSave; gradvelSave = NULL;				
+
+		}
+		if (SvData&SDAT_Info)DataBi4->SaveFileInfo();
+		delete[] posf3;
+	}
+
+	//-Graba ficheros VKT y/o CSV.
+	//-Stores VTK nd/or CSV files.
+	if ((SvData&SDAT_Csv) || (SvData&SDAT_Vtk)) {
+		//-Genera array con posf3 y tipo de particula.
+		//-Generates array with posf3 and type of particle.
+		tfloat3* posf3 = GetPointerDataFloat3(npok, pos);
+		byte *type = new byte[npok];
+		for (unsigned p = 0; p < npok; p++) {
+			const unsigned id = idp[p];
+			type[p] = (id >= CaseNbound ? 3 : (id < CaseNfixed ? 0 : (id < CaseNpb ? 1 : 2)));
+		}
+		//-Define campos a grabar.
+		//-Defines fields to be stored.
+		JFormatFiles2::StScalarData fields[16];
+		unsigned nfields = 0;
+		if (idp) { fields[nfields] = JFormatFiles2::DefineField("Idp", JFormatFiles2::UInt32, 1, idp);   nfields++; }
+		if (vel) { fields[nfields] = JFormatFiles2::DefineField("Vel", JFormatFiles2::Float32, 3, vel);   nfields++; }
+		if (rhop) { fields[nfields] = JFormatFiles2::DefineField("Rhop", JFormatFiles2::Float32, 1, rhop);  nfields++; }
+		if (pore) { fields[nfields] = JFormatFiles2::DefineField("Porep", JFormatFiles2::Float32, 1, pore);  nfields++; }
+		if (massp) { fields[nfields] = JFormatFiles2::DefineField("Massp", JFormatFiles2::Float32, 1, massp);  nfields++; }
+		if (press) { fields[nfields] = JFormatFiles2::DefineField("Pressp", JFormatFiles2::Float32, 1, press);  nfields++; }
+		if (type) { fields[nfields] = JFormatFiles2::DefineField("Type", JFormatFiles2::UChar8, 1, type);  nfields++; }
+		if (SvData&SDAT_Vtk)JFormatFiles2::SaveVtk(DirDataOut + fun::FileNameSec("PartVtk.vtk", Part), npok, posf3, nfields, fields);
+		if (SvData&SDAT_Csv)JFormatFiles2::SaveCsv(DirDataOut + fun::FileNameSec("PartCsv.csv", Part), CsvSepComa, npok, posf3, nfields, fields);
+		//-libera memoria.
+		//-release of memory.
+		delete[] posf3;
+		delete[] type;
+	}
+
+	//-Graba datos de particulas excluidas.
+	//-Stores data of excluded particles.
+	if (DataOutBi4 && PartsOut->GetCount()) {
+		DataOutBi4->SavePartOut(SvDouble, Part, TimeStep, PartsOut->GetCount(), PartsOut->GetIdpOut(), NULL, PartsOut->GetPosOut(), PartsOut->GetVelOut(), PartsOut->GetRhopOut(), PartsOut->GetMotiveOut());
+	}
+
+	//-Graba datos de floatings.
+	//-Stores data of floatings.
+	if (DataFloatBi4) {
+		if (CellOrder == ORDER_XYZ)for (unsigned cf = 0; cf < FtCount; cf++)DataFloatBi4->AddPartData(cf, FtObjs[cf].center, FtObjs[cf].fvel, FtObjs[cf].fomega);
+		else                    for (unsigned cf = 0; cf < FtCount; cf++)DataFloatBi4->AddPartData(cf, OrderDecodeValue(CellOrder, FtObjs[cf].center), OrderDecodeValue(CellOrder, FtObjs[cf].fvel), OrderDecodeValue(CellOrder, FtObjs[cf].fomega));
+		DataFloatBi4->SavePartFloat(Part, TimeStep, (UseDEM ? DemDtForce : 0));
+	}
+
+	//-Vacia almacen de particulas excluidas.
+	//-Empties stock of excluded particles.
+	PartsOut->Clear();
+}
+
 ///////////////////////////
 // SaveData surcharge with Qf -- Matthias
 ///////////////////////////
 void JSph::SaveData_M(unsigned npok, const unsigned *idp, const tdouble3 *pos, const tfloat3 *vel, const float *rhop, const float *pore
 	, const float *press, const float *mass, const tsymatrix3f *qf, unsigned ndom, const tdouble3 *vdom, const StInfoPartPlus *infoplus)
 {
-	const char met[] = "SaveData";
 	string suffixpartx = fun::PrintStr("_%04d", Part);
 
 	//-Contabiliza nuevas particulas excluidas.
@@ -2656,6 +2887,54 @@ void JSph::SaveData_M(unsigned npok, const unsigned *idp, const tdouble3 *pos, c
 	if (GaugeSystem)GaugeSystem->SaveResults(Part);
 }
 
+
+///////////////////////////
+// SaveData surcharge with nabVx -- Matthias
+///////////////////////////
+void JSph::SaveData_M(unsigned npok, const unsigned *idp, const tdouble3 *pos, const tfloat3 *vel, const float *rhop, const float *pore
+	, const float *press, const float *mass, const tsymatrix3f *qf, const float *nabvx, unsigned ndom, const tdouble3 *vdom, const StInfoPartPlus *infoplus)
+{
+	string suffixpartx = fun::PrintStr("_%04d", Part);
+
+	//-Contabiliza nuevas particulas excluidas.
+	//-Counts new excluded particles.
+	const unsigned noutpos = PartsOut->GetOutPosCount(), noutrhop = PartsOut->GetOutRhopCount(), noutmove = PartsOut->GetOutMoveCount();
+	const unsigned nout = noutpos + noutrhop + noutmove;
+	AddOutCount(noutpos, noutrhop, noutmove);
+
+	//-Graba ficheros con datos de particulas.
+	//-Stores data files of particles.
+	SavePartData_M(npok, nout, idp, pos, vel, rhop, pore, press, mass, qf, nabvx, ndom, vdom, infoplus);
+
+	//-Reinicia limites de dt.
+	//-Reinitialises limits of dt.
+	PartDtMin = DBL_MAX; PartDtMax = -DBL_MAX;
+
+	//-Calculo de tiempo.
+	//-Computation of time.
+	if (Part > PartIni || Nstep) {
+		TimerPart.Stop();
+		double tpart = TimerPart.GetElapsedTimeD() / 1000;
+		double tseg = tpart / (TimeStep - TimeStepM1);
+		TimerSim.Stop();
+		double tcalc = TimerSim.GetElapsedTimeD() / 1000;
+		double tleft = (tcalc / (TimeStep - TimeStepIni))*(TimeMax - TimeStep);
+		Log->Printf("Part%s  %12.6f  %12d  %7d  %9.2f  %14s", suffixpartx.c_str(), TimeStep, (Nstep + 1), Nstep - PartNstep, tseg, fun::GetDateTimeAfter(int(tleft)).c_str());
+	}
+	else Log->Printf("Part%s        %u particles successfully stored", suffixpartx.c_str(), npok);
+
+
+	//-Muestra info de particulas excluidas
+	//-Shows info of the excluded particles
+	if (nout) {
+		PartOut += nout;
+		Log->Printf("  Particles out: %u  (total: %u)", nout, PartOut);
+	}
+
+	if (SvDomainVtk)SaveDomainVtk(ndom, vdom);
+	if (SaveDt)SaveDt->SaveData();
+	if (GaugeSystem)GaugeSystem->SaveResults(Part);
+}
 
 //==============================================================================
 /// Generates VTK file with domain of the particles.
