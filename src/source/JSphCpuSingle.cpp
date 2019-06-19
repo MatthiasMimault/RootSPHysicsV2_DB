@@ -663,20 +663,14 @@ void JSphCpuSingle::RunSizeDivision_M() {
 		//if ((Massc_M[p] / Velrhopc[p].w) > (SizeDivision_M*MassFluid / RhopZero)) {
 
 		// Version stochastique
-		//float phi1 = 1.0f - pow(1.0f - float(rand() % 100) / 100.0f, 30.0f);
 		float phi1 = 1.0f - exp(-200.0f*float(rand())/float(RAND_MAX));
-		//float phi2 = 1.0f - pow(min(1.0f, float(2.0*(sqrt(pow(Posc[p].y, 2) + pow(Posc[p].z, 2))))), 30.0f);
 		float phi2 = 1.0f;
 		float sizeDev = float(SizeDivision_M) * phi1*phi2 + 1.2f*(1.0f - phi1 * phi2);
 
 		if ((Massc_M[p] / Velrhopc[p].w) > (sizeDev*MassFluid / RhopZero)) {
 			Divisionc_M[p] = true;
 			count++;
-			//if (Posc[p].x>0.0 && Posc[p].x < 1.0) printf("Id %d SizeDef %.8f  Phi (%.8f %.1f)\n", Idpc[p], sizeDev, phi1, phi2);
-			//printf("Id %d", Idpc[p]);
-			//printf("DivisionMarquee ");
 		}
-		//#Print
 	}
 
 	while (run) {
@@ -1455,6 +1449,8 @@ double JSphCpuSingle::ComputeStep_Sym(){
 
   //-Predictor
   //-----------
+  //#printf
+  //printf("Predictor\n");
   DemDtForce=dt*0.5f;                     //(DEM)
   Interaction_Forces(INTER_Forces);       //-Interaction.
     const double ddt_p=DtVariable(false);   //-Calculate dt of predictor step.
@@ -1466,6 +1462,7 @@ double JSphCpuSingle::ComputeStep_Sym(){
 
   //-Corrector
   //-----------
+  //printf("Corrector\n");
   DemDtForce=dt;                          //(DEM)
   RunCellDivide(true);
   Interaction_Forces(INTER_ForcesCorr);   //Interaction.
@@ -1477,10 +1474,11 @@ double JSphCpuSingle::ComputeStep_Sym(){
   PosInteraction_Forces();                //-Free memory used for interaction.
   if(Damping)RunDamping(dt,Np,Npb,Posc,Codec,Velrhopc); //-Applies Damping.
 
-  DtPre=min(ddt_p,ddt_c);      
+  DtPre=min(ddt_p,ddt_c);
+  //#pause
+  //cin.get();
 
   return(dt);
-
 }
 
 //==============================================================================

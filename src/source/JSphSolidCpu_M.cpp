@@ -1107,14 +1107,24 @@ void JSphSolidCpu::PreInteractionVars_Forces(TpInter tinter, unsigned np, unsign
 		//Pressc[p] = -0.5f*RhopZero * float(Posc[p].x*Posc[p].x);
 		
 		//Pore Pressure 1 < x < 2
-		if (p > int(npb) && Posc[p].x > 0.3f && Posc[p].x <= 1.3f) Porec_M[p] = PoreZero;
+		/*if (p > int(npb) && Posc[p].x > 0.3f && Posc[p].x <= 1.3f) Porec_M[p] = PoreZero;
 		else if (p > int(npb) && Posc[p].x > 0.0f && Posc[p].x <= 0.3f) Porec_M[p] = PoreZero / 0.3f * (float)Posc[p].x;
 		else if (p > int(npb) && Posc[p].x > 1.3f && Posc[p].x <= 1.6f) Porec_M[p] = PoreZero * (-(float)Posc[p].x / 0.3f + 5.33f);
-		else Porec_M[p] = 0.0f;
-		/*if (p > int(npb) && Posc[p].x > 1.0f && Posc[p].x <= 2.0f) Porec_M[p] = PoreZero;
-		//else if (p > int(npb) && Posc[p].x > 1.0f - H && Posc[p].x <= 1.0f) Porec_M[p] = PoreZero / H * ((float)Posc[p].x + H - 1.0f);
-		//else if (p > int(npb) && Posc[p].x > 2.0f && Posc[p].x <= 2.0f + H) Porec_M[p] = PoreZero / H * ((float)(-Posc[p].x) + H + 2.0f);
 		else Porec_M[p] = 0.0f;*/
+		
+		//Pore Pressure 0 < lin x < x < 1.5 and  abs(z)<0.5
+		/*if (p > int(npb) && Posc[p].x > 0.3f && Posc[p].x <= 1.3f && abs(Posc[p].z) <= 0.5f) Porec_M[p] = PoreZero;
+		else if (p > int(npb) && Posc[p].x > 0.0f && Posc[p].x <= 0.3f && abs(Posc[p].z) <= 0.5f) Porec_M[p] = PoreZero / 0.3f * (float)Posc[p].x;
+		else if (p > int(npb) && Posc[p].x > 1.3f && Posc[p].x <= 1.6f && abs(Posc[p].z) <= 0.5f) Porec_M[p] = PoreZero * (-(float)Posc[p].x / 0.3f + 5.33f);
+		else Porec_M[p] = 0.0f;*/
+
+		//Pore Pressure 0 < lin x < x  and  abs(z)<0.5
+		if (p > int(npb) && Posc[p].x > 0.3f && abs(Posc[p].z) <= 0.5f) Porec_M[p] = PoreZero;
+		else if (p > int(npb) && Posc[p].x > 0.0f && Posc[p].x <= 0.3f && abs(Posc[p].z) <= 0.5f) Porec_M[p] = PoreZero / 0.3f * (float)Posc[p].x;
+		else Porec_M[p] = 0.0f;
+
+		//Pore pressure constant
+		//Porec_M[p] = PoreZero;
 	}
 }
 
@@ -2800,6 +2810,7 @@ template<bool psingle, TpKernel tker> void JSphSolidCpu::ComputeNsphCorrection12
 
 		// Original L
 		L[p1] = Inv3f(Mp1);
+		//L[p1] = { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
 	}
 }
 
@@ -3799,13 +3810,6 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 
 						//===== Acceleration ===== 
 						if (compute) {
-							/*const float prs = (pressp1 + press[p2]) / (RhopZero*velrhop[p2].w) + (tker == KERNEL_Cubic ? GetKernelCubicTensil(rr2, rhopp1, pressp1, velrhop[p2].w, press[p2]) : 0);
-							const float p_vpm = -prs * massp2*ftmassp1;
-							acep1.x += p_vpm * frx; acep1.y += p_vpm * fry; acep1.z += p_vpm * frz;*/
-							/*if (idp[p1] == 400) {
-								printf("Id: %d-%d - Pos %.4f-%.4f, Pressp1: %.4f-%.4f, frx: %.8f, massp2 %.8f, Acep1.x %.8f\n", Idpc[p1], Idpc[p2], Posc[p1].x, Posc[p2].x, pressp1, press[p2], frx, massp2, acep1.x);
-								//cin.get();
-							}*/
 							const tsymatrix3f prs = {
 								//(pressp1 + press[p2]) / (RhopZero*velrhop[p2].w), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
 								(pressp1 / rhopp1 + press[p2] / velrhop[p2].w) / RhopZero, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
@@ -4293,6 +4297,7 @@ void JSphSolidCpu::ComputeSpsTau(unsigned n, unsigned pini, const tfloat4 *velrh
 
 //==============================================================================
 /// Computes stress tensor rate for solid - Matthias 
+// #anisotropy #tau
 //==============================================================================
 void JSphSolidCpu::ComputeJauTauDot_M(unsigned n, unsigned pini, const tsymatrix3f *gradvel, tsymatrix3f *tau, tsymatrix3f *taudot, tsymatrix3f *omega)const {
 	const int pfin = int(pini + n);
@@ -4303,21 +4308,44 @@ void JSphSolidCpu::ComputeJauTauDot_M(unsigned n, unsigned pini, const tsymatrix
 		const tsymatrix3f tau = Tauc_M[p];
 		const tsymatrix3f gradvel = StrainDotc_M[p];
 		const tsymatrix3f omega = Spinc_M[p];
-		const tsymatrix3f E = {
-			(2.0f/3.0f*C1 - 1.0f/3.0f*C12 -1.0f/3.0f*C13)*gradvel.xx + (2.0f/3.0f*C12 - 1.0f/3.0f*C2 - 1.0f/3.0f*C23)*gradvel.yy + (2.0f/3.0f*C13 - 1.0f/3.0f*C23 - 1.0f/3.0f*C3) * gradvel.zz,
-			C4 * gradvel.xy,
-			C5 * gradvel.xz,
-			(-1.0f/3.0f*C1 + 2.0f/3.0f*C12 - 1.0f/3.0f*C13)*gradvel.xx + (-1.0f/3.0f*C12 + 2.0f/3.0f*C2 - 1.0f/3.0f*C23)*gradvel.yy + (-1.0f/3.0f*C13 + 2.0f/3.0f*C23 - 1.0f/3.0f*C3)*gradvel.zz,
-			C6 * gradvel.yz,
-			(-1.0f/3.0f*C1 - 1.0f/3.0f*C12 + 2.0f/3.0f*C13)*gradvel.xx + (-1.0f/3.0f*C12 - 1.0f/3.0f*C2 + 2.0f/3.0f*C23)*gradvel.yy + (-1.0f/3.0f*C13 - 1.0f/3.0f*C23 + 2.0f/3.0f*C3)*gradvel.zz };
+		tsymatrix3f E;
 
+		//#2D
+		if (Simulate2D) { 
+			E = {
+				1.0f / 2.0f*(C1 - C13)*gradvel.xx + 1.0f / 2.0f*(C13 - C3) * gradvel.zz,
+				0.0f,
+				C5 * gradvel.xz,
+				0.0f,
+				0.0f,
+				1.0f / 2.0f*(-C1 + C13)*gradvel.xx + 1.0f / 2.0f*(-C13 + C3)*gradvel.zz };
+		}
+		else {
+			E = {
+				(2.0f/3.0f*C1 - 1.0f/3.0f*C12 -1.0f/3.0f*C13)*gradvel.xx + (2.0f/3.0f*C12 - 1.0f/3.0f*C2 - 1.0f/3.0f*C23)*gradvel.yy + (2.0f/3.0f*C13 - 1.0f/3.0f*C23 - 1.0f/3.0f*C3) * gradvel.zz,
+				C4 * gradvel.xy,
+				C5 * gradvel.xz,
+				(-1.0f/3.0f*C1 + 2.0f/3.0f*C12 - 1.0f/3.0f*C13)*gradvel.xx + (-1.0f/3.0f*C12 + 2.0f/3.0f*C2 - 1.0f/3.0f*C23)*gradvel.yy + (-1.0f/3.0f*C13 + 2.0f/3.0f*C23 - 1.0f/3.0f*C3)*gradvel.zz,
+				C6 * gradvel.yz,
+				(-1.0f/3.0f*C1 - 1.0f/3.0f*C12 + 2.0f/3.0f*C13)*gradvel.xx + (-1.0f/3.0f*C12 - 1.0f/3.0f*C2 + 2.0f/3.0f*C23)*gradvel.yy + (-1.0f/3.0f*C13 - 1.0f/3.0f*C23 + 2.0f/3.0f*C3)*gradvel.zz };
+		}
+		
 		taudot[p].xx = E.xx + 2.0f*tau.xy*omega.xy + 2.0f*tau.xz*omega.xz;
 		taudot[p].xy = E.xy + (tau.yy - tau.xx)*omega.xy + tau.xz*omega.yz + tau.yz*omega.xz;
 		taudot[p].xz = E.xz + (tau.zz - tau.xx)*omega.xz - tau.xy*omega.yz + tau.yz*omega.xy;
 		taudot[p].yy = E.yy - 2.0f*tau.xy*omega.xy + 2.0f*tau.yz*omega.yz;
 		taudot[p].yz = E.yz + (tau.zz - tau.yy)*omega.yz - tau.xz*omega.xy - tau.xy*omega.xz;
 		taudot[p].zz = E.zz - 2.0f*tau.xz*omega.xz - 2.0f*tau.yz*omega.yz;
+		//#print
+		//if (Posc[p].x > 1.5 && Posc[p].z > 1.5) printf("Id %d - Td (%.8f, %.8f, %.8f, %.8f, %.8f, %.8f)\n", Idpc[p], taudot[p].xx, taudot[p].xy, taudot[p].xz, taudot[p].yy, taudot[p].yz, taudot[p].zz);
+		/*if (Idpc[p] > 6479 && Posc[p].z > 0.5f) {
+			printf("Id %d P (%.8f) - Gv (%.12f, %.8f, %.8f, %.8f, %.8f, %.12f)\n"
+				, Idpc[p], Posc[p].z, StrainDotc_M[p].xx, StrainDotc_M[p].xy, StrainDotc_M[p].xz, StrainDotc_M[p].yy, StrainDotc_M[p].yz, StrainDotc_M[p].zz);
+			printf("Id %d P (%.8f) - Td (%.8f, %.8f, %.8f, %.8f, %.8f, %.8f)\n"
+				, Idpc[p], Posc[p].z, taudot[p].xx, taudot[p].xy, taudot[p].xz, taudot[p].yy, taudot[p].yz, taudot[p].zz);
 
+		}*/
+			
 		
 	}
 }
@@ -9281,11 +9309,12 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticPreT_M(double dt) {
 			Velrhopc[p].x = float(double(VelrhopPrec[p].x) + double(Acec[p].x)* dt05);
 			Velrhopc[p].y = float(double(VelrhopPrec[p].y) + double(Acec[p].y)* dt05);
 			Velrhopc[p].z = float(double(VelrhopPrec[p].z) + double(Acec[p].z)* dt05);
-			if (PosPrec[p].x > 2.0f) {
+			//#Speed #Limiter
+			/*if (PosPrec[p].x > 2.0f) {
 				Velrhopc[p].x = float(min(double(VelrhopPrec[p].x) + double(Acec[p].x)* dt05, 0.03));
 				Velrhopc[p].y = 0.0f;
 				Velrhopc[p].z = 0.0f;
-			}
+			}*/
 
 			// Update Shear stress
 			Tauc_M[p].xx = float(double(TauPrec_M[p].xx) + double(TauDotc_M[p].xx)* dt05);
@@ -9367,8 +9396,9 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT_M(double dt) {
 			Velrhopc[p].x = float(double(VelrhopPrec[p].x) + double(Acec[p].x) * dt);
 			Velrhopc[p].y = float(double(VelrhopPrec[p].y) + double(Acec[p].y) * dt);
 			Velrhopc[p].z = float(double(VelrhopPrec[p].z) + double(Acec[p].z) * dt);
-			if (PosPrec[p].x > 2.0f) {
-				Velrhopc[p].x = float(min(double(VelrhopPrec[p].x) + double(Acec[p].x)* dt05, 0.03));
+			//#Speed #Limiter
+			if (PosPrec[p].x > 2.2f) {
+				Velrhopc[p].x = float(min(double(VelrhopPrec[p].x) + double(Acec[p].x)* dt05, 0.025));
 				Velrhopc[p].y = 0.0f;
 				Velrhopc[p].z = 0.0f;
 			}
@@ -9421,9 +9451,9 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT_M(double dt) {
 			float adens = float(LambdaMass * (RhopZero / rhopnew - 1));
 
 			// #Growth
-			if (Posc[p].x > 0.0f && Posc[p].x <= 1.6f && adens>0.0f) {
+			if (Posc[p].x > 0.0f && abs(Posc[p].z) <= 0.5f && adens>0.0f) {
 				rhopnew = float(rhopnew + dt * adens);
-				Massc_M[p] = float(double(MassPrec_M[p]) + dt * double(adens*volu));
+				Massc_M[p] = float(double(MassPrec_M[p]) + dt * double(adens*volu));				
 			}
 
 			/*rhopnew = float(rhopnew + dt * adens);

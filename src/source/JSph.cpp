@@ -693,40 +693,62 @@ void JSph::LoadCaseConfig(){
   // Solid anisotropic
   Ex = (float)ctes.GetYoungX();
   Ey = (float)ctes.GetYoungY();
-  const float  nf = Ey/Ex;
   nuxy = (float)ctes.GetPoissonXY();
   nuyz = (float)ctes.GetPoissonYZ();
   Gf = (float)ctes.GetShear();
 
-  const float Delta = nf * Ex / (1.0f - nuyz - 2.0f*nf*nuxy*nuxy);
-  C1 = Delta * (1.0f - nuyz) / nf;
-  C2 = C3 = Delta * (1.0f - nf * nuxy*nuxy) / (1.0f + nuyz);
-  C12 = C13 = Delta * nuxy;
-  C23 = Delta * (nuyz + nf * nuxy*nuxy) / (1.0f + nuyz); 
+  //#Constants
+  printf("Si2D %d\n", Simulate2D);
+  /*if (Simulate2D) {
+	  printf("Choix 2D\n");
+	  C1 = Delta * (1.0f - nuyz) / nf;
+	  C2 = 0.0f;
+	  C3 = Delta * (1.0f - nf * nuxy*nuxy) / (1.0f + nuyz);
+	  C12 = 0.0f;
+	  C13 = Delta * nuxy;
+	  C23 = 0.0f;
 
-  C4 = Ey/(2.0f+2.0f*nuxy); C5 = Gf; C6 = Gf;
+	  C4 = Ey / (2.0f + 2.0f*nuxy); C5 = 0.0f; C6 = Gf;
+
+	  //K = (C1 + C3) / 2.0f;
+
+	  S1 = 1 / Ex;		S12 = 0.0f; S13 = -nuxy / Ex;
+	  S21 = 0.0f;		S2 = 0.0f;	S23 = 0.0f;
+	  S31 = -nuxy / Ex; S32 = 0.0f; S3 = 1 / Ey;
+	  Kani = 1 / (S1 + S12 + S13 + S21 + S2 + S23 + S31 + S32 + S3);
+
+  }
+  else {
+	  printf("Choix 3D\n");
+	  C1 = Delta * (1.0f - nuyz) / nf;
+	  C2 = C3 = Delta * (1.0f - nf * nuxy*nuxy) / (1.0f + nuyz);
+	  C12 = C13 = Delta * nuxy;
+	  C23 = Delta * (nuyz + nf * nuxy*nuxy) / (1.0f + nuyz);
+
+	  C4 = Ey / (2.0f + 2.0f*nuxy); C5 = Gf; C6 = Gf;
   
+	  //K = (C1 + C2 + C3) / 3.0f;
   
-  K = (C1 + C2 + C3) / 3.0f;
+	  S1 = 1 / Ex; S12 = -nuxy / Ex; S13 = -nuxy / Ex;
+	  S21 = -nuxy / Ex; S2 = 1 / Ey; S23 = -nuyz / Ey;
+	  S31 = -nuxy / Ex; S32 = -nuyz / Ey; S3 = 1 / Ey;
+	  Kani = 1 / (S1 + S12 + S13 + S21 + S2 + S23 + S31 + S32 + S3);
+	  //K_M = TFloat3(Kani, Kani, Kani);
+  }
   
-  S1 = 1 / Ex; S12 = -nuxy / Ex; S13 = -nuxy / Ex;
-  S21 = -nuxy / Ex; S2 = 1 / Ey; S23 = -nuyz / Ey;
-  S31 = -nuxy / Ex; S32 = -nuyz / Ey; S3 = 1 / Ey;
-  Kani = 1 / (S1 + S12 + S13 + S21 + S2 + S23 + S31 + S32 + S3);
-  K_M = TFloat3(Kani, Kani, Kani);
 
   printf("///\n");
   printf("C1 = %.3f, C12 = %.3f, C13 = %.3f\n", C1, C12, C13);
   printf("C12 = %.3f, C2 = %.3f, C23 = %.3f\n", C12, C2, C23);
   printf("C13 = %.3f, C23 = %.3f, C3 = %.3f\n", C13, C23, C3);
-  printf("K_M = (%.3f,%.3f,%.3f)\n", K_M.x, K_M.y, K_M.z);
+  //printf("K_M = (%.3f,%.3f,%.3f)\n", K_M.x, K_M.y, K_M.z);
   printf("S1 = %.8f, S12 = %.8f, S13 = %.8f\n", S1, S12, S13);
   printf("S12 = %.8f, S2 = %.8f, S23 = %.8f\n", S12, S2, S23);
   printf("S13 = %.8f, S23 = %.8f, S3 = %.8f\n", S13, S23, S3);
 
   // New B for anisotropy
-  CteB = Kani / ( Gamma ) ;
-  CteB_M = TFloat3(K_M.x / Gamma, K_M.y / Gamma, K_M.z / Gamma);
+  CteB = Kani / ( Gamma ) ;*/
+  //CteB_M = TFloat3(K_M.x / Gamma, K_M.y / Gamma, K_M.z / Gamma);
  
   // Pore
   PoreZero = (float)ctes.GetPoreZero();
@@ -1011,42 +1033,67 @@ void JSph::LoadCaseConfig_T() {
 	MassFluid = (float)ctes.GetMassFluid();
 	MassBound = (float)ctes.GetMassBound();
 	//Matthias
-	// Extension domain
+  // Extension domain
 	BordDomain = (float)ctes.GetBordDomain();
 	// Solid anisotropic
 	Ex = (float)ctes.GetYoungX();
 	Ey = (float)ctes.GetYoungY();
-	const float  nf = Ey / Ex;
 	nuxy = (float)ctes.GetPoissonXY();
 	nuyz = (float)ctes.GetPoissonYZ();
 	Gf = (float)ctes.GetShear();
 
-	const float alpha1 = Ex * (1 - nuxy) / (nf*(1 - nuxy) - 2.0f*nuyz*nuyz);
-	const float alpha2 = Ex * nf / (2.0f*nf*(1 - nuxy) - 4.0f*nuyz*nuyz);
-	const float alpha3 = Ex * nuyz / (nf*(1 - nuxy) - 2.0f*nuyz*nuyz);
-	const float alpha4 = Gf;
-	const float alpha5 = Ex / (2.0f*(1 + nuxy));
+	/*const float  nf = Ey / Ex;
+	const float Delta = nf * Ex / (1.0f - nuyz - 2.0f*nf*nuxy*nuxy);
+
+	if (Simulate2D) {
+		C1 = Delta * (1.0f - nuyz) / nf;
+		C2 = 0.0f;
+		C3 = Delta * (1.0f - nf * nuxy*nuxy) / (1.0f + nuyz);
+		C12 = 0.0f;
+		C13 = Delta * nuxy;
+		C23 = 0.0f;
+
+		C4 = Ey / (2.0f + 2.0f*nuxy); C5 = 0.0f; C6 = Gf;
+
+		//K = (C1 + C3) / 2.0f;
+
+		S1 = 1 / Ex;		S12 = 0.0f; S13 = -nuxy / Ex;
+		S21 = 0.0f;		S2 = 0.0f;	S23 = 0.0f;
+		S31 = -nuxy / Ex; S32 = 0.0f; S3 = 1 / Ey;
+		Kani = 1 / (S1 + S12 + S13 + S21 + S2 + S23 + S31 + S32 + S3);
+
+	}
+	else {
+		C1 = Delta * (1.0f - nuyz) / nf;
+		C2 = C3 = Delta * (1.0f - nf * nuxy*nuxy) / (1.0f + nuyz);
+		C12 = C13 = Delta * nuxy;
+		C23 = Delta * (nuyz + nf * nuxy*nuxy) / (1.0f + nuyz);
+
+		C4 = Ey / (2.0f + 2.0f*nuxy); C5 = Gf; C6 = Gf;
+
+		//K = (C1 + C2 + C3) / 3.0f;
+
+		S1 = 1 / Ex; S12 = -nuxy / Ex; S13 = -nuxy / Ex;
+		S21 = -nuxy / Ex; S2 = 1 / Ey; S23 = -nuyz / Ey;
+		S31 = -nuxy / Ex; S32 = -nuyz / Ey; S3 = 1 / Ey;
+		Kani = 1 / (S1 + S12 + S13 + S21 + S2 + S23 + S31 + S32 + S3);
+		//K_M = TFloat3(Kani, Kani, Kani);
+	}
+
 
 	printf("///\n");
-	printf("Gf = %.3f, Gt = %.3f, Gt' = %.3f\n", Gf, alpha5, Ey / (2.0f*(1 + nuyz)));
-	printf("///\n");
-
-	C1 = alpha1; C12 = alpha3; C13 = alpha3;
-	C2 = alpha2 + alpha5; C23 = alpha2 - alpha5; C3 = alpha2 + alpha5;
-	C4 = alpha5; C5 = alpha4; C6 = alpha4;
-	//K = min(min(min(C1, C12), min(C13, C2)), min(C3, C23)) / 3.0f;
-	K = (C1 + C2 + C3) / 3.0f;
-	//K_M = TFloat3((C1 + C12 + C13) / 3.0f, (C2 + C12 + C23) / 3.0f, (C3 + C23 + C13) / 3.0f);
-	S1 = 1 / Ex; S12 = -nuxy / Ex; S13 = -nuxy / Ex;
-	S21 = -nuxy / Ex; S2 = 1 / Ey; S23 = -nuyz / Ey;
-	S31 = -nuxy / Ex; S32 = -nuyz / Ey; S3 = 1 / Ey;
-	Kani = 1 / (S1 + S12 + S13 + S21 + S2 + S23 + S31 + S32 + S3);
-	K_M = TFloat3(Kani, Kani, Kani);
+	printf("C1 = %.3f, C12 = %.3f, C13 = %.3f\n", C1, C12, C13);
+	printf("C12 = %.3f, C2 = %.3f, C23 = %.3f\n", C12, C2, C23);
+	printf("C13 = %.3f, C23 = %.3f, C3 = %.3f\n", C13, C23, C3);
+	//printf("K_M = (%.3f,%.3f,%.3f)\n", K_M.x, K_M.y, K_M.z);
+	printf("S1 = %.8f, S12 = %.8f, S13 = %.8f\n", S1, S12, S13);
+	printf("S12 = %.8f, S2 = %.8f, S23 = %.8f\n", S12, S2, S23);
+	printf("S13 = %.8f, S23 = %.8f, S3 = %.8f\n", S13, S23, S3);
 
 	// New B for anisotropy
 	CteB = Kani / (Gamma);
-	CteB_M = TFloat3(K_M.x / Gamma, K_M.y / Gamma, K_M.z / Gamma);
-	//CteB3D = TFloat3((C1 + C12 + C13) / Gamma, (C2 + C12 + C23) / Gamma, (C3 + C13 + C23) / Gamma);
+	//CteB_M = TFloat3(K_M.x / Gamma, K_M.y / Gamma, K_M.z / Gamma);
+	//CteB3D = TFloat3((C1 + C12 + C13) / Gamma, (C2 + C12 + C23) / Gamma, (C3 + C13 + C23) / Gamma);*/
 
 	// Pore
 	PoreZero = (float)ctes.GetPoreZero();
@@ -1278,19 +1325,59 @@ void JSph::ResizeMapLimits(){
 //==============================================================================
 void JSph::ConfigConstants(bool simulate2d){
   const char* met="ConfigConstants";
+
+  // Matthias - Solid mechanics #constants
+  const float  nf = Ey / Ex;
+
+  if (Simulate2D) {
+	  const float Delta = 1.0f / (1.0f - nuxy * nuxy * nf);
+	  C1 = Delta * Ex; C12 = 0.0f; C13 = Delta * nuxy * Ey;
+	  C2 = 0.0f; C23 = 0.0f; C3 = Delta * Ey;	  
+	  
+	  C4 = 0.0f; C5 = Gf; C6 = 0.0f;
+
+	  //#S
+	  S1 = 1 / Ex;		S12 = 0.0f; S13 = -nuxy / Ex;
+	  S21 = 0.0f;		S2 = 0.0f;	S23 = 0.0f;
+	  S31 = -nuxy / Ex; S32 = 0.0f; S3 = 1 / Ey;
+	  Kani = 1 / (S1 + S12 + S13 + S21 + S2 + S23 + S31 + S32 + S3);
+
+  }
+  else {
+	  const float Delta = nf * Ex / (1.0f - nuyz - 2.0f*nf*nuxy*nuxy);
+	  C1 = Delta * (1.0f - nuyz) / nf;
+	  C2 = C3 = Delta * (1.0f - nf * nuxy*nuxy) / (1.0f + nuyz);
+	  C12 = C13 = Delta * nuxy;
+	  C23 = Delta * (nuyz + nf * nuxy*nuxy) / (1.0f + nuyz);
+
+	  C4 = Ey / (2.0f + 2.0f*nuxy); C5 = Gf; C6 = Gf;
+
+	  S1 = 1 / Ex; S12 = -nuxy / Ex; S13 = -nuxy / Ex;
+	  S21 = -nuxy / Ex; S2 = 1 / Ey; S23 = -nuyz / Ey;
+	  S31 = -nuxy / Ex; S32 = -nuyz / Ey; S3 = 1 / Ey;
+	  Kani = 1 / (S1 + S12 + S13 + S21 + S2 + S23 + S31 + S32 + S3);
+  }
+
+
+  printf("///\n");
+  printf("C1 = %.3f, C12 = %.3f, C13 = %.3f\n", C1, C12, C13);
+  printf("C12 = %.3f, C2 = %.3f, C23 = %.3f\n", C12, C2, C23);
+  printf("C13 = %.3f, C23 = %.3f, C3 = %.3f\n", C13, C23, C3);
+  printf("S1 = %.8f, S12 = %.8f, S13 = %.8f\n", S1, S12, S13);
+  printf("S12 = %.8f, S2 = %.8f, S23 = %.8f\n", S12, S2, S23);
+  printf("S13 = %.8f, S23 = %.8f, S3 = %.8f\n", S13, S23, S3);
+
+  // New B for anisotropy
+  CteB = Kani / (Gamma);
+
   //-Computation of constants.
   const double h=H;
   Delta2H=float(h*2*DeltaSph);
+
   // Cs0 version originale
-  // Cs0=sqrt(double(Gamma)*double(CteB)/double(RhopZero));
-  // 3D CteB
-  // Cs0 = sqrt(max(K_M.x, max(K_M.y, K_M.z)) / double(RhopZero));
-  Cs0 = 10*sqrt(max(K_M.x, max(K_M.y, K_M.z)) / double(RhopZero));
-  
-  // New B for anisotropy
-  // Cs0 with max(Cij)
-  //const float CteB2 = max(max(max(C1, C12), max(C13, C2)), max(C3, C23)) / (3.0f * Gamma);
-  //Cs0 = sqrt(double(Gamma)*double(CteB2) / double(RhopZero));
+  Cs0=sqrt(double(Gamma)*double(CteB)/double(RhopZero));
+
+  // Old anisotropic versions of Cs0 (vec3) removed - Matthias
 
   if(!DtIni)DtIni=h/Cs0;
   if(!DtMin)DtMin=(h/Cs0)*CoefDtMin;
