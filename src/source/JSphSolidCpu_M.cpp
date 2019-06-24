@@ -1119,12 +1119,12 @@ void JSphSolidCpu::PreInteractionVars_Forces(TpInter tinter, unsigned np, unsign
 		else Porec_M[p] = 0.0f;*/
 
 		//Pore Pressure 0 < lin x < x  and  abs(z)<0.5
-		if (p > int(npb) && Posc[p].x > 0.3f && abs(Posc[p].z) <= 0.5f) Porec_M[p] = PoreZero;
+		/*if (p > int(npb) && Posc[p].x > 0.3f && abs(Posc[p].z) <= 0.5f) Porec_M[p] = PoreZero;
 		else if (p > int(npb) && Posc[p].x > 0.0f && Posc[p].x <= 0.3f && abs(Posc[p].z) <= 0.5f) Porec_M[p] = PoreZero / 0.3f * (float)Posc[p].x;
-		else Porec_M[p] = 0.0f;
+		else Porec_M[p] = 0.0f;*/
 
 		//Pore pressure constant
-		//Porec_M[p] = PoreZero;
+		Porec_M[p] = PoreZero;
 	}
 }
 
@@ -9451,13 +9451,14 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT_M(double dt) {
 			float adens = float(LambdaMass * (RhopZero / rhopnew - 1));
 
 			// #Growth
-			if (Posc[p].x > 0.0f && abs(Posc[p].z) <= 0.5f && adens>0.0f) {
+			/*if (Posc[p].x > 0.0f && abs(Posc[p].z) <= 0.5f && adens>0.0f) {
 				rhopnew = float(rhopnew + dt * adens);
 				Massc_M[p] = float(double(MassPrec_M[p]) + dt * double(adens*volu));				
-			}
+			}*/
 
-			/*rhopnew = float(rhopnew + dt * adens);
-			Massc_M[p] = float(double(MassPrec_M[p]) + dt * double(adens*volu));*/
+			// Global growth
+			rhopnew = float(rhopnew + dt * adens);
+			Massc_M[p] = float(double(MassPrec_M[p]) + dt * double(adens*volu));
 
 			Velrhopc[p].w = rhopnew;
 		}

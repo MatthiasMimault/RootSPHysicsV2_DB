@@ -659,18 +659,18 @@ void JSphCpuSingle::RunSizeDivision_M() {
 
 	// 1. Test division cellulaire
 	for (unsigned p = Npb; p < Np; p++) {
-		// Version originale
+		// Version originale // Commit linux
 		//if ((Massc_M[p] / Velrhopc[p].w) > (SizeDivision_M*MassFluid / RhopZero)) {
 
 		// Version stochastique
-		float phi1 = 1.0f - exp(-200.0f*float(rand())/float(RAND_MAX));
+		/*float phi1 = 1.0f - exp(-200.0f*float(rand())/float(RAND_MAX));
 		float phi2 = 1.0f;
 		float sizeDev = float(SizeDivision_M) * phi1*phi2 + 1.2f*(1.0f - phi1 * phi2);
 
 		if ((Massc_M[p] / Velrhopc[p].w) > (sizeDev*MassFluid / RhopZero)) {
 			Divisionc_M[p] = true;
 			count++;
-		}
+		}*/
 	}
 
 	while (run) {
