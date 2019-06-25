@@ -1,19 +1,19 @@
 //HEAD_DSPH
 /*
- <DUALSPHYSICS>  Copyright (c) 2017 by Dr Jose M. Dominguez et al. (see http://dual.sphysics.org/index.php/developers/). 
+ <DUALSPHYSICS>  Copyright (c) 2017 by Dr Jose M. Dominguez et al. (see http://dual.sphysics.org/index.php/developers/).
 
  EPHYSLAB Environmental Physics Laboratory, Universidade de Vigo, Ourense, Spain.
  School of Mechanical, Aerospace and Civil Engineering, University of Manchester, Manchester, U.K.
 
- This file is part of DualSPHysics. 
+ This file is part of DualSPHysics.
 
- DualSPHysics is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License 
+ DualSPHysics is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License
  as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.
- 
- DualSPHysics is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details. 
 
- You should have received a copy of the GNU Lesser General Public License along with DualSPHysics. If not, see <http://www.gnu.org/licenses/>. 
+ DualSPHysics is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.
+
+ You should have received a copy of the GNU Lesser General Public License along with DualSPHysics. If not, see <http://www.gnu.org/licenses/>.
 */
 
 /// \file JSphCpuSingle.h \brief Declares the class \ref JSphCpuSingle.
@@ -24,7 +24,7 @@
 #include "Types.h"
 #include "JSphCpu.h"
 #include "JSphSolidCpu_M.h"
-#include "GencaseBis_T.h"
+#include "GenCaseBis_T.h"
 #include <string>
 
 class JCellDivCpuSingle;
@@ -84,7 +84,7 @@ protected:
     ,int &cxini,int &cxfin,int &yini,int &yfin,int &zini,int &zfin)const;
 
   void Interaction_Forces(TpInter tinter);
-  
+
   template<bool checkcodenormal> double ComputeAceMaxSeq(unsigned np,const tfloat3* ace,const typecode *code)const;
   template<bool checkcodenormal> double ComputeAceMaxOmp(unsigned np,const tfloat3* ace,const typecode *code)const;
 
@@ -101,7 +101,7 @@ protected:
   void FtCalcForcesRes(double dt,const StFtoForces *ftoforces,StFtoForcesRes *ftoforcesres)const;
   void RunFloating(double dt,bool predictor);
   void RunGaugeSystem(double timestep);
-  
+
   void SaveData();
   void SaveData_M();
   void FinishRun(bool stop);
@@ -114,5 +114,3 @@ public:
 };
 
 #endif
-
-
