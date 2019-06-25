@@ -1,19 +1,19 @@
 //HEAD_DSCODES
 /*
- <DUALSPHYSICS>  Copyright (c) 2017 by Dr Jose M. Dominguez et al. (see http://dual.sphysics.org/index.php/developers/). 
+ <DUALSPHYSICS>  Copyright (c) 2017 by Dr Jose M. Dominguez et al. (see http://dual.sphysics.org/index.php/developers/).
 
  EPHYSLAB Environmental Physics Laboratory, Universidade de Vigo, Ourense, Spain.
  School of Mechanical, Aerospace and Civil Engineering, University of Manchester, Manchester, U.K.
 
- This file is part of DualSPHysics. 
+ This file is part of DualSPHysics.
 
- DualSPHysics is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License 
+ DualSPHysics is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License
  as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.
- 
- DualSPHysics is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details. 
 
- You should have received a copy of the GNU Lesser General Public License along with DualSPHysics. If not, see <http://www.gnu.org/licenses/>. 
+ DualSPHysics is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.
+
+ You should have received a copy of the GNU Lesser General Public License along with DualSPHysics. If not, see <http://www.gnu.org/licenses/>.
 */
 
 /// \file Functions.cpp \brief Implements basic/general functions for the entire application.
@@ -78,11 +78,11 @@ std::string GetTextRandomCode(unsigned length){
   for(unsigned c=0;c<length;c++){
     char let=char(float(rand())/float(RAND_MAX)*36);
     code[c]=(let<10? let+48: let+87);
-  } 
+  }
   code[length]=0;
   return(code);
 }
-  
+
 //==============================================================================
 /// Returns string using the same parameters used in printf().
 //==============================================================================
@@ -108,9 +108,9 @@ std::string PrintStr(const char *format,...){
   va_end(args);
   return(ret);
 }
-  
+
 //==============================================================================
-/// Returns string using the same parameters used in printf() and the CSV 
+/// Returns string using the same parameters used in printf() and the CSV
 /// separator in format is corrected.
 //==============================================================================
 std::string PrintStrCsv(bool csvsepcoma,const char *format,...){
@@ -650,7 +650,7 @@ void PrintVar(const std::string &name,tdouble3 value,const std::string &post){ p
 void PrintVar(const std::string &name,bool value,const std::string &post){ printf("%s%s",VarStr(name,value).c_str(),post.c_str()); }
 void PrintVar(const std::string &name,int value,const std::string &post){ printf("%s%s",VarStr(name,value).c_str(),post.c_str()); }
 void PrintVar(const std::string &name,unsigned value,const std::string &post){ printf("%s%s",VarStr(name,value).c_str(),post.c_str()); }
-    
+
 
 //##############################################################################
 //##############################################################################
@@ -764,7 +764,7 @@ std::string GetCanonicalPath(std::string pathbase,std::string path){
             bool root=(!dir.empty() && dir[0]=='/');
             dir=GetDirParent(dir);
             if(dir.empty() && root)dir="/";
-          } 
+          }
           else dir=dir+(!dir.empty() && dir[dir.size()-1]!='/'? "/": "")+ret;
         }
       }
@@ -948,7 +948,7 @@ bool FileMask(std::string text,std::string mask){
       return(res);
     }
   }
-} 
+}
 
 //==============================================================================
 /// Copy one file in binary mode. Returns no zero in case of error.
@@ -1038,6 +1038,14 @@ tuint3* ResizeAlloc(tuint3 *data,unsigned ndata,unsigned newsize){
   tuint3* data2=new tuint3[newsize];
   ndata=std::min(ndata,newsize);
   if(ndata)memcpy(data2,data,sizeof(tuint3)*ndata);
+  delete[] data;
+  return(data2);
+}
+//==============================================================================
+tuint4* ResizeAlloc(tuint4 *data,unsigned ndata,unsigned newsize){
+  tuint4* data2=new tuint4[newsize];
+  ndata=std::min(ndata,newsize);
+  if(ndata)memcpy(data2,data,sizeof(tuint4)*ndata);
   delete[] data;
   return(data2);
 }
@@ -1146,5 +1154,3 @@ bool IsNAN(double v){
 }
 
 }
-
-
