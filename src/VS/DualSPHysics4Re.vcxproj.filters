@@ -153,4 +153,7 @@
     <ClInclude Include="..\source\JSph.h" />
     <ClInclude Include="..\source\JTimerClock.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
 </Project>
