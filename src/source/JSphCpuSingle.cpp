@@ -654,7 +654,7 @@ void JSphCpuSingle::RunRandomDivision_M() {
 void JSphCpuSingle::RunSizeDivision_M() {
 	const char met[] = "RunSizeDivision_M";
 	TmcStart(Timers, TMC_SuPeriodic); // Use of Periodic timer for creation of particles
-	bool run = true;
+	bool run = false;
 	unsigned count = 0;
 
 	// 1. Test division cellulaire
@@ -668,7 +668,7 @@ void JSphCpuSingle::RunSizeDivision_M() {
 		float sizeDev = float(SizeDivision_M) * phi1*phi2 + 1.2f*(1.0f - phi1 * phi2);
 
 		if ((Massc_M[p] / Velrhopc[p].w) > (sizeDev*MassFluid / RhopZero)) {
-			Divisionc_M[p] = true;
+			//Divisionc_M[p] = true;
 			count++;
 		}
 	}
