@@ -41,7 +41,7 @@ void GenCaseBis_T::UseGencase(std::string runPath) {
 /// Load the xml file Def and adds the informations about particles
 /// Load csv file and create a JPartDataBi4 with particles data
 //==============================================================================
-void GenCaseBis_T::Bridge(std::string caseName) {
+void GenCaseBis_T::Bridge(string caseName) {
 	int *idp;
 	tdouble3 *pos;
 	tdouble3 posMin;
@@ -91,7 +91,7 @@ void GenCaseBis_T::Bridge(std::string caseName) {
 	
 	//void AddPartData(unsigned npok,const unsigned *idp, const tdouble3 *posd,const tfloat3 *vel,const float *rhop,bool externalpointer=true)
 	jpd = new JPartDataBi4();
-	jpd->ConfigBasic(0,1,"", "", "",false, NULL, "");
+	jpd->ConfigBasic(0,1,"", "", "",false, 0.0, "");
 	jpd->ConfigParticles(np, 0, 0, 0, np, posMin, posMax, NULL, NULL);
 	jpd->ConfigCtes(0,0,0,rhop0,0,0,0);
 	jpd->AddPartInfo((unsigned)0, 0, (unsigned)np, 0, 0, 0, TDouble3(0,0,0), TDouble3(0, 0, 0), 0, 0);
