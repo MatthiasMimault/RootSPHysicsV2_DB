@@ -2313,13 +2313,14 @@ void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, con
 
 	PartsOut->Clear();
 }
-
+/*
 void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, const tdouble3 *pos, const tfloat3 *vel
 	, const float *rhop, const float *pore, const tfloat3 *press, const float *massp, const tsymatrix3f *gradvel, const tsymatrix3f *tau
 	, unsigned ndom, const tdouble3 *vdom, const StInfoPartPlus *infoplus) {
 	//-Stores particle data and/or information in bi4 format.
 	//-Graba datos de particulas y/o informacion en formato bi4.
 	//printf("SaveData\n");
+	printf("Prem");
 	if (DataBi4) {
 		tfloat3* posf3 = NULL;
 		TimerPart.Stop();
@@ -2390,13 +2391,13 @@ void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, con
 			DataBi4->AddPartData("Gvelyz", npok, gyz);
 			DataBi4->AddPartData("Gvelzz", npok, gzz);
 
-			/*if (1){//-Example saving a new array (Pressure) in files BI4.
+			if (1){//-Example saving a new array (Pressure) in files BI4.
 				printf("Save Press\n");
 				press = new float[npok];
 				//for (unsigned p = 0; p<npok; p++)press[p] = (idp[p] >= CaseNbound ? CteB * (pow(rhop[p] / RhopZero, Gamma) - 1.0f) : 0.f);
 				for (unsigned p = 0; p<npok; p++)press[p] = 1;
 				DataBi4->AddPartData("Pressure", npok, press);
-			}*/
+			}
 
 			DataBi4->SaveFilePart();
 			delete[] mass; mass = NULL;
@@ -2479,17 +2480,18 @@ void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, con
 
 	PartsOut->Clear();
 }
-
+*/
 ////////////////////////////////////////////////////
 // Surchage SavePartData w Quad - Matthias
 ////////////////////////////////////////////////////
+/*
 void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, const tdouble3 *pos, const tfloat3 *vel
 	, const float *rhop, const float *pore, const float *press, const float *massp, const tsymatrix3f *qfp
 	, unsigned ndom, const tdouble3 *vdom, const StInfoPartPlus *infoplus) {
 	//-Stores particle data and/or information in bi4 format.
 	//-Graba datos de particulas y/o informacion en formato bi4.
 
-
+	printf("Quad\n");
 	for (unsigned p = 0; p < npok; p++) {
 	}
 
@@ -2536,12 +2538,30 @@ void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, con
 			DataBi4->AddPartData("Mass", npok, mass);
 
 
-			/*// Quadratic form -- Blocked formulation since PartVtk does not seem to read tsymatrix
+			// Quadratic form -- Blocked formulation since PartVtk does not seem to read tsymatrix
 			tsymatrix3f *qf = NULL;
 			qf = new tsymatrix3f[npok];
 			for (unsigned p = 0; p < npok; p++) qf[p] = qfp[p];
-			DataBi4->AddPartData("Qf", npok, qf);*/
+			DataBi4->AddPartData("Qf", npok, qf);
 			// Quadratic form -- term to term formulation (Voigt notation)
+			tmatrix3f* tensor = NULL;
+			tensor = new tmatrix3f[npok];
+			for (unsigned p = 0; p < npok; p++) {
+				tensor[p].a11 = qfp[p].xx;
+				tensor[p].a12 = qfp[p].xy;
+				tensor[p].a13 = qfp[p].xz;
+
+				tensor[p].a21 = qfp[p].xy;
+				tensor[p].a22 = qfp[p].yy;
+				tensor[p].a23 = qfp[p].yz;
+
+				tensor[p].a31 = qfp[p].xz;
+				tensor[p].a32 = qfp[p].yz;
+				tensor[p].a33 = qfp[p].zz;
+			}
+			DataBi4->AddPartData("Shape", npok, tensor);
+			printf("Fait\n");
+
 			float *qfxx = NULL;
 			float *qfyy = NULL;
 			float *qfzz = NULL;
@@ -2577,6 +2597,7 @@ void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, con
 			delete[] qfyz; qfyz = NULL;
 			delete[] qfxz; qfxz = NULL;
 			delete[] qfxy; qfxy = NULL;
+			delete[] tensor; tensor = NULL;
 			delete[] pressp; pressp = NULL;//-Memory must to be deallocated after saving file because DataBi4 uses this memory space.
 										   //delete[] gradvelSave; gradvelSave = NULL;
 
@@ -2633,7 +2654,7 @@ void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, con
 	//-Empties stock of excluded particles.
 	PartsOut->Clear();
 }
-
+*/
 ////////////////////////////////////////////////////
 // Surchage SavePartData w Nabvx - Matthias
 ////////////////////////////////////////////////////
@@ -2698,42 +2719,25 @@ void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, con
 			for (unsigned p = 0; p < npok; p++) qf[p] = qfp[p];
 			DataBi4->AddPartData("Qf", npok, qf);*/
 			// Quadratic form -- term to term formulation (Voigt notation)
-			float *qfxx = NULL;
-			float *qfyy = NULL;
-			float *qfzz = NULL;
-			float *qfyz = NULL;
-			float *qfxz = NULL;
-			float *qfxy = NULL;
-			qfxx = new float[npok];
-			qfyy = new float[npok];
-			qfzz = new float[npok];
-			qfyz = new float[npok];
-			qfxz = new float[npok];
-			qfxy = new float[npok];
+			/*tmatrix3f* tensor = NULL;
+			tensor = new tmatrix3f[npok];
 			for (unsigned p = 0; p < npok; p++) {
-				qfxx[p] = qfp[p].xx;
-				qfyy[p] = qfp[p].yy;
-				qfzz[p] = qfp[p].zz;
-				qfyz[p] = qfp[p].yz;
-				qfxz[p] = qfp[p].xz;
-				qfxy[p] = qfp[p].xy;
+				tensor[p].a11 = qfp[p].xx;
+				tensor[p].a12 = qfp[p].xy;
+				tensor[p].a13 = qfp[p].xz;
+
+				tensor[p].a21 = qfp[p].xy;
+				tensor[p].a22 = qfp[p].yy;
+				tensor[p].a23 = qfp[p].yz;
+
+				tensor[p].a31 = qfp[p].xz;
+				tensor[p].a32 = qfp[p].yz;
+				tensor[p].a33 = qfp[p].zz;
 			}
-			DataBi4->AddPartData("Qfxx", npok, qfxx);
-			DataBi4->AddPartData("Qfyy", npok, qfyy);
-			DataBi4->AddPartData("Qfzz", npok, qfzz);
-			DataBi4->AddPartData("Qfyz", npok, qfyz);
-			DataBi4->AddPartData("Qfxz", npok, qfxz);
-			DataBi4->AddPartData("Qfxy", npok, qfxy);
+			DataBi4->AddPartData("Shape", npok, tensor);*/
 
 			DataBi4->SaveFilePart();
-			delete[] mass; mass = NULL;
-			delete[] nvx; nvx = NULL;
-			delete[] qfxx; qfxx = NULL;
-			delete[] qfyy; qfyy = NULL;
-			delete[] qfzz; qfzz = NULL;
-			delete[] qfyz; qfyz = NULL;
-			delete[] qfxz; qfxz = NULL;
-			delete[] qfxy; qfxy = NULL;
+			//delete[] tensor; tensor = NULL;
 			delete[] pressp; pressp = NULL;//-Memory must to be deallocated after saving file because DataBi4 uses this memory space.
 										   //delete[] gradvelSave; gradvelSave = NULL;				
 
@@ -2753,6 +2757,24 @@ void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, con
 			const unsigned id = idp[p];
 			type[p] = (id >= CaseNbound ? 3 : (id < CaseNfixed ? 0 : (id < CaseNpb ? 1 : 2)));
 		}
+
+		// Generate coeffs for csv thanks to symetric matrix -- Augustin
+		tfloat3* tensorAxes = NULL;
+		tfloat3* tensorDiag = NULL; // x <- xy ; y <- yz ; z <- xz
+		if (qfp) {
+			tensorAxes = new tfloat3[npok];
+			tensorDiag = new tfloat3[npok];
+			for (unsigned p = 0; p < npok; p++) {
+				tensorAxes[p].x = qfp[p].xx;
+				tensorAxes[p].y = qfp[p].yy;
+				tensorAxes[p].z = qfp[p].zz;
+
+				tensorDiag[p].x = qfp[p].xy;
+				tensorDiag[p].y = qfp[p].yz;
+				tensorDiag[p].z = qfp[p].xz;
+			}
+		}
+
 		//-Define campos a grabar.
 		//-Defines fields to be stored.
 		JFormatFiles2::StScalarData fields[16];
@@ -2763,6 +2785,10 @@ void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, con
 		if (pore) { fields[nfields] = JFormatFiles2::DefineField("Porep", JFormatFiles2::Float32, 1, pore);  nfields++; }
 		if (massp) { fields[nfields] = JFormatFiles2::DefineField("Massp", JFormatFiles2::Float32, 1, massp);  nfields++; }
 		if (press) { fields[nfields] = JFormatFiles2::DefineField("Pressp", JFormatFiles2::Float32, 1, press);  nfields++; }
+		if (qfp) {
+			fields[nfields] = JFormatFiles2::DefineField("TensorAxes", JFormatFiles2::Float32, 3, tensorAxes);  nfields++;
+			fields[nfields] = JFormatFiles2::DefineField("TensorDiagAxes", JFormatFiles2::Float32, 3, tensorDiag);  nfields++;
+		}
 		if (type) { fields[nfields] = JFormatFiles2::DefineField("Type", JFormatFiles2::UChar8, 1, type);  nfields++; }
 		if (SvData&SDAT_Vtk)JFormatFiles2::SaveVtk(DirDataOut + fun::FileNameSec("PartVtk.vtk", Part), npok, posf3, nfields, fields);
 		if (SvData&SDAT_Csv)JFormatFiles2::SaveCsv(DirDataOut + fun::FileNameSec("PartCsv.csv", Part), CsvSepComa, npok, posf3, nfields, fields);
@@ -2770,6 +2796,10 @@ void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, con
 		//-release of memory.
 		delete[] posf3;
 		delete[] type;
+		if (qfp) { 
+			delete[] tensorAxes;  
+			delete[] tensorDiag;
+		}
 	}
 
 	//-Graba datos de particulas excluidas.
@@ -2794,7 +2824,7 @@ void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, con
 ///////////////////////////
 // SaveData surcharge with Qf -- Matthias
 ///////////////////////////
-void JSph::SaveData_M(unsigned npok, const unsigned *idp, const tdouble3 *pos, const tfloat3 *vel, const float *rhop, const float *pore
+/*void JSph::SaveData_M(unsigned npok, const unsigned *idp, const tdouble3 *pos, const tfloat3 *vel, const float *rhop, const float *pore
 	, const float *press, const float *mass, const tsymatrix3f *qf, unsigned ndom, const tdouble3 *vdom, const StInfoPartPlus *infoplus)
 {
 	string suffixpartx = fun::PrintStr("_%04d", Part);
@@ -2838,9 +2868,9 @@ void JSph::SaveData_M(unsigned npok, const unsigned *idp, const tdouble3 *pos, c
 	if (SvDomainVtk)SaveDomainVtk(ndom, vdom);
 	if (SaveDt)SaveDt->SaveData();
 	if (GaugeSystem)GaugeSystem->SaveResults(Part);
-}
+}*/
 
-void JSph::SaveData_M(unsigned npok, const unsigned *idp, const tdouble3 *pos, const tfloat3 *vel, const float *rhop, const float *pore
+/*void JSph::SaveData_M(unsigned npok, const unsigned *idp, const tdouble3 *pos, const tfloat3 *vel, const float *rhop, const float *pore
 	, const tfloat3 *press, const float *mass, const tsymatrix3f *gradvel, const tsymatrix3f *tau, unsigned ndom, const tdouble3 *vdom, const StInfoPartPlus *infoplus)
 {
 	const char met[] = "SaveData";
@@ -2885,7 +2915,7 @@ void JSph::SaveData_M(unsigned npok, const unsigned *idp, const tdouble3 *pos, c
 	if (SvDomainVtk)SaveDomainVtk(ndom, vdom);
 	if (SaveDt)SaveDt->SaveData();
 	if (GaugeSystem)GaugeSystem->SaveResults(Part);
-}
+}*/
 
 
 ///////////////////////////

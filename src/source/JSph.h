@@ -427,12 +427,12 @@ protected:
   void SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, const tdouble3 *pos, const tfloat3 *vel
 	  , const float *rhop, const float *pore, const tfloat3 *press, const float *mass, const tsymatrix3f *tau
 	  , unsigned ndom, const tdouble3 *vdom, const StInfoPartPlus *infoplus);
-  void SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, const tdouble3 *pos, const tfloat3 *vel
+ /* void SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, const tdouble3 *pos, const tfloat3 *vel
 	  , const float *rhop, const float *pore, const tfloat3 *press, const float *mass, const tsymatrix3f *gradvel, const tsymatrix3f *tau
 	  , unsigned ndom, const tdouble3 *vdom, const StInfoPartPlus *infoplus);
   void SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, const tdouble3 *pos, const tfloat3 *vel
 	  , const float *rhop, const float *pore, const float *press, const float *massp, const tsymatrix3f *qf
-	  , unsigned ndom, const tdouble3 *vdom, const StInfoPartPlus *infoplus); 
+	  , unsigned ndom, const tdouble3 *vdom, const StInfoPartPlus *infoplus); */
 	  void SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, const tdouble3 *pos, const tfloat3 *vel
 		  , const float *rhop, const float *pore, const float *press, const float *massp, const tsymatrix3f *qf, const float *nabvx
 		  , unsigned ndom, const tdouble3 *vdom, const StInfoPartPlus *infoplus);
