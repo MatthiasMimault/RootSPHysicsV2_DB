@@ -1366,6 +1366,7 @@ void JSph::ConfigConstants(bool simulate2d){
   printf("S1 = %.8f, S12 = %.8f, S13 = %.8f\n", S1, S12, S13);
   printf("S12 = %.8f, S2 = %.8f, S23 = %.8f\n", S12, S2, S23);
   printf("S13 = %.8f, S23 = %.8f, S3 = %.8f\n", S13, S23, S3);
+  printf("Kani = %.8f\n", Kani);
 
   // New B for anisotropy
   CteB = Kani / (Gamma);
@@ -1375,7 +1376,7 @@ void JSph::ConfigConstants(bool simulate2d){
   Delta2H=float(h*2*DeltaSph);
 
   // Cs0 version originale
-  Cs0=sqrt(double(Gamma)*double(CteB)/double(RhopZero));
+  Cs0=10*sqrt(double(Gamma)*double(CteB)/double(RhopZero));
 
   // Old anisotropic versions of Cs0 (vec3) removed - Matthias
 
