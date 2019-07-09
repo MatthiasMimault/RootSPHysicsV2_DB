@@ -1,25 +1,25 @@
 ﻿//HEAD_DSCODES
 /*
- <DUALSPHYSICS>  Copyright (c) 2017 by Dr Jose M. Dominguez et al. (see http://dual.sphysics.org/index.php/developers/). 
+ <DUALSPHYSICS>  Copyright (c) 2017 by Dr Jose M. Dominguez et al. (see http://dual.sphysics.org/index.php/developers/).
 
  EPHYSLAB Environmental Physics Laboratory, Universidade de Vigo, Ourense, Spain.
  School of Mechanical, Aerospace and Civil Engineering, University of Manchester, Manchester, U.K.
 
- This file is part of DualSPHysics. 
+ This file is part of DualSPHysics.
 
- DualSPHysics is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License 
+ DualSPHysics is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License
  as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.
- 
- DualSPHysics is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details. 
 
- You should have received a copy of the GNU Lesser General Public License along with DualSPHysics. If not, see <http://www.gnu.org/licenses/>. 
+ DualSPHysics is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.
+
+ You should have received a copy of the GNU Lesser General Public License along with DualSPHysics. If not, see <http://www.gnu.org/licenses/>.
 */
 
 //:#############################################################################
 //:# Cambios:
 //:# =========
-//:# - Nuevas funciones para gestion de nombres de ficheros: GetFile(), 
+//:# - Nuevas funciones para gestion de nombres de ficheros: GetFile(),
 //:#   GetFileNameSplit(). (10-08-2010)
 //:# - Nuevas funciones para pasar de valores numericos a texto: UintStr(),
 //:#   IntStr(). (17-12-2010)
@@ -27,7 +27,7 @@
 //:# - Funciones para convertir datos entre BigEndian y LittleEndian. (09-03-2011)
 //:# - Agrupa funciones en namespace fun. (09-03-2011)
 //:# - Nuevas funciones FileExists() y DirExists(). (10-03-2011)
-//:# - Correccion en GetExtension() y GetWithoutExtension(), ahora busca la 
+//:# - Correccion en GetExtension() y GetWithoutExtension(), ahora busca la
 //:#   extension apartir del punto del ultimo fichero o directorio. (08-05-2011)
 //:# - Nuevas funciones VarStr() para vectores de datos. (02-11-2011)
 //:# - Funcion StrSplit() para extraer partes de un texto. (27-01-2012)
@@ -60,7 +60,7 @@
 //:# - Nuevas funciones: StrReplace(), CpyFile(). (02-10-2017)
 //:# - Error corregido en StrReplace(). Solo permitia 4 remplazos. (23-10-2017)
 //:# - Nuevas funciones StrCsvSep() y PrintStrCsv(). (23-10-2017)
-//:# - Error corregido en GetCanonicalPath(). No soportaba rutas absolutas de 
+//:# - Error corregido en GetCanonicalPath(). No soportaba rutas absolutas de
 //:#   Windows. (24-10-2017)
 //:# - Nuevas funciones: Float3Str(),Float3xStr(),Float3xRangeStr(),DoublexStr()
 //:#   ,Double3xStr(),Double3xRangeStr(). (31-01-2018)
@@ -100,9 +100,9 @@ std::string UintStr(unsigned v,const char* fmt="%u");
 std::string IntStr(int v);
 std::string Int3Str(const tint3 &v);
 std::string Uint3Str(const tuint3 &v);
-/// Converts range of tint3 values to string.  
+/// Converts range of tint3 values to string.
 inline std::string Int3RangeStr(const tint3 &v,const tint3 &v2){ return(std::string("(")+Int3Str(v)+")-("+Int3Str(v2)+")"); }
-/// Converts range of tuint3 values to string.  
+/// Converts range of tuint3 values to string.
 inline std::string Uint3RangeStr(const tuint3 &v,const tuint3 &v2){ return(std::string("(")+Uint3Str(v)+")-("+Uint3Str(v2)+")"); }
 
 std::string FloatStr(float v,const char* fmt="%f");
@@ -112,7 +112,7 @@ std::string Float3Str(const tfloat3 &v,const char* fmt="%f,%f,%f");
 inline std::string Float3gStr(const tfloat3 &v){ return(Float3Str(v,"%g,%g,%g")); }
 /// Converts real value to string (-FLT_MAX=MIN and FLT_MAX=MAX).
 inline std::string Float3xStr(const tfloat3 &v,const char* fmt="%f"){ return(FloatxStr(v.x,fmt)+","+FloatxStr(v.y,fmt)+","+FloatxStr(v.z,fmt)); }
-/// Converts range of tfloat3 values to string.  
+/// Converts range of tfloat3 values to string.
 inline std::string Float3gRangeStr(const tfloat3 &v,const tfloat3 &v2){ return(std::string("(")+Float3gStr(v)+")-("+Float3gStr(v2)+")"); }
 /// Converts range of tfloat3 values to string (-FLT_MAX=MIN and FLT_MAX=MAX).
 inline std::string Float3xRangeStr(const tfloat3 &v,const tfloat3 &v2,const char* fmt="%f"){ return(std::string("(")+Float3xStr(v,fmt)+")-("+Float3xStr(v2,fmt)+")"); }
@@ -124,13 +124,13 @@ std::string Double3Str(const tdouble3 &v,const char* fmt="%f,%f,%f");
 inline std::string Double3gStr(const tdouble3 &v){ return(Double3Str(v,"%g,%g,%g")); }
 /// Converts real values to string (-DBL_MAX=MIN and DBL_MAX=MAX).
 inline std::string Double3xStr(const tdouble3 &v,const char* fmt="%f"){ return(DoublexStr(v.x,fmt)+","+DoublexStr(v.y,fmt)+","+DoublexStr(v.z,fmt)); }
-/// Converts range of tdouble3 values to string.  
+/// Converts range of tdouble3 values to string.
 inline std::string Double3gRangeStr(const tdouble3 &v,const tdouble3 &v2){ return(std::string("(")+Double3gStr(v)+")-("+Double3gStr(v2)+")"); }
 /// Converts range of tdouble3 values to string (-DBL_MAX=MIN and DBL_MAX=MAX).
 inline std::string Double3xRangeStr(const tdouble3 &v,const tdouble3 &v2,const char* fmt="%f"){ return(std::string("(")+Double3xStr(v,fmt)+")-("+Double3xStr(v2,fmt)+")"); }
 
 std::string Double4Str(const tdouble4 &v,const char* fmt="%f,%f,%f");
-/// Converts range of tdouble4 values to string.  
+/// Converts range of tdouble4 values to string.
 inline std::string Double4gStr(const tdouble4 &v){ return(Double4Str(v,"%g,%g,%g,%g")); }
 
 int      StrToInt    (const std::string &v);
@@ -233,6 +233,7 @@ tuint2*   ResizeAlloc(tuint2   *data,unsigned ndata,unsigned newsize);
 tuint3*   ResizeAlloc(tuint3   *data,unsigned ndata,unsigned newsize);
 int*      ResizeAlloc(int      *data,unsigned ndata,unsigned newsize);
 tint3*    ResizeAlloc(tint3    *data,unsigned ndata,unsigned newsize);
+tint4*    ResizeAlloc(tint4    *data,unsigned ndata,unsigned newsize);
 float*    ResizeAlloc(float    *data,unsigned ndata,unsigned newsize);
 tfloat2*  ResizeAlloc(tfloat2  *data,unsigned ndata,unsigned newsize);
 tfloat3*  ResizeAlloc(tfloat3  *data,unsigned ndata,unsigned newsize);
@@ -249,5 +250,3 @@ bool IsNAN(double v);
 }
 
 #endif
-
-

@@ -1,19 +1,19 @@
 //HEAD_DSPH
 /*
- <DUALSPHYSICS>  Copyright (c) 2017 by Dr Jose M. Dominguez et al. (see http://dual.sphysics.org/index.php/developers/). 
+ <DUALSPHYSICS>  Copyright (c) 2017 by Dr Jose M. Dominguez et al. (see http://dual.sphysics.org/index.php/developers/).
 
  EPHYSLAB Environmental Physics Laboratory, Universidade de Vigo, Ourense, Spain.
  School of Mechanical, Aerospace and Civil Engineering, University of Manchester, Manchester, U.K.
 
- This file is part of DualSPHysics. 
+ This file is part of DualSPHysics.
 
- DualSPHysics is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License 
+ DualSPHysics is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License
  as published by the Free Software Foundation; either version 2.1 of the License, or (at your option) any later version.
- 
- DualSPHysics is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details. 
 
- You should have received a copy of the GNU Lesser General Public License along with DualSPHysics. If not, see <http://www.gnu.org/licenses/>. 
+ DualSPHysics is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.
+
+ You should have received a copy of the GNU Lesser General Public License along with DualSPHysics. If not, see <http://www.gnu.org/licenses/>.
 */
 
 /// \file JSphCpuSingle.cpp \brief Implements the class \ref JSphCpuSingle.
@@ -35,7 +35,7 @@
 #include "JGaugeSystem.h"
 #include <climits>
 #include "JSphSolidCpu_M.h"
-#include <Eigen/Dense>
+#include "Eigen/Dense"
 #include <Eigen/Eigenvalues>
 
 using namespace std;
@@ -71,7 +71,7 @@ JSphCpuSingle::~JSphCpuSingle(){
 /// Return memory reserved in CPU.
 /// Devuelve la memoria reservada en cpu.
 //==============================================================================
-llong JSphCpuSingle::GetAllocMemoryCpu()const{  
+llong JSphCpuSingle::GetAllocMemoryCpu()const{
   llong s=JSphSolidCpu::GetAllocMemoryCpu();
   //-Allocated in other objects.
   if(CellDivSingle)s+=CellDivSingle->GetAllocMemory();
@@ -123,7 +123,7 @@ void JSphCpuSingle::LoadConfig_T(JCfgRun *cfg) {
 /// Carga particulas del caso a procesar.
 //==============================================================================
 void JSphCpuSingle::LoadCaseParticles(){
-	
+
   Log->Print("Loading initial state of particles...");
   PartsLoaded=new JPartsLoad4(true);
   PartsLoaded->LoadParticles(DirCase,CaseName,PartBegin,PartBeginDir);
@@ -275,7 +275,7 @@ void JSphCpuSingle::ConfigDomain(){
 }
 
 //==============================================================================
-/// Redimension space reserved for particles in CPU, measure 
+/// Redimension space reserved for particles in CPU, measure
 /// time consumed using TMC_SuResizeNp. On finishing, update divide.
 ///
 /// Redimensiona el espacio reservado para particulas en CPU midiendo el
@@ -330,14 +330,14 @@ unsigned JSphCpuSingle::PeriodicMakeList(unsigned n,unsigned pini,bool stable,un
 /// Duplicate the indicated particle position applying displacement.
 /// Duplicated particles are considered to be always valid and are inside
 /// of the domain.
-/// This kernel works for single-cpu & multi-cpu because the computations are done  
+/// This kernel works for single-cpu & multi-cpu because the computations are done
 /// starting from domposmin.
 /// It is controlled that the coordinates of the cell do not exceed the maximum.
 ///
 /// Duplica la posicion de la particula indicada aplicandole un desplazamiento.
 /// Las particulas duplicadas se considera que siempre son validas y estan dentro
 /// del dominio.
-/// Este kernel vale para single-cpu y multi-cpu porque los calculos se hacen 
+/// Este kernel vale para single-cpu y multi-cpu porque los calculos se hacen
 /// a partir de domposmin.
 /// Se controla que las coordendas de celda no sobrepasen el maximo.
 //==============================================================================
@@ -368,7 +368,7 @@ void JSphCpuSingle::PeriodicDuplicatePos(unsigned pnew,unsigned pcopy,bool inver
 ///
 /// Crea particulas periodicas a partir de una lista con las particulas a duplicar.
 /// Se presupone que todas las particulas son validas.
-/// Este kernel vale para single-cpu y multi-cpu porque usa domposmin. 
+/// Este kernel vale para single-cpu y multi-cpu porque usa domposmin.
 //==============================================================================
 void JSphCpuSingle::PeriodicDuplicateVerlet(unsigned np,unsigned pini,tuint3 cellmax,tdouble3 perinc,const unsigned *listp
   ,unsigned *idp,typecode *code,unsigned *dcell,tdouble3 *pos,tfloat4 *velrhop,tsymatrix3f *spstau,tfloat4 *velrhopm1)const
@@ -399,7 +399,7 @@ void JSphCpuSingle::PeriodicDuplicateVerlet(unsigned np,unsigned pini,tuint3 cel
 ///
 /// Crea particulas periodicas a partir de una lista con las particulas a duplicar.
 /// Se presupone que todas las particulas son validas.
-/// Este kernel vale para single-cpu y multi-cpu porque usa domposmin. 
+/// Este kernel vale para single-cpu y multi-cpu porque usa domposmin.
 //==============================================================================
 void JSphCpuSingle::PeriodicDuplicateSymplectic(unsigned np,unsigned pini,tuint3 cellmax,tdouble3 perinc,const unsigned *listp
   ,unsigned *idp,typecode *code,unsigned *dcell,tdouble3 *pos,tfloat4 *velrhop,tsymatrix3f *spstau,tdouble3 *pospre,tfloat4 *velrhoppre)const
@@ -547,7 +547,7 @@ void JSphCpuSingle::RunCellDivide(bool updateperiodic){
 	CellDivSingle->SortArray(QuadFormPrec_M);
   }
   if(TVisco==VISCO_LaminarSPS)CellDivSingle->SortArray(SpsTauc);
-  
+
   // Matthias
   CellDivSingle->SortArray(Tauc_M);
   CellDivSingle->SortArray(Massc_M);
@@ -654,7 +654,7 @@ void JSphCpuSingle::RunRandomDivision_M() {
 void JSphCpuSingle::RunSizeDivision_M() {
 	const char met[] = "RunSizeDivision_M";
 	TmcStart(Timers, TMC_SuPeriodic); // Use of Periodic timer for creation of particles
-	bool run = true;
+	bool run = false;
 	unsigned count = 0;
 
 	// 1. Test division cellulaire
@@ -668,7 +668,7 @@ void JSphCpuSingle::RunSizeDivision_M() {
 		float sizeDev = float(SizeDivision_M) * phi1*phi2 + 1.2f*(1.0f - phi1 * phi2);
 
 		if ((Massc_M[p] / Velrhopc[p].w) > (sizeDev*MassFluid / RhopZero)) {
-			Divisionc_M[p] = true;
+			//Divisionc_M[p] = true;
 			count++;
 		}*/
 	}
@@ -726,7 +726,7 @@ void JSphCpuSingle::RunDivisionDisplacement_M() {
 	TmcStart(Timers, TMC_SuPeriodic); // Use of Periodic timer for creation of particles
 	VelDiv_M = { 0,0,0 };
 	for (unsigned p = Npb; p < Np; p++) {
-		if (Velrhopc[p].x > VelDiv_M.x) VelDiv_M.x = Velrhopc[p].x ;	
+		if (Velrhopc[p].x > VelDiv_M.x) VelDiv_M.x = Velrhopc[p].x ;
 	}
 	VelDiv_M.x = VelDivCoef_M * VelDiv_M.x;
 	TmcStop(Timers, TMC_SuPeriodic);
@@ -834,7 +834,7 @@ void JSphCpuSingle::RandomDivDistance_M(unsigned countMax, unsigned np, unsigned
 			testRr = (int)(100 * rateBirth*exp(-rr / 2 / sigma / sigma) / sigma / sqrt(2 * PI));
 			randomNumber = rand() % 100;
 			if (randomNumber < testRr) {
-				const unsigned pnew = np + count; 
+				const unsigned pnew = np + count;
 				orientation = { (double)rand() / RAND_MAX, (double)rand() / RAND_MAX, (double)rand() / RAND_MAX };
 				orientation = orientation / sqrt(pow(orientation.x, 2) + pow(orientation.y, 2) + pow(orientation.z, 2))-0.5;
 				tdouble3 ps = { pos[p].x + orientation.x * Dp / 3 * massp[p] / MassFluid
@@ -907,7 +907,7 @@ void JSphCpuSingle::MarkedDivision_M(unsigned countMax, unsigned np, unsigned pi
 			//orientation = orientation / sqrt(pow(orientation.x, 2) + pow(orientation.y, 2) + pow(orientation.z, 2)) - 0.5; // Not working properly
 			orientation = { 1,0,0 }; // X-orientation
 									 //orientation = { velrhop[p].x,velrhop[p].y,velrhop[p].z };// Velocity - orientation
-									 //orientation = orientation / sqrt(pow(velrhop[p].x, 2) + pow(velrhop[p].y, 2) + pow(velrhop[p].z, 2)); 
+									 //orientation = orientation / sqrt(pow(velrhop[p].x, 2) + pow(velrhop[p].y, 2) + pow(velrhop[p].z, 2));
 			tdouble3 ps = { pos[p].x + orientation.x * cbrt(6.0 * massp[p] / velrhop[p].w / PI) * 0.2
 				, pos[p].y + orientation.y * cbrt(6.0 * massp[p] / velrhop[p].w / PI) * 0.2
 				, pos[p].z + orientation.z * cbrt(6.0 * massp[p] / velrhop[p].w / PI) * 0.2 };
@@ -1295,7 +1295,6 @@ void JSphCpuSingle::Interaction_Forces(TpInter tinter){
 
   //if (Psingle)JSphSolidCpu::InteractionSimple_Forces(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, PsPosc, Velrhopc, Idpc, Codec, Pressc, viscdt, Arc, Acec, Deltac, SpsTauc, SpsGradvelc, ShiftPosc, ShiftDetectc);
   //else JSphSolidCpu::Interaction_Forces(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, Posc, Velrhopc, Idpc, Codec, Pressc, viscdt, Arc, Acec, Deltac, SpsTauc, SpsGradvelc, ShiftPosc, ShiftDetectc);
- 
 
   // Matthias - No quadform, but press 1D
   if (Psingle)JSphSolidCpu::InteractionSimple_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, PsPosc, Velrhopc, Idpc, Codec, Pressc, Porec_M, Massc_M, L_M, viscdt, Arc, Acec, Deltac, Tauc_M, StrainDotc_M, TauDotc_M, Spinc_M, ShiftPosc, ShiftDetectc);
@@ -1318,7 +1317,7 @@ void JSphCpuSingle::Interaction_Forces(TpInter tinter){
     #endif
     for(int p=ini;p<fin;p++)if(Deltac[p]!=FLT_MAX)Arc[p]+=Deltac[p];
   }
- 
+
   //-Calculates maximum value of ViscDt.
   ViscDtMax=viscdt;
 
@@ -1393,6 +1392,7 @@ template<bool checkcodenormal> double JSphCpuSingle::ComputeAceMaxOmp(unsigned n
   else if (np) {
 	  acemax = ComputeAceMaxSeq<checkcodenormal>(np, ace, code);
   }
+
   #else
     if(np)acemax=ComputeAceMaxSeq<checkcodenormal>(np,ace,code);
   #endif
@@ -1400,10 +1400,10 @@ template<bool checkcodenormal> double JSphCpuSingle::ComputeAceMaxOmp(unsigned n
 }
 
 //==============================================================================
-/// Perform interactions and updates of particles according to forces 
+/// Perform interactions and updates of particles according to forces
 /// calculated in the interaction using Verlet.
 ///
-/// Realiza interaccion y actualizacion de particulas segun las fuerzas 
+/// Realiza interaccion y actualizacion de particulas segun las fuerzas
 /// calculadas en la interaccion usando Verlet.
 //==============================================================================
 double JSphCpuSingle::ComputeStep_Ver() {
@@ -1436,10 +1436,10 @@ double JSphCpuSingle::ComputeStep_Eul_M() {
 }
 
 //==============================================================================
-/// Perform interactions and updates of particles according to forces 
+/// Perform interactions and updates of particles according to forces
 /// calculated in the interaction using Symplectic.
 ///
-/// Realiza interaccion y actualizacion de particulas segun las fuerzas 
+/// Realiza interaccion y actualizacion de particulas segun las fuerzas
 /// calculadas en la interaccion usando Symplectic.
 
 // Modified with #Symplectic_M #Update
@@ -1521,7 +1521,7 @@ void JSphCpuSingle::FtCalcForcesSum(unsigned cf,tfloat3 &face,tfloat3 &fomegaace
     //-Ace is initialised with the value of the gravity for all particles.
     float acex=Acec[p].x-Gravity.x,acey=Acec[p].y-Gravity.y,acez=Acec[p].z-Gravity.z;
     face.x+=acex; face.y+=acey; face.z+=acez;
-    tfloat3 dist=(PeriActive? FtPeriodicDist(Posc[p],fcenter,fradius): ToTFloat3(Posc[p]-fcenter)); 
+    tfloat3 dist=(PeriActive? FtPeriodicDist(Posc[p],fcenter,fradius): ToTFloat3(Posc[p]-fcenter));
     fomegaace.x+= acez*dist.y - acey*dist.z;
     fomegaace.y+= acex*dist.z - acez*dist.x;
     fomegaace.z+= acey*dist.x - acex*dist.y;
@@ -1617,7 +1617,7 @@ void JSphCpuSingle::RunFloating(double dt,bool predictor){
   if(TimeStep>=FtPause){//-Operator >= is used because when FtPause=0 in symplectic-predictor, code would not enter here. | Se usa >= pq si FtPause es cero en symplectic-predictor no entraria.
     TmcStart(Timers,TMC_SuFloating);
     //-Initialises forces of floatings.
-    memset(FtoForces,0,sizeof(StFtoForces)*FtCount); 
+    memset(FtoForces,0,sizeof(StFtoForces)*FtCount);
 
     //-Adds calculated forces around floating objects. | Añade fuerzas calculadas sobre floatings.
     FtCalcForces(FtoForces);
@@ -1649,7 +1649,7 @@ void JSphCpuSingle::RunFloating(double dt,bool predictor){
           const double dz=dt*double(velrhop->z);
           UpdatePos(Posc[p],dx,dy,dz,false,p,Posc,Dcellc,Codec);
           //-Compute and record new velocity. | Calcula y graba nueva velocidad.
-          tfloat3 dist=(PeriActive? FtPeriodicDist(Posc[p],fcenter,fradius): ToTFloat3(Posc[p]-fcenter)); 
+          tfloat3 dist=(PeriActive? FtPeriodicDist(Posc[p],fcenter,fradius): ToTFloat3(Posc[p]-fcenter));
           velrhop->x=fvel.x+(fomega.y*dist.z-fomega.z*dist.y);
           velrhop->y=fvel.y+(fomega.z*dist.x-fomega.x*dist.z);
           velrhop->z=fvel.z+(fomega.x*dist.y-fomega.y*dist.x);
@@ -1687,7 +1687,7 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
   if(!cfg||!log)return;
   AppName=appname; Log=log;
 
-  //-Configure timers. 
+  //-Configure timers.
   //-------------------
   TmcCreation(Timers,cfg->SvTimers);
   TmcStart(Timers,TMC_Init);
@@ -1723,7 +1723,7 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
 	  //------------------------------------------------------------------------------------
 	  InitRun();
   }
-  
+
 
 
   //-Free memory of PartsLoaded. | Libera memoria de PartsLoaded.
@@ -1764,7 +1764,7 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
 	partoutstop=(Np<NpMinimum || !Np);
     if(TimeStep>=TimePartNext || partoutstop){
       if(partoutstop){
-        Log->PrintWarning("Particles OUT limit reached..."); 
+        Log->PrintWarning("Particles OUT limit reached...");
         TimeMax=TimeStep;
       }
 	  SaveData_M();
@@ -1923,5 +1923,3 @@ void JSphCpuSingle::FinishRun(bool stop){
   Log->PrintFilesList();
   Log->PrintWarningList();
 }
-
-
