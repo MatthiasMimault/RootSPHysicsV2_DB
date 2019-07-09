@@ -1359,7 +1359,7 @@ void JSph::ConfigConstants(bool simulate2d){
   }
 
 
-  printf("///\n");
+  printf("////\n");
   printf("C1 = %.3f, C12 = %.3f, C13 = %.3f\n", C1, C12, C13);
   printf("C12 = %.3f, C2 = %.3f, C23 = %.3f\n", C12, C2, C23);
   printf("C13 = %.3f, C23 = %.3f, C3 = %.3f\n", C13, C23, C3);
