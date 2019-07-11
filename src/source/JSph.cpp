@@ -2713,13 +2713,40 @@ void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, con
 			for (unsigned p = 0; p < npok; p++) nvx[p] = nabvx[p];
 			DataBi4->AddPartData("NabVx", npok, nvx);
 
-
 			/*// Quadratic form -- Blocked formulation since PartVtk does not seem to read tsymatrix
 			tsymatrix3f *qf = NULL;
 			qf = new tsymatrix3f[npok];
 			for (unsigned p = 0; p < npok; p++) qf[p] = qfp[p];
 			DataBi4->AddPartData("Qf", npok, qf);*/
 			// Quadratic form -- term to term formulation (Voigt notation)
+			float* qfxx = NULL;
+			float* qfyy = NULL;
+			float* qfzz = NULL;
+			float* qfyz = NULL;
+			float* qfxz = NULL;
+			float* qfxy = NULL;
+			qfxx = new float[npok];
+			qfyy = new float[npok];
+			qfzz = new float[npok];
+			qfyz = new float[npok];
+			qfxz = new float[npok];
+			qfxy = new float[npok];
+			for (unsigned p = 0; p < npok; p++) {
+				qfxx[p] = qfp[p].xx;
+				qfyy[p] = qfp[p].yy;
+				qfzz[p] = qfp[p].zz;
+				qfyz[p] = qfp[p].yz;
+				qfxz[p] = qfp[p].xz;
+				qfxy[p] = qfp[p].xy;
+			}
+			DataBi4->AddPartData("Qfxx", npok, qfxx);
+			DataBi4->AddPartData("Qfyy", npok, qfyy);
+			DataBi4->AddPartData("Qfzz", npok, qfzz);
+			DataBi4->AddPartData("Qfyz", npok, qfyz);
+			DataBi4->AddPartData("Qfxz", npok, qfxz);
+			DataBi4->AddPartData("Qfxy", npok, qfxy);
+
+			
 			/*tmatrix3f* tensor = NULL;
 			tensor = new tmatrix3f[npok];
 			for (unsigned p = 0; p < npok; p++) {
@@ -2737,8 +2764,32 @@ void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, con
 			}
 			DataBi4->AddPartData("Shape", npok, tensor);*/
 
+			/*tfloat3* tensorAxes = NULL;
+			tfloat3* tensorDiag = NULL; // x <- xy ; y <- yz ; z <- xz
+			if (qfp) {
+				tensorAxes = new tfloat3[npok];
+				tensorDiag = new tfloat3[npok];
+				for (unsigned p = 0; p < npok; p++) {
+					tensorAxes[p].x = qfp[p].xx;
+					tensorAxes[p].y = qfp[p].yy;
+					tensorAxes[p].z = qfp[p].zz;
+
+					tensorDiag[p].x = qfp[p].xy;
+					tensorDiag[p].y = qfp[p].yz;
+					tensorDiag[p].z = qfp[p].xz;
+				}
+			}
+			DataBi4->AddPartData("TensorAxes", npok, tensorAxes);
+			DataBi4->AddPartData("TensorDiagAxes", npok, tensorDiag);*/
+
 			DataBi4->SaveFilePart();
 			//delete[] tensor; tensor = NULL;
+			delete[] qfxx; qfxx = NULL;
+			delete[] qfyy; qfyy = NULL;
+			delete[] qfzz; qfzz = NULL;
+			delete[] qfyz; qfyz = NULL;
+			delete[] qfxz; qfxz = NULL;
+			delete[] qfxy; qfxy = NULL;
 			delete[] pressp; pressp = NULL;//-Memory must to be deallocated after saving file because DataBi4 uses this memory space.
 										   //delete[] gradvelSave; gradvelSave = NULL;				
 
@@ -2792,7 +2843,7 @@ void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, con
 		}
 		if (type) { fields[nfields] = JFormatFiles2::DefineField("Type", JFormatFiles2::UChar8, 1, type);  nfields++; }
 		if (SvData&SDAT_Vtk)JFormatFiles2::SaveVtk(DirDataOut + fun::FileNameSec("PartVtk.vtk", Part), npok, posf3, nfields, fields);
-		if (SvData&SDAT_Csv)JFormatFiles2::SaveCsv(DirDataOut + fun::FileNameSec("PartCsv.csv", Part), CsvSepComa, npok, posf3, nfields, fields);
+		//if (SvData&SDAT_Csv)JFormatFiles2::SaveCsv(DirDataOut + fun::FileNameSec("PartCsv.csv", Part), CsvSepComa, npok, posf3, nfields, fields);
 		//-libera memoria.
 		//-release of memory.
 		delete[] posf3;

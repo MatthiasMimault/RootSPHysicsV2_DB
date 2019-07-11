@@ -12,8 +12,11 @@ examples/*
 ## Ignores other directories.
 __Tools__
 doc/*
-bin/*
+bin/linux/*
 
 ## Ignores temporary files.
 bin/windows/*.iobj
 bin/windows/*.ipdb
+bin/windows/*.pdb
+bin/windows/*.ilk
+bin/windows/DualSPHysics*
