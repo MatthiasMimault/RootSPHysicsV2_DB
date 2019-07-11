@@ -42,7 +42,7 @@ if not "%ERRORLEVEL%" == "0" goto fail
 
 REM Executes DualSPHysics to simulate SPH method.
 REM %dualsphysicscpu% -cpu %dirout%/%name% %dirout% -dirdataout data -svres
-rem %dualsphysicscpu% -cpu %dirout%/%name% %dirout% -dirdataout data -svres -sv:binx
+%dualsphysicscpu% -cpu %dirout%/%name% %dirout% -dirdataout data -svres -sv:binx
 if not "%ERRORLEVEL%" == "0" goto fail
 
 REM Executes PartVTK4 to create VTK files with particles.
