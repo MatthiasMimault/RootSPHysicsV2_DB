@@ -1122,7 +1122,6 @@ void JSphSolidCpu::PreInteractionVars_Forces(TpInter tinter, unsigned np, unsign
 		/*if (p > int(npb) && Posc[p].x > 0.3f && abs(Posc[p].z) <= 0.5f) Porec_M[p] = PoreZero;
 		else if (p > int(npb) && Posc[p].x > 0.0f && Posc[p].x <= 0.3f && abs(Posc[p].z) <= 0.5f) Porec_M[p] = PoreZero / 0.3f * (float)Posc[p].x;
 		else Porec_M[p] = 0.0f;*/
-
 		//Pore pressure constant
 		Porec_M[p] = PoreZero;
 	}
