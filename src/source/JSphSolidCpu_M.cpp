@@ -4597,8 +4597,8 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 	const int hdiv = (CellMode == CELLMODE_H ? 2 : 1);
 
 	if (npf) {
-		ComputeNsphCorrection12 < psingle, tker>(np, 0, nc, hdiv, cellfluid, begincell, cellzero, dcell, pos, pspos, velrhop, mass, L);
-		//ComputeNsphCorrectionX < psingle, tker>(np, 0, nc, hdiv, cellfluid, begincell, cellzero, dcell, pos, pspos, velrhop, mass, L);
+		//ComputeNsphCorrection12 < psingle, tker>(np, 0, nc, hdiv, cellfluid, begincell, cellzero, dcell, pos, pspos, velrhop, mass, L);
+		ComputeNsphCorrectionX < psingle, tker>(np, 0, nc, hdiv, cellfluid, begincell, cellzero, dcell, pos, pspos, velrhop, mass, L);
 
 		//-Interaction Fluid-Fluid.
 		InteractionForcesNSPH11_M<psingle, tker, ftmode, lamsps, tdelta, shift>
@@ -9644,7 +9644,7 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticPreVcT_M(double dt) {
 
 	const double dt05 = dt * .5;
 
-	const float CstVel = 2;
+	const float CstVel = 0.05f;
 
 	//-Calculate new density for boundary and copy velocity. | Calcula nueva densidad para el contorno y copia velocidad.
 	const int npb = int(Npb);
@@ -9685,7 +9685,7 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticPreVcT_M(double dt) {
 			UpdatePos(PosPrec[p], dx, dy, dz, outrhop, p, Posc, Dcellc, Codec);
 
 			//-Update velocity & density. | Actualiza velocidad y densidad.
-			Velrhopc[p].x = CstVel * 0.33f* (float) Posc[p].x;
+			Velrhopc[p].x = CstVel * (float) Posc[p].x;
 			Velrhopc[p].y = 0.0f;
 			Velrhopc[p].z = 0.0f;
 
@@ -9726,7 +9726,7 @@ void JSphSolidCpu::ComputeSymplecticCorr_VelCst_M(double dt) {
 template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrVcT_M(double dt) {
 	TmcStart(Timers, TMC_SuComputeStep);
 
-	const float CstVel = 2;
+	const float CstVel = 0.05f;
 	//-Calculate rhop of boudary and set velocity=0. | Calcula rhop de contorno y vel igual a cero.
 	const int npb = int(Npb);
 #ifdef OMP_USE
@@ -9753,7 +9753,7 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrVcT_M(double dt) {
 
 		if (!WithFloating || CODE_IsFluid(Codec[p])) {//-Fluid Particles.
 													  //-Update velocity & density. | Actualiza velocidad y densidad.
-			Velrhopc[p].x = CstVel * 0.33f*(float)Posc[p].x;
+			Velrhopc[p].x = CstVel * (float)Posc[p].x;
 			Velrhopc[p].y = 0.0f;
 			Velrhopc[p].z = 0.0f;
 			Velrhopc[p].w = rhopnew;
@@ -9781,6 +9781,7 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrVcT_M(double dt) {
 
 			// Update Quadratic form
 			// ep+om modified 09042019
+			// 16/07 Save NabVx 
 			// #Velocity #Gradient
 			tmatrix3f Q = TMatrix3f(QuadFormPrec_M[p].xx, QuadFormPrec_M[p].xy, QuadFormPrec_M[p].xz
 				, QuadFormPrec_M[p].xy, QuadFormPrec_M[p].yy, QuadFormPrec_M[p].yz, QuadFormPrec_M[p].xz, QuadFormPrec_M[p].yz, QuadFormPrec_M[p].zz);
@@ -9790,6 +9791,8 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrVcT_M(double dt) {
 				, StrainDotc_M[p].xz, StrainDotc_M[p].yz, StrainDotc_M[p].zz) + TMatrix3f(Spinc_M[p].xx, Spinc_M[p].xy, Spinc_M[p].xz
 					, -Spinc_M[p].xy, Spinc_M[p].yy, Spinc_M[p].yz
 					, -Spinc_M[p].xz, -Spinc_M[p].yz, Spinc_M[p].zz);
+
+			NabVx_M[p] = GdVel.a11;
 
 			tmatrix3f DQD = ToTMatrix3f((TMatrix3d(1, 0, 0, 0, 1, 0, 0, 0, 1) - dt
 				* ToTMatrix3d(Ttransp(GdVel))) * ToTMatrix3d(Q) * (TMatrix3d(1, 0, 0, 0, 1, 0, 0, 0, 1) - dt * ToTMatrix3d(GdVel)));
