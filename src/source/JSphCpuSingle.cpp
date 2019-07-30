@@ -35,7 +35,7 @@
 #include "JGaugeSystem.h"
 #include <climits>
 #include "JSphSolidCpu_M.h"
-#include "Eigen/Dense"
+#include <Eigen/Dense>
 #include <Eigen/Eigenvalues>
 
 using namespace std;
