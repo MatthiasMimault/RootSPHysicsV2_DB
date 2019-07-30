@@ -6,8 +6,10 @@ USE_DEBUG=NO
 USE_FAST_MATH=YES
 USE_NATIVE_CPU_OPTIMIZATIONS=NO
 
+
+#=== Matthias 30/07 - Correct libs in gcc4 for gruffalo
 LIBS_DIRECTORIES=-L./
-LIBS_DIRECTORIES:=$(LIBS_DIRECTORIES) -L../lib/linux_gcc
+LIBS_DIRECTORIES:=$(LIBS_DIRECTORIES) -L../lib/linux_gcc4
 
 EXECNAME=DualSPHysics4.2CPU_linux64
 EXECS_DIRECTORY=../../bin/linux
@@ -30,8 +32,9 @@ CCLINKFLAGS=-fopenmp -lgomp
 CCFLAGS+=-D_GLIBCXX_USE_CXX11_ABI=0
 CCLINKFLAGS+=-D_GLIBCXX_USE_CXX11_ABI=0
 
-#=== Matthias - Path to eigen
-EIGEN = -I ../../../EigenLibs
+#=== Matthias 30/05 - Path to eigen
+#=== Matthias 30/07 - Update Path to Eigen in lib  
+EIGEN = -I ../../../EigenLibs -I ../lib/EigenLibs
 
 #=== Matthias - PIE compilation crash
 #CCFLAGS+= -v -fPIC
