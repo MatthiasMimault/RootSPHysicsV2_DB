@@ -1451,6 +1451,7 @@ double JSphCpuSingle::ComputeStep_Sym(){
   //-----------
   //#printf
   //printf("Predictor\n");
+
   DemDtForce=dt*0.5f;                     //(DEM)
   Interaction_Forces(INTER_Forces);       //-Interaction.
     const double ddt_p=DtVariable(false);   //-Calculate dt of predictor step.
@@ -1475,8 +1476,6 @@ double JSphCpuSingle::ComputeStep_Sym(){
   if(Damping)RunDamping(dt,Np,Npb,Posc,Codec,Velrhopc); //-Applies Damping.
 
   DtPre=min(ddt_p,ddt_c);
-  //#pause
-  //cin.get();
 
   return(dt);
 }
@@ -1777,7 +1776,6 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
     UpdateMaxValues();
     Nstep++;
     if(Part<=PartIni+1 && tc.CheckTime())Log->Print(string("  ")+tc.GetInfoFinish((TimeStep-TimeStepIni)/(TimeMax-TimeStepIni)));
-    //if(Nstep>=3)break;
   }
   TimerSim.Stop(); TimerTot.Stop();
 
