@@ -282,6 +282,7 @@ double GenCaseBis_T::computeBorddomain(int np, tdouble3 posMax, tdouble3 posMin)
 /// Add particles's informations on the Xml file
 //==============================================================================
 void GenCaseBis_T::updateXml(std::string caseName, int np, double rMax, double borddomain) {
+	printf("Update Xml - T18\n");
 	string directoryXml = "Def.xml";
 	JXml xml; xml.LoadFile(directoryXml);
 
