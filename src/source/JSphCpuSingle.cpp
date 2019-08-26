@@ -127,9 +127,9 @@ void JSphCpuSingle::LoadCaseParticles(){
   Log->Print("Loading initial state of particles...");
   PartsLoaded=new JPartsLoad4(true);
   // Original
-  // PartsLoaded->LoadParticles(DirCase, CaseName, PartBegin, PartBeginDir);
+  PartsLoaded->LoadParticles(DirCase, CaseName, PartBegin, PartBeginDir);
   // Matthias version: Dev w Mixed case loader
-  PartsLoaded->LoadParticlesMixed_M(DirCase, CaseName, PartBegin, PartBeginDir);
+  // PartsLoaded->LoadParticlesMixed_M(DirCase, CaseName, PartBegin, PartBeginDir);
   PartsLoaded->CheckConfig(CaseNp,CaseNfixed,CaseNmoving,CaseNfloat,CaseNfluid,PeriX,PeriY,PeriZ);
   Log->Printf("Loaded particles: %u",PartsLoaded->GetCount());
 
@@ -1699,7 +1699,7 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
   //#print #GenCaseBis
   printf("GenCase Investigation\n");
   printf("\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\n");
-  if (true) {
+  if (false) {
 	  LoadConfig(cfg);
 	  LoadCaseParticles();
 	  ConfigConstants(Simulate2D);
@@ -1712,7 +1712,6 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
 	  gcb.Bridge(cfg->CaseName);
 	  LoadConfig_T(cfg);
 	  LoadCaseParticles_T();
-	  printf("Pos ptc 0 %.8f\n", PartsLoaded->GetPos()[0].x);
 	  ConfigConstants(Simulate2D);
 	  ConfigDomain();
 	  ConfigRunMode(cfg);
@@ -1724,7 +1723,6 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
   else {
 	  LoadConfig(cfg);
 	  LoadCaseParticles();
-	  printf("Pos ptc 0 %.8f\n", PartsLoaded->GetPos()[0].x);
 	  ConfigConstants(Simulate2D);
 	  ConfigDomain();
 	  ConfigRunMode(cfg);

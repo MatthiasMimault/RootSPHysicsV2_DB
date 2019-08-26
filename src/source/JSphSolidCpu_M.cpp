@@ -946,6 +946,9 @@ void JSphSolidCpu::InitRun_T(JPartsLoad4 *pl) {
 
 	memcpy(Massc_M, pl->GetMass(), sizeof(float) * Np);
 
+//#printg
+	for (unsigned p = 0; p < Np; p++) printf("Id %u - Mass %8.f\n", Idpc[p], Massc_M);
+
 	if (UseDEM)DemDtForce = DtIni; //(DEM)
 	if (CaseNfloat)InitFloating();
 
