@@ -78,11 +78,6 @@ void GenCaseBis_T::Bridge(string caseName) {
 	}
 	computeMassP(np, vol, mp, rhop, rhop0);
 
-	/*for (int i = 0; i < np; i++)
-	{
-		printf("\nx: %f  y: %f  z: %f", vel[i].x, vel[i].y, vel[i].z);
-	}*/
-
 	//research CasePosMax
 	researchCasePosMaxAndMin(pos, np, &posMax, &posMin);
 	printf("\nPosMax = x: %f  y: %f  z: %f\n", posMax.x, posMax.y, posMax.z);
@@ -99,8 +94,76 @@ void GenCaseBis_T::Bridge(string caseName) {
 
 	if (test) jpd->SaveFileCase(caseName);
 	else jpd->SaveFileCase(caseName + "0.xml");
+
 	// add particles informations on Xml file
 	updateXml(caseName, np, rMax, borddomain);
+
+}
+
+//==============================================================================
+/// Load the xml file Def and adds the informations about particles
+/// Load csv file and create a JPartDataBi4 with particles data
+//==============================================================================
+void GenCaseBis_T::Bridge2_M(string caseName) {
+	printf("Start Bridge2_M\n");
+	int* idp;
+	tdouble3* pos;
+	tdouble3 posMin;
+	tdouble3 posMax;
+	tfloat3* vel;
+	double* vol;
+	float* mp;
+	float* rhop;
+	float rhop0;
+	double rMax = 0;
+	double borddomain = 0;
+	int np;
+
+	//calcul nb of particles
+	np = 1;
+	printf("\nnp = %d\n", np);
+
+	idp = (int*)malloc(sizeof(int) * (np));
+	pos = (tdouble3*)malloc(sizeof(tdouble3) * (np));
+	vel = (tfloat3*)malloc(sizeof(tfloat3) * (np));
+	vol = (double*)malloc(sizeof(double) * (np));
+	mp = (float*)malloc(sizeof(float) * (np));
+	rhop = (float*)malloc(sizeof(float) * (np));
+	rhop0 = loadRhop0();
+
+	//load particles id & positions
+	//loadCsv(np, idp, vol, pos);
+	idp[0] = 0;
+	vol[0] = 1.0;
+	pos[0] = { 0,0,0 };
+	rMax = computeRayMax(np, vol);
+	printf("\nray = %1.10f\n", rMax);
+
+	for (int i = 0; i < np; i++)
+	{
+		vel[i] = TFloat3(0, 0, 0);
+	}
+	computeMassP(np, vol, mp, rhop, rhop0);
+
+	//research CasePosMax
+	researchCasePosMaxAndMin(pos, np, &posMax, &posMin);
+	printf("\nPosMax = x: %f  y: %f  z: %f\n", posMax.x, posMax.y, posMax.z);
+	borddomain = computeBorddomain(np, posMax, posMin);
+	printf("\nborddomain = %1.10f\n", borddomain);
+
+	//void AddPartData(unsigned npok,const unsigned *idp, const tdouble3 *posd,const tfloat3 *vel,const float *rhop,bool externalpointer=true)
+	jpd = new JPartDataBi4();
+	jpd->ConfigBasic(0, 1, "", "", "", false, 0.0, "");
+	jpd->ConfigParticles(np, 0, 0, 0, np, posMin, posMax, NULL, NULL);
+	jpd->ConfigCtes(0, 0, 0, rhop0, 0, 0, 0);
+	jpd->AddPartInfo((unsigned)0, 0, (unsigned)np, 0, 0, 0, TDouble3(0, 0, 0), TDouble3(0, 0, 0), 0, 0);
+	jpd->AddPartData_T((unsigned)np, idp, pos, vel, rhop, mp);
+
+	/*if (test) jpd->SaveFileCase(caseName);
+	else jpd->SaveFileCase(caseName + "0.xml");
+
+	// add particles informations on Xml file
+	updateXml(caseName, np, rMax, borddomain);*/
 
 }
 
@@ -193,10 +256,14 @@ void GenCaseBis_T::loadCsv(int np, int *idp, double *vol, tdouble3 *pos) {
 			//printf("\nString = %s\nString split = 1: %s 2: %s 3: %s 4: %s 5: %s  6: %s", line.c_str(), tempo[0].c_str(), tempo[1].c_str(), tempo[2].c_str(), tempo[3].c_str(), tempo[4].c_str(), tempo[5].c_str());
 			//idp[i] = (int)(::atof(tempo[0].c_str()));
 			idp[i] = int(i);
-			vol[i] = ::atof(tempo[2].c_str()) * 0.000000000000000001;
+			/*vol[i] = ::atof(tempo[2].c_str()) * 0.000000000000000001;
 			pos[i].x = ::atof(tempo[3].c_str()) * 0.000001;
 			pos[i].y = ::atof(tempo[4].c_str()) * 0.000001;
-			pos[i].z = ::atof(tempo[5].c_str()) * 0.000001;
+			pos[i].z = ::atof(tempo[5].c_str()) * 0.000001;*/
+			vol[i] = ::atof(tempo[2].c_str()) * 0.000000001;
+			pos[i].x = ::atof(tempo[3].c_str())*0.001;
+			pos[i].y = ::atof(tempo[4].c_str()) * 0.001;
+			pos[i].z = ::atof(tempo[5].c_str()) * 0.001;
 		}
 
 		file.close();
@@ -354,19 +421,29 @@ void GenCaseBis_T::updateXml(std::string caseName, int np, double rMax, double b
 	rhop0.SetAttribute("units_comment", ((xml.GetNode("case.casedef.constantsdef.rhop0", false))->ToElement())->Attribute("units_comment"));
 	(&constants)->InsertEndChild(rhop0);
 
+	// Dp xml update
 	char tampon2[32];
-	printf(tampon2, "%1.16f", rMax);
+	sprintf_s(tampon2, "%1.16f\n", rMax);
+	printf("M - dp %.8f\n", rMax);
 	TiXmlElement dp("dp");
 	dp.SetAttribute("value", tampon2);
 	dp.SetAttribute("units_comment", "metres (m)");
 	(&constants)->InsertEndChild(dp);
+	/*std::ostringstream strs;
+	strs << rMax;
+	std::string str = strs.str();
+	TiXmlElement dp("dp");
+	dp.SetAttribute("value", str);
+	dp.SetAttribute("units_comment", "metres (m)");
+	(&constants)->InsertEndChild(dp);*/
 
 
 	double d = rMax * 3.5;
 	char tampon3[32];
-	printf(tampon3, "%1.16f", d);
+	sprintf_s(tampon3, "%1.16f\n", d);
 	TiXmlElement h("h");
 	h.SetAttribute("value", tampon3);
+	//h.SetAttribute("value", d);
 	h.SetAttribute("units_comment", "metres (m)");
 	(&constants)->InsertEndChild(h);
 
@@ -398,4 +475,5 @@ void GenCaseBis_T::updateXml(std::string caseName, int np, double rMax, double b
 
 	if (test) xml.SaveFile(caseName +".xml");//save the xml file
 	else xml.SaveFile(caseName + "0.xml");//save the xml file
+	printf("End Update Xml\n");
 }

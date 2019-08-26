@@ -919,14 +919,17 @@ void JSphSolidCpu::InitRun() {
 void JSphSolidCpu::InitRun_T(JPartsLoad4 *pl) {
 	const char met[] = "InitRun";
 
+	printf("Enter the InitRun_T\n");
+
+
 	WithFloating = (CaseNfloat>0);
 	if (TStep == STEP_Verlet) {
 		memcpy(VelrhopM1c, Velrhopc, sizeof(tfloat4)*Np);
 		memset(TauM1c_M, 0, sizeof(tsymatrix3f)*Np);
 		memset(QuadFormM1c_M, 0, sizeof(tsymatrix3f)*Np);
 		VerletStep = 0;
+
 		for (unsigned p = 0; p < Np; p++) {
-			MassM1c_M[p] = MassFluid;
 			QuadFormM1c_M[p] = TSymatrix3f(4 / float(pow(Dp, 2)), 0, 0, 4 / float(pow(Dp, 2)), 0, 4 / float(pow(Dp, 2)));
 		}
 	}
@@ -937,9 +940,11 @@ void JSphSolidCpu::InitRun_T(JPartsLoad4 *pl) {
 	memset(Tauc_M, 0, sizeof(tsymatrix3f)*Np);
 	memset(Divisionc_M, 0, sizeof(bool)*Np);
 	for (unsigned p = 0; p < Np; p++) {
-		Massc_M[p] = MassFluid;
 		QuadFormc_M[p] = TSymatrix3f(4 / float(pow(Dp, 2)), 0, 0, 4 / float(pow(Dp, 2)), 0, 4 / float(pow(Dp, 2)));
 	}
+
+
+	memcpy(Massc_M, pl->GetMass(), sizeof(float) * Np);
 
 	if (UseDEM)DemDtForce = DtIni; //(DEM)
 	if (CaseNfloat)InitFloating();
@@ -4683,18 +4688,7 @@ void JSphSolidCpu::ComputeJauTauDot_M(unsigned n, unsigned pini, const tsymatrix
 		taudot[p].xz = E.xz + (tau.zz - tau.xx)*omega.xz - tau.xy*omega.yz + tau.yz*omega.xy;
 		taudot[p].yy = E.yy - 2.0f*tau.xy*omega.xy + 2.0f*tau.yz*omega.yz;
 		taudot[p].yz = E.yz + (tau.zz - tau.yy)*omega.yz - tau.xz*omega.xy - tau.xy*omega.xz;
-		taudot[p].zz = E.zz - 2.0f*tau.xz*omega.xz - 2.0f*tau.yz*omega.yz;
-		//#print
-		//if (Posc[p].x > 1.5 && Posc[p].z > 1.5) printf("Id %d - Td (%.8f, %.8f, %.8f, %.8f, %.8f, %.8f)\n", Idpc[p], taudot[p].xx, taudot[p].xy, taudot[p].xz, taudot[p].yy, taudot[p].yz, taudot[p].zz);
-		/*if (Idpc[p] > 6479 && Posc[p].z > 0.5f) {
-			printf("Id %d P (%.8f) - Gv (%.12f, %.8f, %.8f, %.8f, %.8f, %.12f)\n"
-				, Idpc[p], Posc[p].z, StrainDotc_M[p].xx, StrainDotc_M[p].xy, StrainDotc_M[p].xz, StrainDotc_M[p].yy, StrainDotc_M[p].yz, StrainDotc_M[p].zz);
-			printf("Id %d P (%.8f) - Td (%.8f, %.8f, %.8f, %.8f, %.8f, %.8f)\n"
-				, Idpc[p], Posc[p].z, taudot[p].xx, taudot[p].xy, taudot[p].xz, taudot[p].yy, taudot[p].yz, taudot[p].zz);
-
-		}*/
-			
-		
+		taudot[p].zz = E.zz - 2.0f*tau.xz*omega.xz - 2.0f*tau.yz*omega.yz;	
 	}
 }
 
@@ -9074,7 +9068,6 @@ template<bool shift> void JSphSolidCpu::ComputeVerletVarsSolMass_M(const tfloat4
 			// Source Density and Mass
 			//const float volu = float(double(mass2[p]) / double(velrhop2[p].w));
 			const float volu = float(double(mass2[p]) / double(rhopnew));
-			//printf("M2: %.6f, Rho2: %.6f, V2: %.6f, ", mass2[p], velrhop2[p].w, volu);
 
 			//float adens = float(LambdaMass * (1.0f - rhopnew / RhopZero));
 			float adens = float(LambdaMass * (RhopZero / rhopnew - 1));
@@ -9152,7 +9145,6 @@ template<bool shift> void JSphSolidCpu::ComputeVerletVarsQuad_M(const tfloat4 *v
 			tmatrix3f DQD = ToTMatrix3f((TMatrix3d(1, 0, 0, 0, 1, 0, 0, 0, 1) - dt2
 				* ToTMatrix3d(Ttransp(GdVel))) * ToTMatrix3d(Q) * (TMatrix3d(1, 0, 0, 0, 1, 0, 0, 0, 1) - dt2 * ToTMatrix3d(GdVel)));
 			//tmatrix3f Pe = DQD;
-			//printf("MatProd: %.5f, %.5f, %.5f, %.5f, %.5f, %.5f, %.5f, %.5f, %.5f\n", Pe.a11, Pe.a12, Pe.a13, Pe.a21, Pe.a22, Pe.a23, Pe.a31, Pe.a32, Pe.a33);
 
 			qfnew[p].xx = float(DQD.a11);
 			qfnew[p].xy = float(DQD.a12);
@@ -9166,7 +9158,6 @@ template<bool shift> void JSphSolidCpu::ComputeVerletVarsQuad_M(const tfloat4 *v
 			// Source Density and Mass
 			//const float volu = float(double(mass2[p]) / double(velrhop2[p].w));
 			const float volu = float(double(mass2[p]) / double(rhopnew));
-			//printf("M2: %.6f, Rho2: %.6f, V2: %.6f, ", mass2[p], velrhop2[p].w, volu);
 
 			//float adens = float(LambdaMass * (1.0f - rhopnew / RhopZero));
 			float adens = float(LambdaMass * (RhopZero / rhopnew - 1));

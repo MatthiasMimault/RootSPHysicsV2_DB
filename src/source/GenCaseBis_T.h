@@ -28,6 +28,7 @@ public:
 	~GenCaseBis_T();
 	void UseGencase(std::string caseName);
 	void Bridge(std::string caseName);
+	void Bridge2_M(std::string caseName);
 	bool getUseGencase() { return useGencase; }
 private:
 	int calculNbParticles();

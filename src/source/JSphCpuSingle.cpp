@@ -126,9 +126,13 @@ void JSphCpuSingle::LoadCaseParticles(){
 
   Log->Print("Loading initial state of particles...");
   PartsLoaded=new JPartsLoad4(true);
-  PartsLoaded->LoadParticles(DirCase,CaseName,PartBegin,PartBeginDir);
+  // Original
+  // PartsLoaded->LoadParticles(DirCase, CaseName, PartBegin, PartBeginDir);
+  // Matthias version: Dev w Mixed case loader
+  PartsLoaded->LoadParticlesMixed_M(DirCase, CaseName, PartBegin, PartBeginDir);
   PartsLoaded->CheckConfig(CaseNp,CaseNfixed,CaseNmoving,CaseNfloat,CaseNfluid,PeriX,PeriY,PeriZ);
   Log->Printf("Loaded particles: %u",PartsLoaded->GetCount());
+
   //-Collect information of loaded particles. | Recupera informacion de las particulas cargadas.
   Simulate2D=PartsLoaded->GetSimulate2D();
   Simulate2DPosY=PartsLoaded->GetSimulate2DPosY();
@@ -175,7 +179,7 @@ void JSphCpuSingle::LoadCaseParticles_T() {
 
 	Log->Print("Loading initial state of particles...");
 	PartsLoaded = new JPartsLoad4(true);
-	PartsLoaded->LoadParticles_T(DirCase, CaseName, PartBegin, PartBeginDir);
+	PartsLoaded->LoadParticles(DirCase, CaseName, PartBegin, PartBeginDir);
 	PartsLoaded->CheckConfig(CaseNp, CaseNfixed, CaseNmoving, CaseNfloat, CaseNfluid, PeriX, PeriY, PeriZ);
 	Log->Printf("Loaded particles: %u", PartsLoaded->GetCount());
 	//-Collect information of loaded particles. | Recupera informacion de las particulas cargadas.
@@ -980,7 +984,6 @@ void JSphCpuSingle::MarkedDivision_M(unsigned countMax, unsigned np, unsigned pi
 			Qg << qfpm1[p].xx, qfpm1[p].xy, qfpm1[p].xz, qfpm1[p].xy, qfpm1[p].yy, qfpm1[p].yz, qfpm1[p].xz, qfpm1[p].yz, qfpm1[p].zz;
 			EigenSolver<Matrix3f> es(Qg);
 
-			//printf("Max index\n");
 			// Index of maximal eigenvalue
 			float l0 = es.eigenvalues()[0].real();
 			float l1 = es.eigenvalues()[1].real();
@@ -1078,7 +1081,6 @@ void JSphCpuSingle::MarkedDivisionSymp_M(unsigned countMax, unsigned np, unsigne
 			Qg << qfp[p].xx, qfp[p].xy, qfp[p].xz, qfp[p].xy, qfp[p].yy, qfp[p].yz, qfp[p].xz, qfp[p].yz, qfp[p].zz;
 			EigenSolver<Matrix3f> es(Qg);
 
-			//printf("Max index\n");
 			// Index of maximal eigenvalue
 			float l0 = es.eigenvalues()[0].real();
 			float l1 = es.eigenvalues()[1].real();
@@ -1170,7 +1172,6 @@ void JSphCpuSingle::MarkedDivisionSymp_M(unsigned countMax, unsigned np, unsigne
 			Qg << qfp[p].xx, qfp[p].xy, qfp[p].xz, qfp[p].xy, qfp[p].yy, qfp[p].yz, qfp[p].xz, qfp[p].yz, qfp[p].zz;
 			EigenSolver<Matrix3f> es(Qg);
 
-			//printf("Max index\n");
 			// Index of maximal eigenvalue
 			float l0 = es.eigenvalues()[0].real();
 			float l1 = es.eigenvalues()[1].real();
@@ -1449,9 +1450,6 @@ double JSphCpuSingle::ComputeStep_Sym(){
 
   //-Predictor
   //-----------
-  //#printf
-  //printf("Predictor\n");
-
   DemDtForce=dt*0.5f;                     //(DEM)
   Interaction_Forces(INTER_Forces);       //-Interaction.
     const double ddt_p=DtVariable(false);   //-Calculate dt of predictor step.
@@ -1463,7 +1461,6 @@ double JSphCpuSingle::ComputeStep_Sym(){
 
   //-Corrector
   //-----------
-  //printf("Corrector\n");
   DemDtForce=dt;                          //(DEM)
   RunCellDivide(true);
   Interaction_Forces(INTER_ForcesCorr);   //Interaction.
@@ -1699,10 +1696,23 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
   
   GenCaseBis_T gcb;
   gcb.UseGencase(cfg->RunPath);
-  if (!gcb.getUseGencase()) {
+  //#print #GenCaseBis
+  printf("GenCase Investigation\n");
+  printf("\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\n");
+  if (true) {
+	  LoadConfig(cfg);
+	  LoadCaseParticles();
+	  ConfigConstants(Simulate2D);
+	  ConfigDomain();
+	  ConfigRunMode(cfg);
+	  VisuParticleSummary();
+	  InitRun();
+  }
+  else if (!gcb.getUseGencase()) {
 	  gcb.Bridge(cfg->CaseName);
 	  LoadConfig_T(cfg);
 	  LoadCaseParticles_T();
+	  printf("Pos ptc 0 %.8f\n", PartsLoaded->GetPos()[0].x);
 	  ConfigConstants(Simulate2D);
 	  ConfigDomain();
 	  ConfigRunMode(cfg);
@@ -1714,6 +1724,7 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
   else {
 	  LoadConfig(cfg);
 	  LoadCaseParticles();
+	  printf("Pos ptc 0 %.8f\n", PartsLoaded->GetPos()[0].x);
 	  ConfigConstants(Simulate2D);
 	  ConfigDomain();
 	  ConfigRunMode(cfg);
@@ -1722,8 +1733,6 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
 	  //------------------------------------------------------------------------------------
 	  InitRun();
   }
-
-
 
   //-Free memory of PartsLoaded. | Libera memoria de PartsLoaded.
   delete PartsLoaded; PartsLoaded = NULL;
@@ -1734,6 +1743,8 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
   TmcResetValues(Timers);
   TmcStop(Timers,TMC_Init);
   PartNstep=-1; Part++;
+  //#pause
+  cin.get();
 
 
   //-Main Loop.

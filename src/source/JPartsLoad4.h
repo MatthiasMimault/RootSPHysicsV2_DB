@@ -97,7 +97,8 @@ public:
   ~JPartsLoad4();
   void Reset();
 
-  void LoadParticles(const std::string &casedir,const std::string &casename,unsigned partbegin,const std::string &casedirbegin);
+  void LoadParticles(const std::string& casedir, const std::string& casename, unsigned partbegin, const std::string& casedirbegin);
+  void LoadParticlesMixed_M(const std::string& casedir, const std::string& casename, unsigned partbegin, const std::string& casedirbegin);
   void LoadParticles_T(const std::string &casedir, const std::string &casename, unsigned partbegin, const std::string &casedirbegin);
   void CheckConfig(ullong casenp,ullong casenfixed,ullong casenmoving,ullong casenfloat,ullong casenfluid,bool perix,bool periy,bool periz)const;
   void CheckConfig(ullong casenp,ullong casenfixed,ullong casenmoving,ullong casenfloat,ullong casenfluid)const;
