@@ -179,7 +179,7 @@ void JSphCpuSingle::LoadCaseParticles_T() {
 
 	Log->Print("Loading initial state of particles...");
 	PartsLoaded = new JPartsLoad4(true);
-	PartsLoaded->LoadParticles(DirCase, CaseName, PartBegin, PartBeginDir);
+	PartsLoaded->LoadParticles_T(DirCase, CaseName, PartBegin, PartBeginDir);
 	PartsLoaded->CheckConfig(CaseNp, CaseNfixed, CaseNmoving, CaseNfloat, CaseNfluid, PeriX, PeriY, PeriZ);
 	Log->Printf("Loaded particles: %u", PartsLoaded->GetCount());
 	//-Collect information of loaded particles. | Recupera informacion de las particulas cargadas.
@@ -1742,7 +1742,7 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
   TmcStop(Timers,TMC_Init);
   PartNstep=-1; Part++;
   //#pause
-  cin.get();
+  //cin.get();
 
 
   //-Main Loop.

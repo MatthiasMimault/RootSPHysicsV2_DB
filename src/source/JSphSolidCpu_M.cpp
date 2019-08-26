@@ -942,12 +942,7 @@ void JSphSolidCpu::InitRun_T(JPartsLoad4 *pl) {
 	for (unsigned p = 0; p < Np; p++) {
 		QuadFormc_M[p] = TSymatrix3f(4 / float(pow(Dp, 2)), 0, 0, 4 / float(pow(Dp, 2)), 0, 4 / float(pow(Dp, 2)));
 	}
-
-
 	memcpy(Massc_M, pl->GetMass(), sizeof(float) * Np);
-
-//#printg
-	for (unsigned p = 0; p < Np; p++) printf("Id %u - Mass %8.f\n", Idpc[p], Massc_M);
 
 	if (UseDEM)DemDtForce = DtIni; //(DEM)
 	if (CaseNfloat)InitFloating();
