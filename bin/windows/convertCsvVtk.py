@@ -9,13 +9,8 @@ import os
 import numpy
 import math
 import sys
-import struct
 
 os.chdir(".")
-
-#constants
-EXPERIENCE_NAME = "D-RootSPH-Anisotropic2d"
-CSV_PATH = "./examples/Experiments/" + EXPERIENCE_NAME + "/Stu-Aniso_out/data/"
 
 """ Transforms a string of a number written in scientific form to an integer """
 def strSciToInt(str) :
@@ -53,18 +48,29 @@ def computeTransformedMatrix(matOrg) :
     return numpy.matmul(passMatrix, numpy.matmul(newDiag, passMatrix.transpose()))
     
 
-def extractCsv(name) :
+def extractCsv(name, fields) :
     dict_list = []
     with open(name) as csvfile:
         # recovering of the variables names
-        fields = ["Pos.x", "Pos.y", "Pos.z", "Idp", "Vel.x", "Vel.y", "Vel.z", "Rhop", "Mass", "Press", "Type", "Qfxx", "Qfxy", "Qfxz", "Qfyy", "Qfyz", "Qfzz"]
+        # fields = ["Pos.x", "Pos.y", "Pos.z", "Idp", "Vel.x", "Vel.y", "Vel.z", "Rhop", "Mass", "Press", "Type", "Qfxx", "Qfxy", "Qfxz", "Qfyy", "Qfyz", "Qfzz"]
         reader = csv.DictReader(csvfile, fieldnames = fields, delimiter=";")
         for row in reader:
             dict_list.append(row)
         del dict_list[0:3]
     return dict_list
         
-def createVtk(dic, name, folder, step) :
+def writeVariable(fic, dic, field, nb, type_) :
+    fic.write("{} {} {} {}\n".format(field, nb, len(dic), type_))
+    for line in dic :
+        if nb == 1 :
+            fic.write("{} ".format(line[field]))
+        elif nb == 3 :
+            fic.write("{} {} {} ".format(line[field + ".x"], line[field + ".y"], line[field + ".z"]))
+    fic.write("\n")
+
+def createVtk(dic, name, folder, step, fields) :
+    specialFields = ["Pos.x", "Pos.y", "Pos.z", "Idp", "Qfxx", "Qfxy", "Qfxz", "Qfyy", "Qfyz", "Qfzz", "Vel.y", "Vel.z"]
+    
     fic = open(folder + "/" + name + "All_{:04d}.vtk".format(step), "w")
     fic.write("# vtk DataFile Version 3.0\n")
     fic.write("Try\n")
@@ -88,45 +94,41 @@ def createVtk(dic, name, folder, step) :
         fic.write("{} ".format(line["Idp"]))
     fic.write("\n")
     
-    fic.write("FIELD FieldData 5\n")
+    fielsVar = []
+    for f in fields :
+        if f not in specialFields :
+            fielsVar.append(f)
     
-    fic.write("Vel 3 {} float\n".format(len(dic)))
-    for line in dic :
-        fic.write("{} {} {}".format(line["Vel.x"], line["Vel.y"], line["Vel.z"])) # a voir
-    fic.write("\n")
+    fic.write("FIELD FieldData {}\n".format(len(fielsVar)))
     
-    fic.write("Rhop 1 {} float\n".format(len(dic)))
-    for line in dic :
-        fic.write("{} ".format(line["Rhop"]))
-    fic.write("\n")
+    for f in fielsVar :
+        if f == "Vel.x" :
+             writeVariable(fic, dic, "Vel", 3, "float")
+        elif f == "Type" :
+            writeVariable(fic, dic, "Type", 1, "unsigned_char")
+        else :
+            writeVariable(fic, dic, f, 1, "float")
+    """writeVariable(fic, dic, "Vel", 3, "float")
+    writeVariable(fic, dic, "Rhop", 1, "float")
+    writeVariable(fic, dic, "Mass", 1, "float")
+    writeVariable(fic, dic, "Press", 1, "float")
+    writeVariable(fic, dic, "Type", 1, "unsigned_char")"""
     
-    fic.write("Mass 1 {} float\n".format(len(dic)))
-    for line in dic :
-        fic.write("{} ".format(line["Mass"]))
-    fic.write("\n")
+    if "Qfxx" in fields :
+        fic.write("TENSORS tensors1 float\n")
+        for line in dic :
+            mat = createMatrix(line)
+            newMat = computeTransformedMatrix(mat)
+            fic.write("{} {} {}\n{} {} {}\n{} {} {}\n\n".format(newMat[0][0], newMat[0][1], newMat[0][2], newMat[1][0], newMat[1][1], newMat[1][2], newMat[2][0], newMat[2][1], newMat[2][2]))
     
-    fic.write("Press 1 {} float\n".format(len(dic)))
-    for line in dic :
-        fic.write("{} ".format(line["Press"]))
-    fic.write("\n")
-    
-    fic.write("Type 1 {} unsigned_char\n".format(len(dic)))
-    for line in dic :
-        fic.write("{} ".format(line["Type"]))
-    fic.write("\n")
-    
-    fic.write("TENSORS tensors1 float\n")
-    for line in dic :
-        mat = createMatrix(line)
-        newMat = computeTransformedMatrix(mat)
-        fic.write("{} {} {}\n{} {} {}\n{} {} {}\n\n".format(newMat[0][0], newMat[0][1], newMat[0][2], newMat[1][0], newMat[1][1], newMat[1][2], newMat[2][0], newMat[2][1], newMat[2][2]))
     
 arguments = sys.argv
 name = arguments[1]
 folder = arguments[2]
+fields = arguments[3].split(";")
 i = 0
-while os.path.exists(folder + "/" + name + "All_{:04d}.csv".format(i)) :
-    dic = extractCsv(folder + "/" + name + "All_{:04d}.csv".format(i))
-    createVtk(dic, name, folder, i)
+while os.path.exists(folder + "/" + name + "_{:04d}.csv".format(i)) :
+    dic = extractCsv(folder + "/" + name + "_{:04d}.csv".format(i), fields)
+    createVtk(dic, name, folder, i, fields)
     print(name + "All_{:04d}.vtk created".format(i))
     i += 1

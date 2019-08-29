@@ -1696,9 +1696,7 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
   
   GenCaseBis_T gcb;
   gcb.UseGencase(cfg->RunPath);
-  //#print #GenCaseBis
-  printf("GenCase Investigation\n");
-  printf("\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\n");
+  //#gencase
   if (false) {
 	  LoadConfig(cfg);
 	  LoadCaseParticles();
