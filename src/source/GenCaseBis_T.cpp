@@ -373,10 +373,12 @@ void GenCaseBis_T::updateXml(std::string caseName, int np, double rMax, double b
 	particles.SetAttribute("mkfluidfirst", "1");
 
 	TiXmlElement summary("_summary");
+
 	TiXmlElement fluid("fluid");
 	fluid.SetAttribute("count", np);
 	char tampon[32];
-	printf(tampon, "0-%d", (np-1));
+	snprintf(tampon, 32, "0-%d", (np - 1));
+	//printf(tampon, "0-%d", (np-1));
 	fluid.SetAttribute("id", tampon);
 	fluid.SetAttribute("mkcount", "1");
 	fluid.SetAttribute("mkvalues", "1");
@@ -421,10 +423,12 @@ void GenCaseBis_T::updateXml(std::string caseName, int np, double rMax, double b
 	rhop0.SetAttribute("units_comment", ((xml.GetNode("case.casedef.constantsdef.rhop0", false))->ToElement())->Attribute("units_comment"));
 	(&constants)->InsertEndChild(rhop0);
 
+	printf("Tampon part\n");
 	// Dp xml update
 	char tampon2[32];
-	sprintf_s(tampon2, "%1.16f\n", rMax);
-	printf("M - dp %.8f\n", rMax);
+	//snprintf(tampon2, "%1.16f\n", rMax);
+	//sprintf_s(tampon2, "%1.16f\n", rMax);
+	snprintf(tampon2, 32, "%1.16f\n", rMax);
 	TiXmlElement dp("dp");
 	dp.SetAttribute("value", tampon2);
 	dp.SetAttribute("units_comment", "metres (m)");
@@ -440,7 +444,8 @@ void GenCaseBis_T::updateXml(std::string caseName, int np, double rMax, double b
 
 	double d = rMax * 3.5;
 	char tampon3[32];
-	sprintf_s(tampon3, "%1.16f\n", d);
+	//sprintf_s(tampon3, "%1.16f\n", d);
+	snprintf(tampon3, 32, "%1.16f\n", d);
 	TiXmlElement h("h");
 	h.SetAttribute("value", tampon3);
 	//h.SetAttribute("value", d);
