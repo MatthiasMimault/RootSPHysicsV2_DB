@@ -926,11 +926,15 @@ void JSphSolidCpu::InitRun_T(JPartsLoad4 *pl) {
 	if (TStep == STEP_Verlet) {
 		memcpy(VelrhopM1c, Velrhopc, sizeof(tfloat4)*Np);
 		memset(TauM1c_M, 0, sizeof(tsymatrix3f)*Np);
-		memset(QuadFormM1c_M, 0, sizeof(tsymatrix3f)*Np);
 		VerletStep = 0;
 
 		for (unsigned p = 0; p < Np; p++) {
-			QuadFormM1c_M[p] = TSymatrix3f(4 / float(pow(Dp, 2)), 0, 0, 4 / float(pow(Dp, 2)), 0, 4 / float(pow(Dp, 2)));
+			QuadFormM1c_M[p] = TSymatrix3f(4 / float(pow(4.0 / 3.0 / PI * pl->GetMass()[p] / RhopZero, 2.0 / 3.0))
+				, 0
+				, 0
+				, 4 / float(pow(4.0 / 3.0 / PI * pl->GetMass()[p] / RhopZero, 2.0 / 3.0))
+				, 0
+				, 4 / float(pow(4.0 / 3.0 / PI * pl->GetMass()[p] / RhopZero, 2.0 / 3.0)));
 		}
 	}
 	else if (TStep == STEP_Symplectic)DtPre = DtIni;
@@ -939,10 +943,16 @@ void JSphSolidCpu::InitRun_T(JPartsLoad4 *pl) {
 	// Matthias
 	memset(Tauc_M, 0, sizeof(tsymatrix3f)*Np);
 	memset(Divisionc_M, 0, sizeof(bool)*Np);
-	for (unsigned p = 0; p < Np; p++) {
-		QuadFormc_M[p] = TSymatrix3f(4 / float(pow(Dp, 2)), 0, 0, 4 / float(pow(Dp, 2)), 0, 4 / float(pow(Dp, 2)));
-	}
 	memcpy(Massc_M, pl->GetMass(), sizeof(float) * Np);
+	for (unsigned p = 0; p < Np; p++) {
+		QuadFormc_M[p] = TSymatrix3f(4 / float(pow(4.0 / 3.0 / PI * pl->GetMass()[p] / RhopZero, 2.0 / 3.0))
+			, 0
+			, 0
+			, 4 / float(pow(4.0 / 3.0 / PI * pl->GetMass()[p] / RhopZero, 2.0 / 3.0))
+			, 0
+			, 4 / float(pow(4.0 / 3.0 / PI * pl->GetMass()[p] / RhopZero, 2.0 / 3.0)));
+	}
+
 
 	if (UseDEM)DemDtForce = DtIni; //(DEM)
 	if (CaseNfloat)InitFloating();
