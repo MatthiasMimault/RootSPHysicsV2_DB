@@ -11,13 +11,12 @@
 * **Dr Matthias Mimault** - *Main Developer*
 * **Dr Lionel Dupuy** - *Model Developer*
 * **Dr Mariyia Ptashnyk** - *Model Developer*
-* **Thibaud Clavel**
-* **Lucas Potin**
+* **Thibaud Clavel, Augustin Leclerc, Lucas Potin, Thibault Ternon, Mathis Valli**
 
 See also the list of [contributors](https://github.com/MatthiasMimault/RootSPHysicsV2_DB/graphs/contributors) who participated in this project.
 
 # Dualsphysics
-This code is based of [DualSPHysics 4.2](https://github.com/DualSPHysics/DualSPHysics) and most of the guidelines and instructions stands for it also. 
+This code is based on [DualSPHysics 4.2](https://github.com/DualSPHysics/DualSPHysics) and most of the guidelines and instructions stands also for it. 
 ## License
 
 This project is licensed under the LGPL License - see the [LICENSE](LICENSE) file for details.
