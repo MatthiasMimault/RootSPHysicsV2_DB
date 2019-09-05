@@ -253,7 +253,7 @@ void GenCaseBis_T::loadCsv(int np, int *idp, double *vol, tdouble3 *pos) {
 		{
 			getline(file, line);
 			tempo = split(line, ',');
-			//printf("\nString = %s\nString split = 1: %s 2: %s 3: %s 4: %s 5: %s  6: %s", line.c_str(), tempo[0].c_str(), tempo[1].c_str(), tempo[2].c_str(), tempo[3].c_str(), tempo[4].c_str(), tempo[5].c_str());
+			printf("\nString = %s\nString split = 1: %s 2: %s 3: %s 4: %s 5: %s  6: %s", line.c_str(), tempo[0].c_str(), tempo[1].c_str(), tempo[2].c_str(), tempo[3].c_str(), tempo[4].c_str(), tempo[5].c_str());
 			//idp[i] = (int)(::atof(tempo[0].c_str()));
 			idp[i] = int(i);
 			/*vol[i] = ::atof(tempo[2].c_str()) * 0.000000000000000001;
@@ -265,7 +265,46 @@ void GenCaseBis_T::loadCsv(int np, int *idp, double *vol, tdouble3 *pos) {
 			pos[i].y = ::atof(tempo[4].c_str()) * 0.001;
 			pos[i].z = ::atof(tempo[5].c_str()) * 0.001;
 		}
+		cin.get();
+		file.close();
+	}
+}
 
+
+//==============================================================================
+/// extract particles position and return a tdouble3 with positions
+//==============================================================================
+void GenCaseBis_T::loadCsv2_M(int np, int* idp, double* vol, tdouble3* pos) {
+	string line;
+	ifstream file("Data.csv");
+	vector<std::string> tempo;
+
+
+	printf("\n------entre ds loadCsv------");
+
+	if (file.good())
+	{
+		printf("\nrempli  pos et idp\n");
+		getline(file, line); //don't need first line
+
+		for (size_t i = 0; i < np; i++)
+		{
+			getline(file, line);
+			tempo = split(line, ',');
+			printf("\nString split = 1: %s 2: %s 3: %s 4: %s 5: %s  6: %s\n", tempo[0].c_str(), tempo[1].c_str(), tempo[2].c_str(), tempo[3].c_str(), tempo[4].c_str(), tempo[5].c_str());
+			//idp[i] = (int)(::atof(tempo[0].c_str()));
+			idp[i] = atof(tempo[0].c_str());
+			/*vol[i] = ::atof(tempo[2].c_str()) * 0.000000000000000001;
+			pos[i].x = ::atof(tempo[3].c_str()) * 0.000001;
+			pos[i].y = ::atof(tempo[4].c_str()) * 0.000001;
+			pos[i].z = ::atof(tempo[5].c_str()) * 0.000001;*/
+			vol[i] = ::atof(tempo[2].c_str()) * 0.000000001;
+			pos[i].x = ::atof(tempo[3].c_str()) * 0.001;
+			pos[i].y = ::atof(tempo[4].c_str()) * 0.001;
+			pos[i].z = ::atof(tempo[5].c_str()) * 0.001;
+			printf("Loaded Id %d Vol %.8f Pos %.8f, %.8f, %.8f \n", idp[i], vol[i], pos[i].x, pos[i].y, pos[i].z);
+		}
+		cin.get();
 		file.close();
 	}
 }

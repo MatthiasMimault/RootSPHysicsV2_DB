@@ -33,7 +33,8 @@ public:
 private:
 	int calculNbParticles();
 	std::vector<std::string> split(std::string line, char delim);
-	void loadCsv(int np, int *idp, double *vol, tdouble3 *pos);
+	void loadCsv(int np, int* idp, double* vol, tdouble3* pos);
+	void loadCsv2_M(int np, int* idp, double* vol, tdouble3* pos);
 	float loadRhop0();
 	double computeRayMax(int np, double *vol);
 	void computeMassP(int np, double *vol, float *mp, float *rhop, float rhop0);
