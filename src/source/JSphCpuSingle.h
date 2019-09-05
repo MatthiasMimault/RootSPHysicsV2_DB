@@ -62,6 +62,8 @@ protected:
   // Matthias - Cell division
   void RunRandomDivision_M();
   void RunSizeDivision_M();
+  //Mathis - Cell Divison stepdt
+  void RunSizeDivision_M2(double stepdt);
   void RunDivisionDisplacement_M();
 
   void SourceSelectedParticles_M(unsigned countMax, unsigned np, unsigned pini, tuint3 cellmax
