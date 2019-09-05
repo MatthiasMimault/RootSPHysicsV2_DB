@@ -9757,6 +9757,9 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT_M(double dt) {
 					Velrhopc[p].y = 0;
 					Velrhopc[p].z = 0;
 				}*/
+				printf("Timestep %.8f\n", TimeStep);
+				if (TimeStep < 10.0) printf("Test valide 1 \n");
+				if (TimeStep < 10) printf("Test valide 2 \n");
 
 				//else
 				//{
