@@ -95,6 +95,11 @@ void JSphSolidCpu::InitVars() {
 	QuadFormc_M = NULL;	QuadFormM1c_M = NULL;
 	L_M = NULL;
 
+	// Augustin
+	VonMises3D = NULL;
+	GradVelSave = NULL;
+	CellOffSpring = NULL;
+
 	RidpMove = NULL;
 	FtRidp = NULL;
 	FtoForces = NULL;
@@ -197,8 +202,12 @@ void JSphSolidCpu::AllocCpuMemoryParticles(unsigned np, float over) {
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_4B, 1); // Mass
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_4B, 1); // NabVx
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_24B, 4); //-JauGradvel, JauTau2, Omega and Taudot, QuadForm
-	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_4B, 4); // SaveFields
+	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_4B, 7); // SaveFields
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_36B, 1); // Matrix3f L_M
+	// Augustin
+	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_4B, 1); // VonMises3D
+	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_4B, 1); // GradVelSave
+	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_4B, 1); // CellOffSpring
 
 	//-Shows the allocated memory.
 	MemCpuParticles = ArraysCpu->GetAllocMemoryCpu();
@@ -230,6 +239,10 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	tsymatrix3f *jautaum12 = SaveArrayCpu(Np, TauM1c_M);
 	tsymatrix3f *quadform = SaveArrayCpu(Np, QuadFormc_M);
 	tsymatrix3f *quadformm1 = SaveArrayCpu(Np, QuadFormM1c_M);
+	// Augustin
+	float         *vonMises = SaveArrayCpu(Np, VonMises3D);
+	float  	      *gradVelSav = SaveArrayCpu(Np, GradVelSave);
+	unsigned      *cellOSpr = SaveArrayCpu(Np, CellOffSpring);
 
 	//-Frees pointers.
 	ArraysCpu->Free(Idpc);
@@ -251,6 +264,10 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	ArraysCpu->Free(TauM1c_M);
 	ArraysCpu->Free(QuadFormc_M);
 	ArraysCpu->Free(QuadFormM1c_M);
+	// Augustin
+	ArraysCpu->Free(VonMises3D);
+	ArraysCpu->Free(GradVelSave);
+	ArraysCpu->Free(CellOffSpring);
 
 	//-Resizes CPU memory allocation.
 	const double mbparticle = (double(MemCpuParticles) / (1024 * 1024)) / CpuParticlesSize; //-MB por particula.
@@ -277,6 +294,10 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	if (jautaum12) TauM1c_M = ArraysCpu->ReserveSymatrix3f();
 	QuadFormc_M = ArraysCpu->ReserveSymatrix3f();
 	if (quadformm1) QuadFormM1c_M = ArraysCpu->ReserveSymatrix3f();
+	// Augustin
+	if (vonMises) VonMises3D = ArraysCpu->ReserveFloat();
+	if (gradVelSav) GradVelSave = ArraysCpu->ReserveFloat();
+	if (cellOSpr) CellOffSpring = ArraysCpu->ReserveUint();
 
 	//-Restore data in CPU memory.
 	RestoreArrayCpu(Np, idp, Idpc);
@@ -298,6 +319,11 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	RestoreArrayCpu(Np, jautaum12, TauM1c_M);
 	RestoreArrayCpu(Np, quadform, QuadFormc_M);
 	RestoreArrayCpu(Np, quadformm1, QuadFormM1c_M);
+	// Augustin
+	RestoreArrayCpu(Np, vonMises, VonMises3D);
+	RestoreArrayCpu(Np, gradVelSav, GradVelSave);
+	RestoreArrayCpu(Np, cellOSpr, CellOffSpring);
+
 	//-Updates values.
 	CpuParticlesSize = npnew;
 	MemCpuParticles = ArraysCpu->GetAllocMemoryCpu();
@@ -353,6 +379,10 @@ void JSphSolidCpu::ReserveBasicArraysCpu() {
 	NabVx_M = ArraysCpu->ReserveFloat();
 	Tauc_M = ArraysCpu->ReserveSymatrix3f();
 	QuadFormc_M = ArraysCpu->ReserveSymatrix3f();
+	// Augustin
+	VonMises3D = ArraysCpu->ReserveFloat();
+	GradVelSave = ArraysCpu->ReserveFloat();
+	CellOffSpring = ArraysCpu->ReserveUint();
 }
 
 //==============================================================================
@@ -637,7 +667,74 @@ unsigned JSphSolidCpu::GetParticlesData_M(unsigned n, unsigned pini, bool cellor
 // #SigCst
 //////////////////////////////////////
 unsigned JSphSolidCpu::GetParticlesData_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
-	, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, float *press, float* mass, tsymatrix3f *qf, float *nabvx, typecode *code)
+	, unsigned* idp, tdouble3* pos, tfloat3* vel, float* rhop, float* pore, float* press, float* mass, tsymatrix3f* qf, float* nabvx, typecode* code)
+{
+	const char met[] = "GetParticlesData";
+	unsigned num = n;
+	//-Copy selected values.
+	if (code)memcpy(code, Codec + pini, sizeof(typecode) * n);
+	if (idp)memcpy(idp, Idpc + pini, sizeof(unsigned) * n);
+	if (pos)memcpy(pos, Posc + pini, sizeof(tdouble3) * n);
+	if (vel && rhop) {
+		for (unsigned p = 0; p < n; p++) {
+			tfloat4 vr = Velrhopc[p + pini];
+			vel[p] = TFloat3(vr.x, vr.y, vr.z);
+			rhop[p] = vr.w;
+		}
+	}
+	else {
+		if (vel) for (unsigned p = 0; p < n; p++) { tfloat4 vr = Velrhopc[p + pini]; vel[p] = TFloat3(vr.x, vr.y, vr.z); }
+		if (rhop)for (unsigned p = 0; p < n; p++)rhop[p] = Velrhopc[p + pini].w;
+	}
+
+	// Matthias
+	if (pore)memcpy(pore, Porec_M + pini, sizeof(float) * n);
+	if (press) {
+		for (unsigned p = 0; p < n; p++) {
+			//#Save
+			press[p] = CteB * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f);
+			//press[p] = -0.5f*RhopZero*float(Posc[p].x*Posc[p].x);
+		}
+	}
+	if (mass)memcpy(mass, Massc_M + pini, sizeof(float) * n);
+	if (qf)memcpy(qf, QuadFormc_M + pini, sizeof(tsymatrix3f) * n);
+	if (nabvx) memcpy(nabvx, NabVx_M + pini, sizeof(float) * n);
+
+	//-Eliminate non-normal particles (periodic & others). | Elimina particulas no normales (periodicas y otras).
+	if (onlynormal) {
+		printf("NonNormalPart_SavePart\n");
+		if (!idp || !pos || !vel || !rhop)RunException(met, "Pointers without data.");
+		typecode* code2 = code;
+		if (!code2) {
+			code2 = ArraysCpu->ReserveTypeCode();
+			memcpy(code2, Codec + pini, sizeof(typecode) * n);
+		}
+		unsigned ndel = 0;
+		for (unsigned p = 0; p < n; p++) {
+			bool normal = CODE_IsNormal(code2[p]);
+			if (ndel && normal) {
+				const unsigned pdel = p - ndel;
+				idp[pdel] = idp[p];
+				pos[pdel] = pos[p];
+				vel[pdel] = vel[p];
+				rhop[pdel] = rhop[p];
+				code2[pdel] = code2[p];
+			}
+			if (!normal)ndel++;
+		}
+		num -= ndel;
+		if (!code)ArraysCpu->Free(code2);
+	}
+	//-Reorder components in their original order. | Reordena componentes en su orden original.
+	if (cellorderdecode)DecodeCellOrder(n, pos, vel);
+	return(num);
+}
+
+//////////////////////////////////////
+// Surcharge of GetParticlesData_M with Nabvx, VonMises // Augustin
+//////////////////////////////////////
+unsigned JSphSolidCpu::GetParticlesData_A(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
+	, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, float *press, float* mass, tsymatrix3f *qf, float* nabvx, float* vonMises, float* grVelSav, unsigned* cellOSpr, typecode *code)
 {
 	const char met[] = "GetParticlesData";
 	unsigned num = n;
@@ -669,6 +766,10 @@ unsigned JSphSolidCpu::GetParticlesData_M(unsigned n, unsigned pini, bool cellor
 	if (mass)memcpy(mass, Massc_M + pini, sizeof(float)*n);
 	if (qf)memcpy(qf, QuadFormc_M + pini, sizeof(tsymatrix3f)*n);
 	if (nabvx) memcpy(nabvx, NabVx_M + pini, sizeof(float)*n);
+	// Augustin
+	if (vonMises) memcpy(vonMises, VonMises3D + pini, sizeof(float) * n);
+	if (grVelSav) memcpy(grVelSav, GradVelSave + pini, sizeof(float) * n);
+	if (cellOSpr) memcpy(cellOSpr, CellOffSpring + pini, sizeof(unsigned) * n);
 
 	//-Eliminate non-normal particles (periodic & others). | Elimina particulas no normales (periodicas y otras).
 	if (onlynormal) {
@@ -840,6 +941,9 @@ void JSphSolidCpu::InitRun() {
 		Massc_M[p] = MassFluid;	
 		QuadFormc_M[p] = TSymatrix3f(4 / float(pow(Dp, 2)), 0, 0, 4 / float(pow(Dp, 2)), 0, 4 / float(pow(Dp, 2)));
 	}
+	memset(VonMises3D, 0, sizeof(float)* Np);
+	memset(GradVelSave, 0, sizeof(float) * Np);
+	memset(CellOffSpring, 0, sizeof(unsigned) * Np);
 	  
 	if (UseDEM)DemDtForce = DtIni; //(DEM)
 	if (CaseNfloat)InitFloating();
@@ -919,22 +1023,15 @@ void JSphSolidCpu::InitRun() {
 void JSphSolidCpu::InitRun_T(JPartsLoad4 *pl) {
 	const char met[] = "InitRun";
 
-	printf("Enter the InitRun_T\n");
-
-
 	WithFloating = (CaseNfloat>0);
 	if (TStep == STEP_Verlet) {
 		memcpy(VelrhopM1c, Velrhopc, sizeof(tfloat4)*Np);
 		memset(TauM1c_M, 0, sizeof(tsymatrix3f)*Np);
+		memset(QuadFormM1c_M, 0, sizeof(tsymatrix3f)*Np);
 		VerletStep = 0;
-
 		for (unsigned p = 0; p < Np; p++) {
-			QuadFormM1c_M[p] = TSymatrix3f( 1.0f / float(pow(3.0 / 4.0 / PI * pl->GetMass()[p] / RhopZero, 2.0 / 3.0))
-				, 0
-				, 0
-				, 8.0f / float(pow(3.0 / 4.0 / PI * pl->GetMass()[p] / RhopZero, 2.0 / 3.0))
-				, 0
-				, 8.0f / float(pow(3.0 / 4.0 / PI * pl->GetMass()[p] / RhopZero, 2.0 / 3.0)));
+			MassM1c_M[p] = MassFluid;
+			QuadFormM1c_M[p] = TSymatrix3f(4 / float(pow(Dp, 2)), 0, 0, 4 / float(pow(Dp, 2)), 0, 4 / float(pow(Dp, 2)));
 		}
 	}
 	else if (TStep == STEP_Symplectic)DtPre = DtIni;
@@ -943,19 +1040,10 @@ void JSphSolidCpu::InitRun_T(JPartsLoad4 *pl) {
 	// Matthias
 	memset(Tauc_M, 0, sizeof(tsymatrix3f)*Np);
 	memset(Divisionc_M, 0, sizeof(bool)*Np);
-	memcpy(Massc_M, pl->GetMass(), sizeof(float) * Np);
-
 	for (unsigned p = 0; p < Np; p++) {
-		//#printf
-		//printf("Idp %d\n", Idpc[p]);
-		QuadFormc_M[p] = TSymatrix3f(16.0f / float(pow(3.0 / 4.0 / PI * pl->GetMass()[p] / RhopZero, 2.0 / 3.0))
-			, 0
-			, 0
-			, 1.0f / float(pow(3.0 / 4.0 / PI * pl->GetMass()[p] / RhopZero, 2.0 / 3.0))
-			, 0
-			, 1.0f / float(pow(3.0 / 4.0 / PI * pl->GetMass()[p] / RhopZero, 2.0 / 3.0)));
+		Massc_M[p] = MassFluid;
+		QuadFormc_M[p] = TSymatrix3f(4 / float(pow(Dp, 2)), 0, 0, 4 / float(pow(Dp, 2)), 0, 4 / float(pow(Dp, 2)));
 	}
-
 
 	if (UseDEM)DemDtForce = DtIni; //(DEM)
 	if (CaseNfloat)InitFloating();
@@ -1145,6 +1233,10 @@ void JSphSolidCpu::PreInteractionVars_Forces(TpInter tinter, unsigned np, unsign
 
 		//Pore pressure constant
 		Porec_M[p] = PoreZero;
+
+		// Augustin
+		VonMises3D[p] = sqrt(((Tauc_M[p].xx - Tauc_M[p].yy) * (Tauc_M[p].xx - Tauc_M[p].yy) + (Tauc_M[p].yy - Tauc_M[p].zz) * (Tauc_M[p].yy - Tauc_M[p].zz) + (Tauc_M[p].xx - Tauc_M[p].zz) * (Tauc_M[p].xx - Tauc_M[p].zz) + 6 * (Tauc_M[p].xy * Tauc_M[p].xy + Tauc_M[p].xz * Tauc_M[p].xz + Tauc_M[p].yz * Tauc_M[p].yz)) / 2.);
+		//GradVelSave[p] = StrainDotc_M[p].xx + StrainDotc_M[p].yy + StrainDotc_M[p].zz;
 	}
 }
 
@@ -4699,7 +4791,20 @@ void JSphSolidCpu::ComputeJauTauDot_M(unsigned n, unsigned pini, const tsymatrix
 		taudot[p].xz = E.xz + (tau.zz - tau.xx)*omega.xz - tau.xy*omega.yz + tau.yz*omega.xy;
 		taudot[p].yy = E.yy - 2.0f*tau.xy*omega.xy + 2.0f*tau.yz*omega.yz;
 		taudot[p].yz = E.yz + (tau.zz - tau.yy)*omega.yz - tau.xz*omega.xy - tau.xy*omega.xz;
-		taudot[p].zz = E.zz - 2.0f*tau.xz*omega.xz - 2.0f*tau.yz*omega.yz;	
+		taudot[p].zz = E.zz - 2.0f*tau.xz*omega.xz - 2.0f*tau.yz*omega.yz;
+
+		GradVelSave[p] = gradvel.xx + gradvel.yy + gradvel.zz;
+		//#print
+		//if (Posc[p].x > 1.5 && Posc[p].z > 1.5) printf("Id %d - Td (%.8f, %.8f, %.8f, %.8f, %.8f, %.8f)\n", Idpc[p], taudot[p].xx, taudot[p].xy, taudot[p].xz, taudot[p].yy, taudot[p].yz, taudot[p].zz);
+		/*if (Idpc[p] > 6479 && Posc[p].z > 0.5f) {
+			printf("Id %d P (%.8f) - Gv (%.12f, %.8f, %.8f, %.8f, %.8f, %.12f)\n"
+				, Idpc[p], Posc[p].z, StrainDotc_M[p].xx, StrainDotc_M[p].xy, StrainDotc_M[p].xz, StrainDotc_M[p].yy, StrainDotc_M[p].yz, StrainDotc_M[p].zz);
+			printf("Id %d P (%.8f) - Td (%.8f, %.8f, %.8f, %.8f, %.8f, %.8f)\n"
+				, Idpc[p], Posc[p].z, taudot[p].xx, taudot[p].xy, taudot[p].xz, taudot[p].yy, taudot[p].yz, taudot[p].zz);
+
+		}*/
+			
+		
 	}
 }
 
@@ -9079,6 +9184,7 @@ template<bool shift> void JSphSolidCpu::ComputeVerletVarsSolMass_M(const tfloat4
 			// Source Density and Mass
 			//const float volu = float(double(mass2[p]) / double(velrhop2[p].w));
 			const float volu = float(double(mass2[p]) / double(rhopnew));
+			//printf("M2: %.6f, Rho2: %.6f, V2: %.6f, ", mass2[p], velrhop2[p].w, volu);
 
 			//float adens = float(LambdaMass * (1.0f - rhopnew / RhopZero));
 			float adens = float(LambdaMass * (RhopZero / rhopnew - 1));
@@ -9156,6 +9262,7 @@ template<bool shift> void JSphSolidCpu::ComputeVerletVarsQuad_M(const tfloat4 *v
 			tmatrix3f DQD = ToTMatrix3f((TMatrix3d(1, 0, 0, 0, 1, 0, 0, 0, 1) - dt2
 				* ToTMatrix3d(Ttransp(GdVel))) * ToTMatrix3d(Q) * (TMatrix3d(1, 0, 0, 0, 1, 0, 0, 0, 1) - dt2 * ToTMatrix3d(GdVel)));
 			//tmatrix3f Pe = DQD;
+			//printf("MatProd: %.5f, %.5f, %.5f, %.5f, %.5f, %.5f, %.5f, %.5f, %.5f\n", Pe.a11, Pe.a12, Pe.a13, Pe.a21, Pe.a22, Pe.a23, Pe.a31, Pe.a32, Pe.a33);
 
 			qfnew[p].xx = float(DQD.a11);
 			qfnew[p].xy = float(DQD.a12);
@@ -9169,6 +9276,7 @@ template<bool shift> void JSphSolidCpu::ComputeVerletVarsQuad_M(const tfloat4 *v
 			// Source Density and Mass
 			//const float volu = float(double(mass2[p]) / double(velrhop2[p].w));
 			const float volu = float(double(mass2[p]) / double(rhopnew));
+			//printf("M2: %.6f, Rho2: %.6f, V2: %.6f, ", mass2[p], velrhop2[p].w, volu);
 
 			//float adens = float(LambdaMass * (1.0f - rhopnew / RhopZero));
 			float adens = float(LambdaMass * (RhopZero / rhopnew - 1));
@@ -10005,6 +10113,7 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrVcT_M(double dt) {
 					, -Spinc_M[p].xz, -Spinc_M[p].yz, Spinc_M[p].zz);
 
 			NabVx_M[p] = GdVel.a11;
+
 
 			tmatrix3f DQD = ToTMatrix3f((TMatrix3d(1, 0, 0, 0, 1, 0, 0, 0, 1) - dt
 				* ToTMatrix3d(Ttransp(GdVel))) * ToTMatrix3d(Q) * (TMatrix3d(1, 0, 0, 0, 1, 0, 0, 0, 1) - dt * ToTMatrix3d(GdVel)));
