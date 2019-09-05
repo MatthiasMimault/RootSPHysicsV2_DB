@@ -37,6 +37,8 @@
 #include "JSphSolidCpu_M.h"
 #include <Eigen/Dense>
 #include <Eigen/Eigenvalues>
+#include <random>
+#include <chrono>
 
 using namespace std;
 using Eigen::MatrixXd;
@@ -660,9 +662,20 @@ void JSphCpuSingle::RunSizeDivision_M() {
 	TmcStart(Timers, TMC_SuPeriodic); // Use of Periodic timer for creation of particles
 	bool run = false;
 	unsigned count = 0;
-
+	printf("M\n");
 	// 1. Test division cellulaire
 	for (unsigned p = Npb; p < Np; p++) {
+		//Version 4%
+		/*if (rand() % 1000000 < 108) {
+			Divisionc_M[p] = true;
+			count++;
+			run = true;
+		}*/
+		if (float(rand()) / float(RAND_MAX) < 0.00005) {
+			Divisionc_M[p] = true;
+			count++;
+			run = true;
+		}
 		// Version originale // Commit linux
 		//if ((Massc_M[p] / Velrhopc[p].w) > (SizeDivision_M*MassFluid / RhopZero)) {
 
@@ -711,6 +724,151 @@ void JSphCpuSingle::RunSizeDivision_M() {
 					, Posc, Velrhopc, Tauc_M, Divisionc_M, Porec_M, Massc_M, QuadFormc_M
 					, PosPrec, VelrhopPrec, TauPrec_M, MassPrec_M, QuadFormPrec_M, NabVx_M);
 				
+			}
+			Np += count;
+
+		}
+	}
+	//printf("RUnsizeDivision2\n");
+	TmcStop(Timers, TMC_SuPeriodic);
+	//printf("RuSizeDiv1\n");
+}
+
+//proba divison en fonction de la distance en mm au quiescent center par heure
+double ProbaDivision(double distance) {
+	if ((distance >= 0) && (distance < 0.15))
+		return 0.0867 * distance + 0.032;
+	else if (distance < 0.27)
+		return -0.917 * distance + 0.059;
+	else if (distance < 0.39)
+		return -0.0417 * distance + 0.023;
+	else if (distance <= 0.8)
+		return -0.951 * distance + 0.076;
+	else return 0;
+}
+
+// Get time stamp in nanoseconds.
+uint64_t nanos()
+{
+	uint64_t ns = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::
+		now().time_since_epoch()).count();
+	return ns;
+}
+
+//#Mathis
+void JSphCpuSingle::RunSizeDivision_M2(double stepdt){
+	const char met[] = "RunSizeDivision_M2";
+	double distance;
+	double proba;
+	double proba1;
+	double posx_quiescent;
+	double test;
+	double max = 0.15;
+	double ms;
+	TmcStart(Timers, TMC_SuPeriodic); // Use of Periodic timer for creation of particles
+	bool run = false;
+	unsigned count = 0;
+	double number;
+
+	//trouver le max pos.x
+	for (unsigned p = Npb; p < Np; p++) {
+		if (max < Posc[p].x)
+			max = Posc[p].x;
+	}
+	posx_quiescent = max - 0.05;
+	// 1. Test division cellulaire
+	for (unsigned p = Npb; p < Np; p++) {
+
+		//random number generator
+		std::default_random_engine generator(nanos());
+		std::uniform_real_distribution<double> distribution(0.0, 1.0);
+		number = distribution(generator);
+		//printf("number %.15f\n", number);
+		//distance = Posc[p].x;
+		distance = sqrt((Posc[p].x- posx_quiescent) *(Posc[p].x - posx_quiescent) + Posc[p].y*Posc[p].y + Posc[p].z* Posc[p].z);
+		//proba = ProbaDivision(distance);
+		proba = SizeDivision_M;
+		//test = double(rand()) / double(RAND_MAX); //to do: create a random generator precise enough
+		proba1 = proba * stepdt;
+		//printf("double(rand()) / double(RAND_MAX) = %.15f\n", test);
+		if (number < 0.00001) {
+			//printf("number = %.15lf\n", number);
+			//printf("proba*stepdt = %.15lf\n", proba1);
+		}
+		if (number < proba * stepdt) {
+			//printf("proba*stepdt = %.15lf\n", proba1);
+			//printf("number = %.15lf\n", number);
+			Divisionc_M[p] = true;
+			count++;
+			run = true;
+		}
+		//version 1
+		/*if ((Posc[p].x < 0.025) && (float(rand()) / float(RAND_MAX) < 0.03*stepdt)) {
+			Divisionc_M[p] = true;
+			count++;
+			run = true;
+			printf("Div avant 0.025 %.8f \n", Posc[p].x);
+		}
+		if ((0.025 < Posc[p].x) && (Posc[p].x < 0.075) && (float(rand()) / float(RAND_MAX) < 0.05*stepdt)) {
+			Divisionc_M[p] = true;
+			count++;
+			run = true;
+			printf("Div entre 0.025 et 0.075 %.8f \n", Posc[p].x);
+		}
+		if ((0.075 < Posc[p].x) && (float(rand()) / float(RAND_MAX) < 0.02 * stepdt)) {
+			Divisionc_M[p] = true;
+			count++;
+			run = true;
+			printf("Div apres 0.075 %.8f \n", Posc[p].x);
+		}*/
+		// Version originale // Commit linux
+		//if ((Massc_M[p] / Velrhopc[p].w) > (SizeDivision_M*MassFluid / RhopZero)) {
+
+		// Version stochastique
+		/*float phi1 = 1.0f - exp(-200.0f*float(rand())/float(RAND_MAX));
+		float phi2 = 1.0f;
+		float sizeDev = float(SizeDivision_M) * phi1*phi2 + 1.2f*(1.0f - phi1 * phi2);
+
+		if ((Massc_M[p] / Velrhopc[p].w) > (sizeDev*MassFluid / RhopZero)) {
+			//Divisionc_M[p] = true;
+			count++;
+		}*/
+	}
+
+	while (run) {
+
+		// 2. Prepare memory for count particles
+		//-Maximum number of particles that fit in the list / Numero maximo de particulas que caben en la lista.
+		unsigned nmax = CpuParticlesSize - 1;
+
+		if (Np >= 0x80000000)RunException(met, "The number of particles is too big.");//-Because the last bit is used to mark the direction in which a new periodic particle is created / Pq el ultimo bit se usa para marcar el sentido en que se crea la nueva periodica.
+																					  // Maximal number of division per turn
+
+																					  //-Redimension memory for particles if there is insufficient space and repeat the search process.
+		if (count > nmax || count + Np > CpuParticlesSize) {
+			TmcStop(Timers, TMC_SuPeriodic);
+			// Peut etre qu'ici on a la source de certains bug (trop particles, need extend)
+			ResizeParticlesSize(Np + count, PERIODIC_OVERMEMORYNP, false);
+			TmcStart(Timers, TMC_SuPeriodic);
+		}
+
+		// 3. Divide marked particles
+		else {
+			//printf("Division\n");
+			run = false;
+			// Divide the selected particles in X direction
+			if (TStep == STEP_Verlet) {
+				MarkedDivision_M(count, Np, Npb, DomCells, Idpc, Codec, Dcellc
+					, Posc, Velrhopc, Tauc_M, Divisionc_M, Porec_M, Massc_M, QuadFormc_M, VelrhopM1c, TauM1c_M, MassM1c_M, QuadFormM1c_M);
+			}
+			else {
+				/*MarkedDivisionSymp_M(count, Np, Npb, DomCells, Idpc, Codec, Dcellc
+					, Posc, Velrhopc, Tauc_M, Divisionc_M, Porec_M, Massc_M, QuadFormc_M
+					, PosPrec, VelrhopPrec, TauPrec_M, MassPrec_M, QuadFormPrec_M);*/
+				MarkedDivisionSymp_M(count, Np, Npb, DomCells, Idpc, Codec, Dcellc
+					, Posc, Velrhopc, Tauc_M, Divisionc_M, Porec_M, Massc_M, QuadFormc_M
+					, PosPrec, VelrhopPrec, TauPrec_M, MassPrec_M, QuadFormPrec_M, NabVx_M);
+
 			}
 			Np += count;
 
@@ -1757,13 +1915,15 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
     if(ViscoTime)Visco=ViscoTime->GetVisco(float(TimeStep));
 
 	// Control of step - Matthias
+	//#stepdt
     double stepdt=ComputeStep();
 	RunGaugeSystem(TimeStep+stepdt);
     if(PartDtMin>stepdt)PartDtMin=stepdt; if(PartDtMax<stepdt)PartDtMax=stepdt;
     if(CaseNmoving)RunMotion(stepdt);
 
 	// Matthias - Cell division
-	RunSizeDivision_M();
+	//RunSizeDivision_M();
+	RunSizeDivision_M2(stepdt);
 	RunCellDivide(true);
 
     TimeStep+=stepdt;
