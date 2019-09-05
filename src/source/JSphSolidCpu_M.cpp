@@ -1040,7 +1040,7 @@ void JSphSolidCpu::InitRun_T(JPartsLoad4 *pl) {
 	memset(Tauc_M, 0, sizeof(tsymatrix3f)*Np);
 	memset(Divisionc_M, 0, sizeof(bool)*Np);
 	for (unsigned p = 0; p < Np; p++) {
-		QuadFormc_M[p] = TSymatrix3f(4 / float(pow(Dp, 2)), 0, 0, 4 / float(pow(Dp, 2)), 0, 4 / float(pow(Dp, 2)));
+		QuadFormc_M[p] = TSymatrix3f(pow((32. * 3.1415 * RhopZero)/(3. * pl->GetMass()[p]), 0.6666), 0, 0, 4 / float(pow(Dp, 2)), 0, 4 / float(pow(Dp, 2)));
 	}
 	memcpy(Massc_M, pl->GetMass(), sizeof(float) * Np);
 
