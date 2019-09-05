@@ -120,10 +120,6 @@ protected:
 	float *Massc_M; // Mass, Delta mass
 	float *NabVx_M;
 	//float TimeGoing;
-	// Augustin
-	float* VonMises3D;
-	float* GradVelSave;
-	unsigned* CellOffSpring;
 
 						 //-Variables for Laminar+SPS viscosity.  
 	tsymatrix3f *SpsTauc;       ///<SPS sub-particle stress tensor.
@@ -192,7 +188,6 @@ protected:
 		, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, typecode *code);
 	unsigned GetParticlesData_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
 		, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, tfloat3 *press, float* mass, tsymatrix3f *tau, typecode *code);
-	unsigned GetParticlesData_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal, unsigned* idp, tdouble3* pos, tfloat3* vel, float* rhop, float* pore, tfloat3* press, float* mass, tsymatrix3f* tau, float* vonMises, typecode* code);
 	unsigned GetParticlesData_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
 		, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, tfloat3 *press, float* mass, tsymatrix3f *gradvel, tsymatrix3f *tau, typecode *code);
 	unsigned GetParticlesData_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
@@ -201,8 +196,6 @@ protected:
 		, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, float *press, float* mass, tsymatrix3f *qf, typecode *code);
 	unsigned GetParticlesData_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
 		, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, float *press, float* mass, tsymatrix3f *qf, float *nabvx, typecode *code);
-
-	unsigned GetParticlesData_A(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal, unsigned* idp, tdouble3* pos, tfloat3* vel, float* rhop, float* pore, float* press, float* mass, tsymatrix3f* qf, float* nabvx, float* vonMises, float* grVelSav, unsigned* cellOSpr, typecode* code);
 
 	void ConfigOmp(const JCfgRun *cfg);
 
