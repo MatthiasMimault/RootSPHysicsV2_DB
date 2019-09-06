@@ -944,6 +944,7 @@ void JSphSolidCpu::InitRun() {
 	memset(VonMises3D, 0, sizeof(float)* Np);
 	memset(GradVelSave, 0, sizeof(float) * Np);
 	memset(CellOffSpring, 0, sizeof(unsigned) * Np);
+
 	  
 	if (UseDEM)DemDtForce = DtIni; //(DEM)
 	if (CaseNfloat)InitFloating();
@@ -1030,7 +1031,10 @@ void JSphSolidCpu::InitRun_T(JPartsLoad4 *pl) {
 		memset(QuadFormM1c_M, 0, sizeof(tsymatrix3f)*Np);
 		VerletStep = 0;
 		for (unsigned p = 0; p < Np; p++) {
-			QuadFormM1c_M[p] = TSymatrix3f(4 / float(pow(Dp, 2)), 0, 0, 4 / float(pow(Dp, 2)), 0, 4 / float(pow(Dp, 2)));
+				QuadFormc_M[p] = TSymatrix3f(
+				pow((32.0f * 3.1415f * RhopZero) / (4.0f * 3.0f * pl->GetMass()[p]), 0.6666f), 0, 0
+				, pow((2.0f * 32.0f * 3.1415f * RhopZero) / (3.0f * pl->GetMass()[p]), 0.6666f), 0
+				, pow((2.0f * 32.0f * 3.1415f * RhopZero) / (3.0f * pl->GetMass()[p]), 0.6666f));
 		}
 	}
 	else if (TStep == STEP_Symplectic)DtPre = DtIni;
@@ -1040,9 +1044,16 @@ void JSphSolidCpu::InitRun_T(JPartsLoad4 *pl) {
 	memset(Tauc_M, 0, sizeof(tsymatrix3f)*Np);
 	memset(Divisionc_M, 0, sizeof(bool)*Np);
 	for (unsigned p = 0; p < Np; p++) {
-		QuadFormc_M[p] = TSymatrix3f(pow((32. * 3.1415 * RhopZero)/(3. * pl->GetMass()[p]), 0.6666), 0, 0, 4 / float(pow(Dp, 2)), 0, 4 / float(pow(Dp, 2)));
+		QuadFormc_M[p] = TSymatrix3f(
+			pow((32.0f * 3.1415f * RhopZero)/(4.0f * 3.0f * pl->GetMass()[p]), 0.6666f), 0, 0
+			, pow((2.0f * 32.0f * 3.1415f * RhopZero) / (3.0f * pl->GetMass()[p]), 0.6666f), 0
+			, pow((2.0f * 32.0f * 3.1415f * RhopZero) / (3.0f * pl->GetMass()[p]), 0.6666f));
 	}
 	memcpy(Massc_M, pl->GetMass(), sizeof(float) * Np);
+	memset(VonMises3D, 0, sizeof(float) * Np);
+	memset(GradVelSave, 0, sizeof(float) * Np);
+	memset(CellOffSpring, 0, sizeof(unsigned) * Np);
+
 
 	if (UseDEM)DemDtForce = DtIni; //(DEM)
 	if (CaseNfloat)InitFloating();
@@ -1234,7 +1245,7 @@ void JSphSolidCpu::PreInteractionVars_Forces(TpInter tinter, unsigned np, unsign
 		Porec_M[p] = PoreZero;
 
 		// Augustin
-		VonMises3D[p] = sqrt(((Tauc_M[p].xx - Tauc_M[p].yy) * (Tauc_M[p].xx - Tauc_M[p].yy) + (Tauc_M[p].yy - Tauc_M[p].zz) * (Tauc_M[p].yy - Tauc_M[p].zz) + (Tauc_M[p].xx - Tauc_M[p].zz) * (Tauc_M[p].xx - Tauc_M[p].zz) + 6 * (Tauc_M[p].xy * Tauc_M[p].xy + Tauc_M[p].xz * Tauc_M[p].xz + Tauc_M[p].yz * Tauc_M[p].yz)) / 2.);
+		VonMises3D[p] = sqrt(((Tauc_M[p].xx - Tauc_M[p].yy) * (Tauc_M[p].xx - Tauc_M[p].yy) + (Tauc_M[p].yy - Tauc_M[p].zz) * (Tauc_M[p].yy - Tauc_M[p].zz) + (Tauc_M[p].xx - Tauc_M[p].zz) * (Tauc_M[p].xx - Tauc_M[p].zz) + 6 * (Tauc_M[p].xy * Tauc_M[p].xy + Tauc_M[p].xz * Tauc_M[p].xz + Tauc_M[p].yz * Tauc_M[p].yz)) / 2.0f);
 		//GradVelSave[p] = StrainDotc_M[p].xx + StrainDotc_M[p].yy + StrainDotc_M[p].zz;
 	}
 }

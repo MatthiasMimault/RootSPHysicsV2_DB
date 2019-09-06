@@ -770,9 +770,9 @@ void JSphCpuSingle::RunSizeDivision_M2(double stepdt){
 	double proba;
 	double proba1;
 	double posx_quiescent;
-	double test;
+//	double test;
 	double max = 0.15;
-	double ms;
+//	double ms;
 	TmcStart(Timers, TMC_SuPeriodic); // Use of Periodic timer for creation of particles
 	bool run = false;
 	unsigned count = 0;
@@ -792,17 +792,17 @@ void JSphCpuSingle::RunSizeDivision_M2(double stepdt){
 		std::uniform_real_distribution<double> distribution(0.0, 1.0);
 		number = distribution(generator);
 		//printf("number %.15f\n", number);
-		//distance = Posc[p].x;
-		distance = sqrt((Posc[p].x- posx_quiescent) *(Posc[p].x - posx_quiescent) + Posc[p].y*Posc[p].y + Posc[p].z* Posc[p].z);
+		distance = Posc[p].x;
+		//distance = sqrt((Posc[p].x- posx_quiescent) *(Posc[p].x - posx_quiescent) + Posc[p].y*Posc[p].y + Posc[p].z* Posc[p].z);
 		//proba = ProbaDivision(distance);
 		proba = SizeDivision_M;
 		//test = double(rand()) / double(RAND_MAX); //to do: create a random generator precise enough
 		proba1 = proba * stepdt;
 		//printf("double(rand()) / double(RAND_MAX) = %.15f\n", test);
-		if (number < 0.00001) {
+		/*if (number < 0.00001) {
 			//printf("number = %.15lf\n", number);
 			//printf("proba*stepdt = %.15lf\n", proba1);
-		}
+		}*/
 		if (number < proba * stepdt) {
 			//printf("proba*stepdt = %.15lf\n", proba1);
 			//printf("number = %.15lf\n", number);
@@ -872,10 +872,13 @@ void JSphCpuSingle::RunSizeDivision_M2(double stepdt){
 			else {
 				/*MarkedDivisionSymp_M(count, Np, Npb, DomCells, Idpc, Codec, Dcellc
 					, Posc, Velrhopc, Tauc_M, Divisionc_M, Porec_M, Massc_M, QuadFormc_M
-					, PosPrec, VelrhopPrec, TauPrec_M, MassPrec_M, QuadFormPrec_M);*/
+					, PosPrec, VelrhopPrec, TauPrec_M, MassPrec_M, QuadFormPrec_M);
 				MarkedDivisionSymp_M(count, Np, Npb, DomCells, Idpc, Codec, Dcellc
 					, Posc, Velrhopc, Tauc_M, Divisionc_M, Porec_M, Massc_M, QuadFormc_M
-					, PosPrec, VelrhopPrec, TauPrec_M, MassPrec_M, QuadFormPrec_M, NabVx_M);
+					, PosPrec, VelrhopPrec, TauPrec_M, MassPrec_M, QuadFormPrec_M, NabVx_M);*/
+				MarkedDivisionSymp_AM(count, Np, Npb, DomCells, Idpc, Codec, Dcellc
+					, Posc, Velrhopc, Tauc_M, Divisionc_M, Porec_M, Massc_M, QuadFormc_M
+					, PosPrec, VelrhopPrec, TauPrec_M, MassPrec_M, QuadFormPrec_M, NabVx_M, CellOffSpring, GradVelSave, VonMises3D);
 
 			}
 			Np += count;
@@ -1511,6 +1514,107 @@ void JSphCpuSingle::MarkedDivisionSymp_A(unsigned countMax, unsigned np, unsigne
 
 }
 
+// #CellOffspring Completed
+void JSphCpuSingle::MarkedDivisionSymp_AM(unsigned countMax, unsigned np, unsigned pini, tuint3 cellmax
+	, unsigned* idp, typecode* code, unsigned* dcell
+	, tdouble3* pos, tfloat4* velrhop, tsymatrix3f* taup, bool* divisionp, float* porep, float* massp, tsymatrix3f* qfp
+	, tdouble3* pospre, tfloat4* velrhopre, tsymatrix3f* taupre, float* masspre, tsymatrix3f* qfpre
+	, float* nabvx, unsigned* cellOSpr, float* straindot, float* vonMises)const {
+
+	const char met[] = "MarkedDivision_M";
+	unsigned count = 0;
+	//unsigned p = pini + (rand() % np);
+	tdouble3 orientation;
+
+	for (unsigned p = pini; p < Np; p++) {
+		if (divisionp[p]) {
+			// #Disparition #Division
+
+			const unsigned pnew = np + count;
+
+			// Eigen resolution of qf[p], defintion of V, D
+			Matrix3f Qg;
+			Qg << qfp[p].xx, qfp[p].xy, qfp[p].xz, qfp[p].xy, qfp[p].yy, qfp[p].yz, qfp[p].xz, qfp[p].yz, qfp[p].zz;
+			EigenSolver<Matrix3f> es(Qg);
+
+			//printf("Max index\n");
+			// Index of maximal eigenvalue
+			float l0 = es.eigenvalues()[0].real();
+			float l1 = es.eigenvalues()[1].real();
+			float l2 = es.eigenvalues()[2].real();
+			unsigned i;
+			if (l0 < l1) {
+				if (l0 > l2) i = 2;
+				else i = 0;
+			}
+			else {
+				if (l1 > l2) i = 2;
+				else i = 1;
+			}
+
+			//printf("UpdateQ\n");
+			Matrix3f D = es.eigenvalues().real().asDiagonal();
+			Matrix3f V = es.eigenvectors().real();
+			D(i, i) *= 4.0;
+			Matrix3f Qt = V * D * V.transpose();
+
+			qfp[p] = TSymatrix3f(Qt(0, 0), Qt(0, 1), Qt(0, 2), Qt(1, 1), Qt(1, 2), Qt(2, 2));
+
+			// Update Pos
+			orientation = TDouble3(V(0, i) / sqrt(D(i, i)), V(1, i) / sqrt(D(i, i)), V(2, i) / sqrt(D(i, i)));
+			tdouble3 ps = { pos[p].x + orientation.x, pos[p].y + orientation.y, pos[p].z + orientation.z };
+
+			//-Calculate coordinates of cell inside of domain / Calcula coordendas de celda dentro de dominio.
+			unsigned cx = unsigned((ps.x - DomPosMin.x) / Scell);
+			unsigned cy = unsigned((ps.y - DomPosMin.y) / Scell);
+			unsigned cz = unsigned((ps.z - DomPosMin.z) / Scell);
+			//-Adjust coordinates of cell is they exceed maximum / Ajusta las coordendas de celda si sobrepasan el maximo.
+			cx = (cx <= cellmax.x ? cx : cellmax.x);
+			cy = (cy <= cellmax.y ? cy : cellmax.y);
+			cz = (cz <= cellmax.z ? cz : cellmax.z);
+
+			// Augustin -- CellOffSpring
+			cellOSpr[p]++;
+
+			//-Record position and cell of new particles /  Graba posicion y celda de nuevas particulas.
+			pos[pnew] = ps;
+			dcell[pnew] = PC__Cell(DomCellCode, cx, cy, cz);
+			idp[pnew] = pnew;
+			code[pnew] = code[p];
+			velrhop[pnew] = velrhop[p];
+			taup[pnew] = taup[p];
+			porep[pnew] = porep[p];
+			massp[pnew] = massp[p] / 2;
+			qfp[pnew] = qfp[p];
+			nabvx[pnew] = nabvx[p];
+			divisionp[pnew] = false;
+			cellOSpr[pnew] = cellOSpr[p];
+			vonMises[pnew] = vonMises[p];
+			straindot[pnew] = straindot[p];
+
+
+			// MOVE
+			//-Get pos of particle to be duplicated / Obtiene pos de particula a duplicar.
+			ps = { pos[p].x - orientation.x, pos[p].y - orientation.y, pos[p].z - orientation.z };
+
+			//-Calculate coordinates of cell inside of domain / Calcula coordendas de celda dentro de dominio.
+			cx = unsigned((ps.x - DomPosMin.x) / Scell);
+			cy = unsigned((ps.y - DomPosMin.y) / Scell);
+			cz = unsigned((ps.z - DomPosMin.z) / Scell);
+			//-Adjust coordinates of cell is they exceed maximum / Ajusta las coordendas de celda si sobrepasan el maximo.
+			cx = (cx <= cellmax.x ? cx : cellmax.x);
+			cy = (cy <= cellmax.y ? cy : cellmax.y);
+			cz = (cz <= cellmax.z ? cz : cellmax.z);
+			pos[p] = ps;
+			dcell[p] = PC__Cell(DomCellCode, cx, cy, cz);
+			massp[p] = massp[pnew];
+			divisionp[p] = false;
+			count++;
+		}
+	}
+
+}
+
 //==============================================================================
 /// Manages excluded particles fixed, moving and floating before aborting the execution.
 /// Gestiona particulas excluidas fixed, moving y floating antes de abortar la ejecucion.
@@ -1719,8 +1823,6 @@ double JSphCpuSingle::ComputeStep_Sym(){
 
   //-Predictor
   //-----------
-  //#printf
-  //printf("Predictor\n");
 
   DemDtForce=dt*0.5f;                     //(DEM)
   Interaction_Forces(INTER_Forces);       //-Interaction.
@@ -1733,7 +1835,6 @@ double JSphCpuSingle::ComputeStep_Sym(){
 
   //-Corrector
   //-----------
-  //printf("Corrector\n");
   DemDtForce=dt;                          //(DEM)
   RunCellDivide(true);
   Interaction_Forces(INTER_ForcesCorr);   //Interaction.
