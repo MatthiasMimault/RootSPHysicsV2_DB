@@ -655,7 +655,7 @@ void JSphCpuSingle::RunRandomDivision_M() {
 
 //==============================================================================
 /// Cell division controlled by cell size
-// #Division
+// #Division #MV
 //==============================================================================
 void JSphCpuSingle::RunSizeDivision_M() {
 	const char met[] = "RunSizeDivision_M";
@@ -771,7 +771,7 @@ void JSphCpuSingle::RunSizeDivision_M2(double stepdt){
 	double proba1;
 	double posx_quiescent;
 //	double test;
-	double max = 0.15;
+	double tip = 0.15;
 //	double ms;
 	TmcStart(Timers, TMC_SuPeriodic); // Use of Periodic timer for creation of particles
 	bool run = false;
@@ -780,10 +780,10 @@ void JSphCpuSingle::RunSizeDivision_M2(double stepdt){
 
 	//trouver le max pos.x
 	for (unsigned p = Npb; p < Np; p++) {
-		if (max < Posc[p].x)
-			max = Posc[p].x;
+		if (tip < Posc[p].x)
+			tip = Posc[p].x;
 	}
-	posx_quiescent = max - 0.05;
+
 	// 1. Test division cellulaire
 	for (unsigned p = Npb; p < Np; p++) {
 
@@ -791,33 +791,22 @@ void JSphCpuSingle::RunSizeDivision_M2(double stepdt){
 		std::default_random_engine generator(nanos());
 		std::uniform_real_distribution<double> distribution(0.0, 1.0);
 		number = distribution(generator);
-		//printf("number %.15f\n", number);
-		distance = Posc[p].x;
-		//distance = sqrt((Posc[p].x- posx_quiescent) *(Posc[p].x - posx_quiescent) + Posc[p].y*Posc[p].y + Posc[p].z* Posc[p].z);
-		//proba = ProbaDivision(distance);
 		proba = SizeDivision_M;
-		//test = double(rand()) / double(RAND_MAX); //to do: create a random generator precise enough
 		proba1 = proba * stepdt;
-		//printf("double(rand()) / double(RAND_MAX) = %.15f\n", test);
-		/*if (number < 0.00001) {
-			//printf("number = %.15lf\n", number);
-			//printf("proba*stepdt = %.15lf\n", proba1);
+
+		/*if (number < proba * stepdt) {
+			Divisionc_M[p] = true;
+			count++;
+			run = true;
 		}*/
-		if (number < proba * stepdt) {
-			//printf("proba*stepdt = %.15lf\n", proba1);
-			//printf("number = %.15lf\n", number);
-			Divisionc_M[p] = true;
-			count++;
-			run = true;
-		}
 		//version 1
-		/*if ((Posc[p].x < 0.025) && (float(rand()) / float(RAND_MAX) < 0.03*stepdt)) {
+		if ((Posc[p].x < tip - 0.05) && (Posc[p].x > tip - 0.25) && (number < proba * stepdt)) {
 			Divisionc_M[p] = true;
 			count++;
 			run = true;
-			printf("Div avant 0.025 %.8f \n", Posc[p].x);
+			//printf("Div avant 0.025 %.8f \n", Posc[p].x);
 		}
-		if ((0.025 < Posc[p].x) && (Posc[p].x < 0.075) && (float(rand()) / float(RAND_MAX) < 0.05*stepdt)) {
+		/*if ((0.025 < Posc[p].x) && (Posc[p].x < 0.075) && (float(rand()) / float(RAND_MAX) < 0.05*stepdt)) {
 			Divisionc_M[p] = true;
 			count++;
 			run = true;
