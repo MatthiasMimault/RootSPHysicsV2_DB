@@ -589,6 +589,12 @@ protected:
 	void ComputeSymplecticCorr_SigCst_M(double dt);
 	// End Matthias
 
+	// T19
+	template<bool shift> void ComputeSymplecticPreT_T19(double dt);
+	void ComputeSymplecticPre_T19(double dt);
+	template<bool shift> void ComputeSymplecticCorrT_T19(double dt);
+	void ComputeSymplecticCorr_T19(double dt);
+
 	void RunShifting(double dt);
 
 	void CalcRidp(bool periactive, unsigned np, unsigned pini, unsigned idini, unsigned idfin, const typecode *code, const unsigned *idp, unsigned *ridp)const;
