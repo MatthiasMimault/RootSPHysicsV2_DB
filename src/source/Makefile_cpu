@@ -43,6 +43,9 @@ EIGEN = -I ../../../EigenLibs -I ../lib/EigenLibs
 #=== Matthias - Undefined references
 #CPPJXML = JXml.cpp JPartDataBi4.cpp
 
+#=== Matthias - STD C++11
+CCFLAGS+= -std=c++11 -std=gnu++11 
+
 #=============== Files to compile ===============
 OBJXML=JXml.o tinystr.o tinyxml.o tinyxmlerror.o tinyxmlparser.o
 OBJSPHMOTION=JMotion.o JMotionList.o JMotionMov.o JMotionObj.o JMotionPos.o JSphMotion.o
@@ -70,7 +73,11 @@ $(EXECS_DIRECTORY)/$(EXECNAME):  $(OBJECTS)
 	$(CC) $(OBJECTS) $(CCLINKFLAGS) -o $@ $(JLIBS)
 
 .cpp.o:
+	@echo $(CCFLAGS)
+	@echo $(CCLINKFLAGS)
 	$(CC) $(EIGEN) $(CCFLAGS) $<
 
 clean:
 	rm -rf *.o $(EXECNAME) $(EXECNAME)_debug
+
+#============== Chmod update =======================
