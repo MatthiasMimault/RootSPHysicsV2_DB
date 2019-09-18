@@ -1816,7 +1816,8 @@ double JSphCpuSingle::ComputeStep_Sym(){
   Interaction_Forces(INTER_Forces);       //-Interaction.
     const double ddt_p=DtVariable(false);   //-Calculate dt of predictor step.
   if(TShifting)RunShifting(dt*.5);        //-Shifting. 
-  ComputeSymplecticPre_T19(dt);               //-Apply Symplectic-Predictor to particles.
+  if (false)  ComputeSymplecticPre_T19(dt);
+  else ComputeSymplecticPreT_M(ddt_p);//-Apply Symplectic-Predictor to particles.
   
   if(CaseNfloat)RunFloating(dt*.5,true);  //-Control of floating bodies.
   PosInteraction_Forces();                //-Free memory used for interaction.
