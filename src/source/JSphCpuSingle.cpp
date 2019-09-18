@@ -1816,9 +1816,11 @@ double JSphCpuSingle::ComputeStep_Sym(){
   Interaction_Forces(INTER_Forces);       //-Interaction.
     const double ddt_p=DtVariable(false);   //-Calculate dt of predictor step.
   if(TShifting)RunShifting(dt*.5);        //-Shifting. 
+
+  //-Apply Symplectic-Predictor to particles - case compression or no
   if (false)  ComputeSymplecticPre_T19(dt);
-  else ComputeSymplecticPreT_M(ddt_p);//-Apply Symplectic-Predictor to particles.
-  
+  else ComputeSymplecticPre_M(ddt_p);
+
   if(CaseNfloat)RunFloating(dt*.5,true);  //-Control of floating bodies.
   PosInteraction_Forces();                //-Free memory used for interaction.
 
@@ -1829,7 +1831,10 @@ double JSphCpuSingle::ComputeStep_Sym(){
   Interaction_Forces(INTER_ForcesCorr);   //Interaction.
   const double ddt_c=DtVariable(true);    //-Calculate dt of corrector step.
   if(TShifting)RunShifting(dt);           //-Shifting.
-  ComputeSymplecticCorr_T19(dt);              //-Apply Symplectic-Corrector to particles.
+
+  //-Apply Symplectic-Corrector to particles - case compression or no
+  if (false)  ComputeSymplecticCorr_T19(dt);
+  else ComputeSymplecticCorr_M(ddt_p);            
 
   if(CaseNfloat)RunFloating(dt,false);    //-Control of floating bodies.
   PosInteraction_Forces();                //-Free memory used for interaction.
