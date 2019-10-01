@@ -41,6 +41,7 @@
 #include "TypesDef.h"
 #include "JObject.h"
 #include <cstring>
+#include <iostream> 
 
 //##############################################################################
 //# JPartsLoad4
@@ -98,12 +99,14 @@ public:
   void Reset();
 
   void LoadParticles(const std::string& casedir, const std::string& casename, unsigned partbegin, const std::string& casedirbegin);
-  void LoadParticlesMixed_M(const std::string& casedir, const std::string& casename, unsigned partbegin, const std::string& casedirbegin);
+  void LoadParticles_Mixed_M(const std::string& casedir, const std::string& casename, unsigned partbegin, const std::string& casedirbegin);
+  void LoadParticles_Mixed2_M(const std::string& casedir, const std::string& casename, unsigned partbegin
+	  , const std::string& casedirbegin, const std::string& datacasename);
   void LoadParticles_T(const std::string &casedir, const std::string &casename, unsigned partbegin, const std::string &casedirbegin);
   void CheckConfig(ullong casenp,ullong casenfixed,ullong casenmoving,ullong casenfloat,ullong casenfluid,bool perix,bool periy,bool periz)const;
   void CheckConfig(ullong casenp,ullong casenfixed,ullong casenmoving,ullong casenfloat,ullong casenfluid)const;
   void RemoveBoundary();
-
+  
   unsigned GetCount()const{ return(Count); }
 
   bool MapSizeLoaded()const{ return(MapSize); }

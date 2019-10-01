@@ -132,10 +132,7 @@ void GenCaseBis_T::Bridge2_M(string caseName) {
 	rhop0 = loadRhop0();
 
 	//load particles id & positions
-	//loadCsv(np, idp, vol, pos);
-	idp[0] = 0;
-	vol[0] = 1.0;
-	pos[0] = { 0,0,0 };
+	loadCsv(np, idp, vol, pos);
 	rMax = computeRayMax(np, vol);
 	printf("\nray = %1.10f\n", rMax);
 
@@ -156,7 +153,7 @@ void GenCaseBis_T::Bridge2_M(string caseName) {
 	jpd->ConfigBasic(0, 1, "", "", "", false, 0.0, "");
 	jpd->ConfigParticles(np, 0, 0, 0, np, posMin, posMax, NULL, NULL);
 	jpd->ConfigCtes(0, 0, 0, rhop0, 0, 0, 0);
-	jpd->AddPartInfo((unsigned)0, 0, (unsigned)np, 0, 0, 0, TDouble3(0, 0, 0), TDouble3(0, 0, 0), 0, 0);
+	jpd->AddPartInfo((unsigned)0, 0, (unsigned)np, 0, 0, 0, TDouble3(0, 0, 0), TDouble3(0, 0, 0), 0, 0); // Are vdom0, vdom1 and totalnp 0 ?
 	jpd->AddPartData_T((unsigned)np, idp, pos, vel, rhop, mp);
 
 	/*if (test) jpd->SaveFileCase(caseName);
@@ -363,7 +360,7 @@ void GenCaseBis_T::updateXml(std::string caseName, int np, double rMax, double b
 
 
 	//-------------------------------------------
-	//feel particles part
+	//fill particles part
 	//-------------------------------------------
 	TiXmlElement particles("particles");
 	particles.SetAttribute("np", np);

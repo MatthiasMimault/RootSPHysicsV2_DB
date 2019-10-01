@@ -166,8 +166,10 @@ class JPartDataBi4 : protected JObject
   //Obtaining basic data:
   //============================
   JBinaryData* GetData()const;
-  unsigned GetPiece()const{ return(Piece); } 
-  unsigned GetNpiece()const{ return(Npiece); } 
+  unsigned GetPiece()const{ return(Piece); }
+  unsigned GetNpiece()const { return(Npiece); }
+  // Matthias - print data inside pd - to be removed
+  unsigned GetCpart()const { return(Cpart); }
   std::string Get_RunCode()const{ return(GetData()->GetvText("RunCode")); } 
   std::string Get_Date()const{    return(GetData()->GetvText("Date"));    } 
   std::string Get_AppName()const{ return(GetData()->GetvText("AppName")); } 
@@ -240,7 +242,15 @@ class JPartDataBi4 : protected JObject
   unsigned Get_Hvar (unsigned size,float    *data)const{ return(GetArray("Hvar",JBinaryDataDef::DatFloat  )->GetDataCopy(size,data)); }
 
   double Get_Particles2dPosY()const;
+
+	/////////////////////////////////////////////////////
+	// Read the Data.csv - Real root particles - Matthias 2019
+	// #readcsv #readdata #data
+	/////////////////////////////////////////////////////
+  void ReadCsv_M();
+  void ReadCsv_M(int n_start, bool possingle);
 };
+
 
 
 #endif

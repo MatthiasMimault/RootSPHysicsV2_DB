@@ -1127,6 +1127,112 @@ void JSphSolidCpu::InitRun_T(JPartsLoad4 *pl) {
 }
 
 //==============================================================================
+/// Initialisation of arrays and variables for execution.
+/// Inicializa vectores y variables para la ejecucion.
+//==============================================================================
+void JSphSolidCpu::InitRun_Mixed_M() {
+	const char met[] = "InitRun_Mixed_M";
+	WithFloating = (CaseNfloat > 0);
+	  
+	if (TStep == STEP_Verlet) {
+		memcpy(VelrhopM1c, Velrhopc, sizeof(tfloat4) * Np);
+		memset(TauM1c_M, 0, sizeof(tsymatrix3f) * Np);
+		memcpy(MassM1c_M, Massc_M, sizeof(float) * Np);
+		VerletStep = 0;
+		for (unsigned p = 0; p < Np; p++) {
+			const double dp = pow(3.0 / 4.0 / PI * Massc_M[p] / RhopZero, 1 / 3);
+			//MassM1c_M[p] = MassFluid;
+			QuadFormM1c_M[p] = TSymatrix3f(4 / float(pow(dp, 2)), 0, 0, 4 / float(pow(dp, 2)), 0, 4 / float(pow(dp, 2)));
+		}
+	}
+	else if (TStep == STEP_Symplectic)DtPre = DtIni;
+	if (TVisco == VISCO_LaminarSPS)memset(SpsTauc, 0, sizeof(tsymatrix3f) * Np);
+
+	// Matthias
+	memset(Tauc_M, 0, sizeof(tsymatrix3f) * Np);
+	memset(NabVx_M, 0, sizeof(float) * Np);
+	memset(Divisionc_M, 0, sizeof(bool) * Np);
+	
+	for (unsigned p = 0; p < Np; p++) {
+		const double dp = pow(3.0 / 4.0 / PI * Massc_M[p] / RhopZero, 1.0 / 3.0);
+		QuadFormc_M[p] = TSymatrix3f(4 / float(pow(dp, 2)), 0, 0, 4 / float(pow(dp, 2)), 0, 4 / float(pow(dp, 2)));		
+	}
+	memset(VonMises3D, 0, sizeof(float) * Np);
+	memset(GradVelSave, 0, sizeof(float) * Np);
+	memset(CellOffSpring, 0, sizeof(unsigned) * Np);
+
+	if (UseDEM)DemDtForce = DtIni; //(DEM)
+	if (CaseNfloat)InitFloating();
+
+	//-Adjust paramaters to start.
+	PartIni = PartBeginFirst;
+	TimeStepIni = (!PartIni ? 0 : PartBeginTimeStep);
+	//-Adjust motion for the instant of the loaded PART.
+	if (CaseNmoving) {
+		MotionTimeMod = (!PartIni ? PartBeginTimeStep : 0);
+		Motion->ProcesTime(JSphMotion::MOMT_Simple, 0, TimeStepIni + MotionTimeMod);
+	}
+
+	//-Uses Inlet information from PART read.
+	if (PartBeginTimeStep && PartBeginTotalNp) {
+		TotalNp = PartBeginTotalNp;
+		IdMax = unsigned(TotalNp - 1);
+	}
+
+	//-Shows Initialize configuration.
+	if (InitializeInfo.size()) {
+		Log->Print("Initialization configuration:");
+		Log->Print(InitializeInfo);
+		Log->Print(" ");
+	}
+
+	//-Process Special configurations in XML.
+	JXml xml; xml.LoadFile(FileXml);
+
+	//-Configuration of GaugeSystem.
+	GaugeSystem->Config(Simulate2D, Simulate2DPosY, TimeMax, TimePart, Dp, DomPosMin, DomPosMax, Scell, Hdiv, H, MassFluid);
+	if (xml.GetNode("case.execution.special.gauges", false))GaugeSystem->LoadXml(&xml, "case.execution.special.gauges");
+
+	//-Prepares WaveGen configuration.
+	if (WaveGen) {
+		Log->Print("Wave paddles configuration:");
+		WaveGen->Init(GaugeSystem, MkInfo, TimeMax, Gravity);
+		WaveGen->VisuConfig("", " ");
+	}
+
+	//-Prepares Damping configuration.
+	if (Damping) {
+		Damping->Config(CellOrder);
+		Damping->VisuConfig("Damping configuration:", " ");
+	}
+
+	//-Prepares AccInput configuration.
+	if (AccInput) {
+		Log->Print("AccInput configuration:");
+		AccInput->Init(TimeMax);
+		AccInput->VisuConfig("", " ");
+	}
+
+	//-Configuration of SaveDt.
+	if (xml.GetNode("case.execution.special.savedt", false)) {
+		SaveDt = new JSaveDt(Log);
+		SaveDt->Config(&xml, "case.execution.special.savedt", TimeMax, TimePart);
+		SaveDt->VisuConfig("SaveDt configuration:", " ");
+	}
+
+	//-Shows configuration of JGaugeSystem.
+	if (GaugeSystem->GetCount())GaugeSystem->VisuConfig("GaugeSystem configuration:", " ");
+
+	//-Shows configuration of JTimeOut.
+	if (TimeOut->UseSpecialConfig())TimeOut->VisuConfig(Log, "TimeOut configuration:", " ");
+
+	Part = PartIni; Nstep = 0; PartNstep = 0; PartOut = 0;
+	TimeStep = TimeStepIni; TimeStepM1 = TimeStep;
+	if (DtFixed)DtIni = DtFixed->GetDt(TimeStep, DtIni);
+	TimePartNext = TimeOut->GetNextTime(TimeStep);
+}
+
+//==============================================================================
 /// Adds variable acceleration from input files.
 //==============================================================================
 void JSphSolidCpu::AddAccInput() {
@@ -1238,11 +1344,11 @@ void JSphSolidCpu::PreInteractionVars_Forces(TpInter tinter, unsigned np, unsign
 		else Porec_M[p] = 0.0f;*/
 
 		// Cst Pore between to X bdy
-		/*if (p > int(npb) && abs(Posc[p].x) <= 0.5f) Porec_M[p] = PoreZero;
-		else Porec_M[p] = 0.0f;*/
+		if (p > int(npb) && Posc[p].x > -0.15f) Porec_M[p] = PoreZero;
+		else Porec_M[p] = 0.0f;
 
 		//Pore pressure constant
-		Porec_M[p] = PoreZero;
+		//Porec_M[p] = PoreZero;
 
 		// Augustin
 		VonMises3D[p] = sqrt(((Tauc_M[p].xx - Tauc_M[p].yy) * (Tauc_M[p].xx - Tauc_M[p].yy) + (Tauc_M[p].yy - Tauc_M[p].zz) * (Tauc_M[p].yy - Tauc_M[p].zz) + (Tauc_M[p].xx - Tauc_M[p].zz) * (Tauc_M[p].xx - Tauc_M[p].zz) + 6 * (Tauc_M[p].xy * Tauc_M[p].xy + Tauc_M[p].xz * Tauc_M[p].xz + Tauc_M[p].yz * Tauc_M[p].yz)) / 2.0f);
@@ -4804,17 +4910,6 @@ void JSphSolidCpu::ComputeJauTauDot_M(unsigned n, unsigned pini, const tsymatrix
 		taudot[p].zz = E.zz - 2.0f*tau.xz*omega.xz - 2.0f*tau.yz*omega.yz;
 
 		GradVelSave[p] = gradvel.xx + gradvel.yy + gradvel.zz;
-		//#print
-		//if (Posc[p].x > 1.5 && Posc[p].z > 1.5) printf("Id %d - Td (%.8f, %.8f, %.8f, %.8f, %.8f, %.8f)\n", Idpc[p], taudot[p].xx, taudot[p].xy, taudot[p].xz, taudot[p].yy, taudot[p].yz, taudot[p].zz);
-		/*if (Idpc[p] > 6479 && Posc[p].z > 0.5f) {
-			printf("Id %d P (%.8f) - Gv (%.12f, %.8f, %.8f, %.8f, %.8f, %.12f)\n"
-				, Idpc[p], Posc[p].z, StrainDotc_M[p].xx, StrainDotc_M[p].xy, StrainDotc_M[p].xz, StrainDotc_M[p].yy, StrainDotc_M[p].yz, StrainDotc_M[p].zz);
-			printf("Id %d P (%.8f) - Td (%.8f, %.8f, %.8f, %.8f, %.8f, %.8f)\n"
-				, Idpc[p], Posc[p].z, taudot[p].xx, taudot[p].xy, taudot[p].xz, taudot[p].yy, taudot[p].yz, taudot[p].zz);
-
-		}*/
-			
-		
 	}
 }
 
@@ -4926,8 +5021,8 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 	const int hdiv = (CellMode == CELLMODE_H ? 2 : 1);
 
 	if (npf) {
-		//ComputeNsphCorrection12 < psingle, tker>(np, 0, nc, hdiv, cellfluid, begincell, cellzero, dcell, pos, pspos, velrhop, mass, L);
-		ComputeNsphCorrectionX < psingle, tker>(np, 0, nc, hdiv, cellfluid, begincell, cellzero, dcell, pos, pspos, velrhop, mass, L);
+		ComputeNsphCorrection12 < psingle, tker>(np, 0, nc, hdiv, cellfluid, begincell, cellzero, dcell, pos, pspos, velrhop, mass, L);
+		//ComputeNsphCorrectionX < psingle, tker>(np, 0, nc, hdiv, cellfluid, begincell, cellzero, dcell, pos, pspos, velrhop, mass, L);
 
 		//-Interaction Fluid-Fluid.
 		InteractionForces_V11b_M<psingle, tker, ftmode, lamsps, tdelta, shift>
@@ -9666,6 +9761,7 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT(double dt) {
 			Velrhopc[p].y = float(double(VelrhopPrec[p].y) + double(Acec[p].y) * dt);
 			Velrhopc[p].z = float(double(VelrhopPrec[p].z) + double(Acec[p].z) * dt);
 			Velrhopc[p].w = rhopnew;
+
 			//-Calculate displacement and update position. | Calcula desplazamiento y actualiza posicion.
 			double dx = (double(VelrhopPrec[p].x) + double(Velrhopc[p].x)) * dt05;
 			double dy = (double(VelrhopPrec[p].y) + double(Velrhopc[p].y)) * dt05;
@@ -9759,33 +9855,18 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticPreT_M(double dt) {
 
 			if (!WithFloating || CODE_IsFluid(Codec[p])) {//-Fluid Particles.
 					//-Calculate displacement & update position. | Calcula desplazamiento y actualiza posicion.
-
-				double dx = 0;
-				double dy = 0;
-				double dz = 0;
-
-				if (PosPrec[p].x > -0.12) {
-					double dx = double(VelrhopPrec[p].x) * dt05;
-					double dy = double(VelrhopPrec[p].y) * dt05;
-					double dz = double(VelrhopPrec[p].z) * dt05;
-					if (shift) {
-						dx += double(ShiftPosc[p].x);
-						dy += double(ShiftPosc[p].y);
-						dz += double(ShiftPosc[p].z);
-					}
-					Velrhopc[p].x = float(double(VelrhopPrec[p].x) + double(Acec[p].x) * dt05);
-					Velrhopc[p].y = float(double(VelrhopPrec[p].y) + double(Acec[p].y) * dt05);
-					Velrhopc[p].z = float(double(VelrhopPrec[p].z) + double(Acec[p].z) * dt05);
-
+				
+				double dx = double(VelrhopPrec[p].x) * dt05;
+				double dy = double(VelrhopPrec[p].y) * dt05;
+				double dz = double(VelrhopPrec[p].z) * dt05;
+				if (shift) {
+					dx += double(ShiftPosc[p].x);
+					dy += double(ShiftPosc[p].y);
+					dz += double(ShiftPosc[p].z);
 				}
-
-				else
-				{
-
-					Velrhopc[p].x = 0;
-					Velrhopc[p].y = 0;
-					Velrhopc[p].z = 0;
-				}
+				Velrhopc[p].x = float(double(VelrhopPrec[p].x) + double(Acec[p].x) * dt05);
+				Velrhopc[p].y = float(double(VelrhopPrec[p].y) + double(Acec[p].y) * dt05);
+				Velrhopc[p].z = float(double(VelrhopPrec[p].z) + double(Acec[p].z) * dt05);
 
 
 				bool outrhop = (rhopnew<RhopOutMin || rhopnew>RhopOutMax);
@@ -9868,10 +9949,6 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT_M(double dt) {
 #pragma omp parallel for schedule (static) if(np>OMP_LIMIT_COMPUTESTEP)
 #endif
 	for (int p = npb; p < np; p++) {
-
-		//On ne fait pas bouger les cellules entre -0.12 et 0.12 en x pour creer un bord.
-		if (Posc[p].x > -0.12)
-		{
 			const double epsilon_rdot = (-double(Arc[p]) / double(Velrhopc[p].w)) * dt;
 
 			float rhopnew = float(double(VelrhopPrec[p].w) * (2. - epsilon_rdot) / (2. + epsilon_rdot));
@@ -9903,7 +9980,7 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT_M(double dt) {
 					Velrhopc[p].y = 0.0f;
 					Velrhopc[p].z = 0.0f;
 				}*/
-				Velrhopc[p].w = rhopnew;
+
 
 				//-Calculate displacement and update position. | Calcula desplazamiento y actualiza posicion.
 				double dx = (double(VelrhopPrec[p].x) + double(Velrhopc[p].x)) * dt05;
@@ -9949,18 +10026,19 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT_M(double dt) {
 
 				// Source Density and Mass - To be moved upward, with E_rdot
 				const float volu = float(double(MassPrec_M[p]) / double(rhopnew));
-				float adens = float(LambdaMass);
+				float adens = float(LambdaMass)*(RhopZero/Velrhopc[p].w-1);
+				//float adens = float(LambdaMass);
 
 				// #Growth regional
-				/*if (Posc[p].x > 0.0f) {
+				if (Posc[p].x > -0.15f) {
 					rhopnew = float(rhopnew + dt * adens);
 					Massc_M[p] = float(double(MassPrec_M[p]) + dt * double(adens*volu));
 				}
-				*/
+				
 
 				// Global growth
-				rhopnew = float(rhopnew + dt * adens);
-				Massc_M[p] = float(double(MassPrec_M[p]) + dt * double(adens * volu));
+				/*rhopnew = float(rhopnew + dt * adens);
+				Massc_M[p] = float(double(MassPrec_M[p]) + dt * double(adens * volu));*/
 
 				Velrhopc[p].w = rhopnew;
 			}
@@ -9970,7 +10048,6 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT_M(double dt) {
 																		 //-Copy position. | Copia posicion.
 				Posc[p] = PosPrec[p];
 			}
-		}//Fin if pour le bord.
 	}
 
 	//-Free memory assigned to variables Pre and ComputeSymplecticPre(). | Libera memoria asignada a variables Pre en ComputeSymplecticPre().
@@ -10381,7 +10458,7 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT_T19(double dt) {
 	const double dt05 = dt * .5;
 	const int np = int(Np);
 	// #compression
-	const float velcompress = -0.00002;
+	const float velcompress = -0.00002f;
 	//printf("Time = %.8f / Sous la borne temps ? %d\n", TimeStep, TimeStep <10);
 	//printf("Mobile bound = %.8f\n", 0.12 + velcompress * TimeStep);
 

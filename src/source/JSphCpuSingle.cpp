@@ -219,6 +219,60 @@ void JSphCpuSingle::LoadCaseParticles_T() {
 }
 
 //==============================================================================
+/// Load particles of case and process.
+/// Carga particulas del caso a procesar.
+//==============================================================================
+void JSphCpuSingle::LoadCaseParticles_Mixed_M() {
+
+	Log->Print("Loading initial state of particles...");
+	PartsLoaded = new JPartsLoad4(true);
+
+
+	// #GenU #UniqueParticle
+	// Gener here unique particle, then particle with boundary
+	PartsLoaded->LoadParticles_Mixed2_M(DirCase, CaseName, PartBegin, PartBeginDir, DirCase);	
+	PartsLoaded->CheckConfig(CaseNp, CaseNfixed, CaseNmoving, CaseNfloat, CaseNfluid, PeriX, PeriY, PeriZ);
+
+	Log->Printf("Loaded particles: %u", PartsLoaded->GetCount());
+	//-Collect information of loaded particles. | Recupera informacion de las particulas cargadas.
+	Simulate2D = PartsLoaded->GetSimulate2D();
+	Simulate2DPosY = PartsLoaded->GetSimulate2DPosY();
+	if (Simulate2D && PeriY)RunException("LoadCaseParticles", "Cannot use periodic conditions in Y with 2D simulations");
+	CasePosMin = PartsLoaded->GetCasePosMin();
+	CasePosMax = PartsLoaded->GetCasePosMax();
+
+	//-Calculate actual limits of simulation. | Calcula limites reales de la simulacion.
+	if (PartsLoaded->MapSizeLoaded()) {
+		PartsLoaded->GetMapSize(MapRealPosMin, MapRealPosMax);
+	}
+	else {
+		PartsLoaded->CalculeLimits(double(H) * BORDER_MAP + BordDomain, Dp / 2., PeriX, PeriY, PeriZ, MapRealPosMin, MapRealPosMax);
+		ResizeMapLimits();
+	}
+	if (PartBegin) {
+		PartBeginTimeStep = PartsLoaded->GetPartBeginTimeStep();
+		PartBeginTotalNp = PartsLoaded->GetPartBeginTotalNp();
+	}
+	Log->Print(string("MapRealPos(final)=") + fun::Double3gRangeStr(MapRealPosMin, MapRealPosMax));
+	MapRealSize = MapRealPosMax - MapRealPosMin;
+	Log->Print("**Initial state of particles is loaded");
+
+	//-Configure limits of periodic axes. | Configura limites de ejes periodicos.
+	if (PeriX)PeriXinc.x = -MapRealSize.x;
+	if (PeriY)PeriYinc.y = -MapRealSize.y;
+	if (PeriZ)PeriZinc.z = -MapRealSize.z;
+	//-Calculate simulation limits with periodic boundaries. | Calcula limites de simulacion con bordes periodicos.
+	Map_PosMin = MapRealPosMin; Map_PosMax = MapRealPosMax;
+	float dosh = float(H * 2);
+	if (PeriX) { Map_PosMin.x = Map_PosMin.x - dosh;  Map_PosMax.x = Map_PosMax.x + dosh; }
+	if (PeriY) { Map_PosMin.y = Map_PosMin.y - dosh;  Map_PosMax.y = Map_PosMax.y + dosh; }
+	if (PeriZ) { Map_PosMin.z = Map_PosMin.z - dosh;  Map_PosMax.z = Map_PosMax.z + dosh; }
+	Map_Size = Map_PosMax - Map_PosMin;
+	//-Saves initial domain in a VTK file (CasePosMin/Max, MapRealPosMin/Max and Map_PosMin/Max).
+	SaveInitialDomainVtk();
+}
+
+//==============================================================================
 /// Configuration of current domain.
 /// Configuracion del dominio actual.
 //==============================================================================
@@ -274,6 +328,64 @@ void JSphCpuSingle::ConfigDomain(){
   //-Reorder particles for cell. | Reordena particulas por celda.
   BoundChanged=true;
   RunCellDivide(true);
+}
+
+//==============================================================================
+/// Configuration of current domain.
+/// Configuracion del dominio actual.
+//==============================================================================
+void JSphCpuSingle::ConfigDomain_Mixed_M() {
+	const char* met = "ConfigDomain";
+	//-Calculate number of particles. | Calcula numero de particulas.
+	Np = PartsLoaded->GetCount(); Npb = CaseNpb; NpbOk = Npb;
+	//-Allocates fixed memory for moving & floating particles. | Reserva memoria fija para moving y floating.
+	// #Memory
+	AllocCpuMemoryFixed();
+	//-Allocates memory in CPU for particles. | Reserva memoria en Cpu para particulas.
+	// #Allocmem
+	AllocCpuMemoryParticles(Np, 0);
+
+	//-Copy particle values. | Copia datos de particulas.
+	ReserveBasicArraysCpu();
+	memcpy(Posc, PartsLoaded->GetPos(), sizeof(tdouble3) * Np);
+	memcpy(Idpc, PartsLoaded->GetIdp(), sizeof(unsigned) * Np);
+	memcpy(Velrhopc, PartsLoaded->GetVelRhop(), sizeof(tfloat4) * Np);
+	memcpy(Massc_M, PartsLoaded->GetMass(), sizeof(float) * Np);
+
+	//-Calculate floating radius. | Calcula radio de floatings.
+	if (CaseNfloat && PeriActive != 0 && !PartBegin)CalcFloatingRadius(Np, Posc, Idpc);
+
+	//-Load particle code. | Carga code de particulas.
+	LoadCodeParticles(Np, Idpc, Codec);
+
+	//-Runs initialization operations from XML.
+	RunInitialize(Np, Npb, Posc, Idpc, Codec, Velrhopc);
+
+	//-Computes MK domain for boundary and fluid particles.
+	MkInfo->ComputeMkDomains(Np, Posc, Codec);
+
+	//-Free memory of PartsLoaded. | Libera memoria de PartsLoaded.
+	//delete PartsLoaded; PartsLoaded=NULL;
+	//-Apply configuration of CellOrder. | Aplica configuracion de CellOrder.
+	ConfigCellOrder(CellOrder, Np, Posc, Velrhopc);
+
+	//-Configure cells division. | Configura division celdas.
+	ConfigCellDivision();
+	//-Establish local simulation domain inside of Map_Cells & calculate DomCellCode. | Establece dominio de simulacion local dentro de Map_Cells y calcula DomCellCode.
+	SelecDomain(TUint3(0, 0, 0), Map_Cells);
+	//-Calculate initial cell of particles and check if there are unexpected excluded particles. | Calcula celda inicial de particulas y comprueba si hay excluidas inesperadas.
+	LoadDcellParticles(Np, Codec, Posc, Dcellc);
+
+	//-Create object for divide in CPU & select a valid cellmode. | Crea objeto para divide en Gpu y selecciona un cellmode valido.
+	CellDivSingle = new JCellDivCpuSingle(Stable, FtCount != 0, PeriActive, CellOrder, CellMode, Scell, Map_PosMin, Map_PosMax, Map_Cells, CaseNbound, CaseNfixed, CaseNpb, Log, DirOut);
+	CellDivSingle->DefineDomain(DomCellCode, DomCelIni, DomCelFin, DomPosMin, DomPosMax);
+	ConfigCellDiv((JCellDivCpu*)CellDivSingle);
+
+	ConfigSaveData(0, 1, "");
+
+	//-Reorder particles for cell. | Reordena particulas por celda.
+	BoundChanged = true;
+	RunCellDivide(true);
 }
 
 //==============================================================================
@@ -766,10 +878,10 @@ uint64_t nanos()
 //#Mathis
 void JSphCpuSingle::RunSizeDivision_M2(double stepdt){
 	const char met[] = "RunSizeDivision_M2";
-	double distance;
+	//double distance;
 	double proba;
 	double proba1;
-	double posx_quiescent;
+	//double posx_quiescent;
 //	double test;
 	double tip = 0.15;
 //	double ms;
@@ -788,7 +900,7 @@ void JSphCpuSingle::RunSizeDivision_M2(double stepdt){
 	for (unsigned p = Npb; p < Np; p++) {
 
 		//random number generator
-		std::default_random_engine generator(nanos());
+		std::default_random_engine generator((unsigned)nanos());
 		std::uniform_real_distribution<double> distribution(0.0, 1.0);
 		number = distribution(generator);
 		proba = SizeDivision_M;
@@ -2061,10 +2173,21 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
   //Log->Printf("\n---Runpath : %s---\n", cfg->RunPath.c_str());
   //Log->Printf("\n---PartBeginDir : %s---\n", cfg->PartBeginDir.c_str());
   //Log->Printf("\n---CaseName : %s---\n", cfg->CaseName.c_str()); 
-  
+  //#GencaseBis
   GenCaseBis_T gcb;
   gcb.UseGencase(cfg->RunPath);
-  if (!gcb.getUseGencase()) {
+  // Deve region
+  if (true) {
+	  LoadConfig_Mixed_M(cfg); // XML reading, especially dp dimensions, update XML with Data.csv
+	  LoadCaseParticles_Mixed_M(); // generation particle from .bi4 and .csv, update .bi4 (ongoing)
+	  ConfigConstants(Simulate2D);
+	  ConfigDomain_Mixed_M();
+	  ConfigRunMode(cfg);
+	  VisuParticleSummary();
+	  InitRun_Mixed_M();
+  }
+  // End dev region
+  else if (!gcb.getUseGencase()) {
 	  gcb.Bridge(cfg->CaseName);
 	  LoadConfig_T(cfg);
 	  LoadCaseParticles_T();
@@ -2087,7 +2210,6 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
 	  //------------------------------------------------------------------------------------
 	  InitRun();
   }
-
 
 
   //-Free memory of PartsLoaded. | Libera memoria de PartsLoaded.
@@ -2121,7 +2243,7 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
 	RunGaugeSystem(TimeStep+stepdt);
     if(PartDtMin>stepdt)PartDtMin=stepdt; if(PartDtMax<stepdt)PartDtMax=stepdt;
     if(CaseNmoving)RunMotion(stepdt);
-
+	
 	// Matthias - Cell division
 	//RunSizeDivision_M();
 	RunSizeDivision_M2(stepdt);
@@ -2145,6 +2267,7 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
     UpdateMaxValues();
     Nstep++;
     if(Part<=PartIni+1 && tc.CheckTime())Log->Print(string("  ")+tc.GetInfoFinish((TimeStep-TimeStepIni)/(TimeMax-TimeStepIni)));
+	//printf("End of step\n");
   }
   TimerSim.Stop(); TimerTot.Stop();
 

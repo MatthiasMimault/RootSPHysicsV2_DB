@@ -28,6 +28,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <sstream>
+#include <string>
 
 #pragma warning(disable : 4996) //Cancels sprintf() deprecated.
 
@@ -312,6 +313,7 @@ void JPartDataBi4::AddPartDataVar(const std::string &name,JBinaryDataDef::TpData
 //==============================================================================
 /// Añade datos de particulas de de nuevo part.
 /// Adds data of particles to new part.
+//#Addpartdata
 //==============================================================================
 void JPartDataBi4::AddPartData(unsigned npok,const unsigned *idp,const ullong *idpd,const tfloat3 *pos,const tdouble3 *posd,const tfloat3 *vel,const float *rhop,bool externalpointer){
   const char met[]="AddPartData";
@@ -561,6 +563,169 @@ double JPartDataBi4::Get_Particles2dPosY()const{
     }
   }
   return(posy);
+}
+
+/////////////////////////////////////////////////////
+// Read the Data.csv - Real root particles - Matthias 2019
+// #readcsv #readdata #data
+/////////////////////////////////////////////////////
+void JPartDataBi4::ReadCsv_M() {
+	ifstream file("Data.csv");
+	vector<string> row;
+	string line, word;
+
+	int* idp;
+	tdouble3* pos;
+	tdouble3 posMin = TDouble3(0, 0, 0);
+	tdouble3 posMax = TDouble3(0, 0, 0);
+	tfloat3* vel;
+	double* vol;
+	float* mp;
+	float* rhop;
+	float rhop0;
+	double rMax = 0;
+	double borddomain = 0;
+	int np;
+
+	// Initialisation
+	np = count(istreambuf_iterator<char>(file), std::istreambuf_iterator<char>(), '\n')-5; // remove 4 non particle related lines
+	printf("Number of ptc %d\n", np);
+	file.clear();                 // clear fail and eof bits
+	file.seekg(0, ios::beg);
+
+	idp = (int*)malloc(sizeof(int) * (np));
+	pos = (tdouble3*)malloc(sizeof(tdouble3) * (np));
+	vel = (tfloat3*)malloc(sizeof(tfloat3) * (np));
+	vol = (double*)malloc(sizeof(double) * (np));
+	mp = (float*)malloc(sizeof(float) * (np));
+	rhop = (float*)malloc(sizeof(float) * (np));
+	//rhop0 = loadRhop0();
+	rhop0 = 1000;
+
+	if (file.good())
+	{
+		line.clear();
+		getline(file, line); //skip line, don't need first line
+		for (size_t i = 0; i < np; i++)
+		{
+			row.clear();
+			getline(file, line);
+			stringstream s(line);
+			while (getline(s, word, ',')) {
+
+				// add all the column data 
+				// of a row to a vector 
+				row.push_back(word);
+			}
+			idp[i] = int(i);
+			vol[i] = ::atof(row[2].c_str()) * 0.000000001;
+			pos[i].x = ::atof(row[3].c_str()) * 0.001;
+			pos[i].y = ::atof(row[4].c_str()) * 0.001;
+			pos[i].z = ::atof(row[5].c_str()) * 0.001;
+			posMax = MaxValues(posMax, pos[i]);
+			posMin = MinValues(posMin, pos[i]);
+			//printf("Row %s %s %s %s\n", row[0].c_str(), row[1].c_str(), row[2].c_str(), row[3].c_str());
+		}
+
+		file.close();
+	}
+
+	// Configuration pd_csv
+	ConfigBasic(0, 1, "", "", "", false, 0.0, ""); // not touch
+	ConfigParticles(np, 0, 0, 0, np, posMin, posMax, NULL, NULL);	//> needs particle number and solid dimensions
+	ConfigCtes(0.01, 0.06, 400000.0, 1000, 1, 0.001, 0.001);							//> cstes Dp, h, b, rhop0, gamma, massbound, massfluid
+																	//> mass variable, what value for dp, b ? Gamma can be recollected
+	AddPartInfo((unsigned)0, 0, (unsigned)np, 0, 0, 0, TDouble3(0, 0, 0), TDouble3(0, 0, 0), np, idp[np-1]);
+	//AddPartData();													//> There are multiple versions of AddPartData
+}
+
+void JPartDataBi4::ReadCsv_M(int n_start, bool possingle) {
+	ifstream file("Data.csv");
+	vector<string> row;
+	string line, word;
+
+	unsigned* idp;
+	tfloat3* pos;
+	tdouble3* posd;
+	tdouble3 posMin = TDouble3(0, 0, 0);
+	tdouble3 posMax = TDouble3(0, 0, 0);
+	tfloat3* vel;
+	double* vol;
+	float* mp;
+	float* rhop;
+	float rhop0;
+	double rMax = 0;
+	double borddomain = 0;
+	unsigned np;
+
+	// Initialisation
+	np = count(istreambuf_iterator<char>(file), std::istreambuf_iterator<char>(), '\n') - 5; // remove 4 non particle related lines
+	file.clear();                 // clear fail and eof bits
+	file.seekg(0, ios::beg);
+
+	idp = (unsigned*)malloc(sizeof(unsigned) * (np));
+	posd = (tdouble3*)malloc(sizeof(tdouble3) * (np));
+	pos = (tfloat3*)malloc(sizeof(tfloat3) * (np));
+	vel = (tfloat3*)malloc(sizeof(tfloat3) * (np));
+	vol = (double*)malloc(sizeof(double) * (np));
+	mp = (float*)malloc(sizeof(float) * (np));
+	rhop = (float*)malloc(sizeof(float) * (np));
+	//rhop0 = loadRhop0();
+	rhop0 = 1000;
+
+	if (file.good())
+	{
+		line.clear();
+		getline(file, line); //skip line, don't need first line
+		for (size_t i = 0; i < np; i++)
+		{
+			row.clear();
+			getline(file, line);
+			stringstream s(line);
+			while (getline(s, word, ',')) {
+
+				// add all the column data 
+				// of a row to a vector 
+				row.push_back(word);
+			}
+			idp[i] = n_start+int(i);
+			vol[i] = ::atof(row[2].c_str()) * 0.000000001;
+			rhop[i] = rhop0;
+			vel[i] = TFloat3(0, 0, 0);
+			mp[i] = float(vol[i])*rhop0;
+			if (possingle) {
+				pos[i].x = float(::atof(row[3].c_str())) * 0.001f;
+				pos[i].y = float(::atof(row[4].c_str())) * 0.001f;
+				pos[i].z = float(::atof(row[5].c_str())) * 0.001f;
+				posd = NULL;
+				posMax = MaxValues(posMax, ToTDouble3(pos[i]));
+				posMin = MinValues(posMin, ToTDouble3(pos[i]));
+
+			}
+			else {
+				posd[i].x = ::atof(row[3].c_str()) * 0.001;
+				posd[i].y = ::atof(row[4].c_str()) * 0.001;
+				posd[i].z = ::atof(row[5].c_str()) * 0.001;
+				pos = NULL;
+				posMax = MaxValues(posMax, posd[i]);
+				posMin = MinValues(posMin, posd[i]);
+
+			}
+			//printf("Row %s %s %s %s\n", row[0].c_str(), row[1].c_str(), row[2].c_str(), row[3].c_str());
+		}
+
+		file.close();
+	}
+
+	// Configuration pd_csv
+	ConfigBasic(0, 1, "", "", "", false, 0.0, ""); // not touch
+	ConfigParticles(np, 0, 0, 0, np, posMin, posMax, NULL, NULL);	//> needs particle number and solid dimensions
+	//printf("Np %d PosMin %.8f %.8f %.8f PosMax %.8f %.8f %.8f\n", np, posMin.x, posMin.y, posMin.z, posMax.x, posMax.y, posMax.z);
+	ConfigCtes(0.01, 0.04, 40000.0, 1000, 1, 0.001, 0.001);							//> cstes Dp, h, b, rhop0, gamma, massbound, massfluid
+																	//> mass variable, what value for dp, b ? Gamma can be recollected
+	AddPartInfo((unsigned)0, 0, (unsigned)np, 0, 0, 0, TDouble3(0, 0, 0), TDouble3(0, 0, 0), np, idp[np - 1]);
+	//AddPartData();
+	AddPartData_T(np, (int*)idp, posd, vel, rhop, mp, true);
 }
 
 

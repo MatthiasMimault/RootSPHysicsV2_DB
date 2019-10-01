@@ -43,6 +43,9 @@
 #include "JDamping.h"
 #include "JSphInitialize.h"
 #include <climits>
+#include <iostream>
+#include <sstream>
+#include <string>
 
 //using namespace std;
 using std::string;
@@ -442,6 +445,118 @@ void JSph::LoadConfig(const JCfgRun *cfg){
 }
 
 //==============================================================================
+/// Loads the configuration of the execution and modify the xml.
+//==============================================================================
+void JSph::LoadConfig_Mixed_M(const JCfgRun* cfg) {
+	const char* met = "LoadConfig";
+	TimerTot.Start();
+	Stable = cfg->Stable;
+	Psingle = true; SvDouble = false; //-Options by default.
+	RunCommand = cfg->RunCommand;
+	RunPath = cfg->RunPath;
+	DirOut = fun::GetDirWithSlash(cfg->DirOut);
+	DirDataOut = (!cfg->DirDataOut.empty() ? fun::GetDirWithSlash(DirOut + cfg->DirDataOut) : DirOut);
+	CaseName = cfg->CaseName;
+	DirCase = fun::GetDirWithSlash(fun::GetDirParent(CaseName));
+	CaseName = CaseName.substr(DirCase.length());
+	if (!CaseName.length())RunException(met, "Name of the case for execution was not indicated.");
+	RunName = (cfg->RunName.length() ? cfg->RunName : CaseName);
+	FileXml = DirCase + CaseName + ".xml";
+	//Log->Printf("FileXml=\"%s\"", fun::GetPathLevels(fun::GetCanonicalPath(RunPath, FileXml), 3).c_str());
+	//Log->Printf("DirAddXml_M=\"%s\"", fun::GetPathLevels(fun::GetCanonicalPath(RunPath, DirAddXml_M), 3).c_str());
+	//Log->Printf("AddFileXml_M=\"%s\"", fun::GetPathLevels(fun::GetCanonicalPath(RunPath, AddFileXml_M), 3).c_str());
+	PartBeginDir = cfg->PartBeginDir; PartBegin = cfg->PartBegin; PartBeginFirst = cfg->PartBeginFirst;
+
+	//-Output options:
+	CsvSepComa = cfg->CsvSepComa;
+	SvData = byte(SDAT_None);
+	if (cfg->Sv_Csv && !WithMpi)SvData |= byte(SDAT_Csv);
+	if (cfg->Sv_Binx)SvData |= byte(SDAT_Binx);
+	if (cfg->Sv_Info)SvData |= byte(SDAT_Info);
+	if (cfg->Sv_Vtk)SvData |= byte(SDAT_Vtk);
+
+	SvRes = cfg->SvRes;
+	SvTimers = cfg->SvTimers;
+	SvDomainVtk = cfg->SvDomainVtk;
+
+	printf("\n");
+	RunTimeDate = fun::GetDateTime();
+	Log->Printf("[Initialising %s  %s]", ClassName.c_str(), RunTimeDate.c_str());
+
+	Log->Printf("ProgramFile=\"%s\"", fun::GetPathLevels(fun::GetCanonicalPath(RunPath, RunCommand), 3).c_str());
+	Log->Printf("ExecutionDir=\"%s\"", fun::GetPathLevels(RunPath, 3).c_str());
+	Log->Printf("XmlFile=\"%s\"", fun::GetPathLevels(fun::GetCanonicalPath(RunPath, FileXml), 3).c_str());
+	//Log->Printf("AddXmlFile_M=\"%s\"", fun::GetPathLevels(fun::GetCanonicalPath(RunPath, AddFileXml_M), 3).c_str());
+	Log->Printf("OutputDir=\"%s\"", fun::GetPathLevels(fun::GetCanonicalPath(RunPath, DirOut), 3).c_str());
+	Log->Printf("OutputDataDir=\"%s\"", fun::GetPathLevels(fun::GetCanonicalPath(RunPath, DirDataOut), 3).c_str());
+
+	if (PartBegin) {
+		Log->Print(fun::VarStr("PartBegin", PartBegin));
+		Log->Print(fun::VarStr("PartBeginDir", PartBeginDir));
+		Log->Print(fun::VarStr("PartBeginFirst", PartBeginFirst));
+	}
+
+	// Load and update case
+	// #XMLUpdate
+	UpdateCaseConfig_Mixed_M();
+	LoadCaseConfig();
+	
+
+	//-Aplies configuration using command line.
+	if (cfg->PosDouble == 0) { Psingle = true;  SvDouble = false; }
+	else if (cfg->PosDouble == 1) { Psingle = false; SvDouble = false; }
+	else if (cfg->PosDouble == 2) { Psingle = false; SvDouble = true; }
+	if (cfg->TStep)TStep = cfg->TStep;
+	if (cfg->VerletSteps >= 0)VerletSteps = cfg->VerletSteps;
+	if (cfg->TKernel)TKernel = cfg->TKernel;
+	if (cfg->TVisco) { TVisco = cfg->TVisco; Visco = cfg->Visco; }
+	if (cfg->ViscoBoundFactor >= 0)ViscoBoundFactor = cfg->ViscoBoundFactor;
+	if (cfg->DeltaSph >= 0) {
+		DeltaSph = cfg->DeltaSph;
+		TDeltaSph = (DeltaSph ? DELTA_Dynamic : DELTA_None);
+	}
+	if (TDeltaSph == DELTA_Dynamic && Cpu)TDeltaSph = DELTA_DynamicExt; //-It is necessary because the interaction is divided in two steps: fluid-fluid/float and fluid-bound.
+
+	// #Shift
+	if (cfg->Shifting >= 0) {
+		switch (cfg->Shifting) {
+		case 0:  TShifting = SHIFT_None;     break;
+		case 1:  TShifting = SHIFT_NoBound;  break;
+		case 2:  TShifting = SHIFT_NoFixed;  break;
+		case 3:  TShifting = SHIFT_Full;     break;
+		default: RunException(met, "Shifting mode is not valid.");
+		}
+		if (TShifting != SHIFT_None) {
+			ShiftCoef = -2; ShiftTFS = 0;
+		}
+		else ShiftCoef = ShiftTFS = 0;
+	}
+
+	if (cfg->FtPause >= 0)FtPause = cfg->FtPause;
+	if (cfg->TimeMax > 0)TimeMax = cfg->TimeMax;
+	//-Configuration of JTimeOut with TimePart.
+	TimeOut = new JTimeOut();
+	if (cfg->TimePart >= 0) {
+		TimePart = cfg->TimePart;
+		TimeOut->Config(TimePart);
+	}
+	else TimeOut->Config(FileXml, "case.execution.special.timeout", TimePart);
+
+	CellOrder = cfg->CellOrder;
+	CellMode = cfg->CellMode;
+	if (cfg->DomainMode == 1) {
+		ConfigDomainParticles(cfg->DomainParticlesMin, cfg->DomainParticlesMax);
+		ConfigDomainParticlesPrc(cfg->DomainParticlesPrcMin, cfg->DomainParticlesPrcMax);
+	}
+	else if (cfg->DomainMode == 2)ConfigDomainFixed(cfg->DomainFixedMin, cfg->DomainFixedMax);
+	if (cfg->RhopOutModif) {
+		RhopOutMin = cfg->RhopOutMin; RhopOutMax = cfg->RhopOutMax;
+	}
+	RhopOut = (RhopOutMin < RhopOutMax);
+	if (!RhopOut) { RhopOutMin = -FLT_MAX; RhopOutMax = FLT_MAX; }
+}
+
+//==============================================================================
 /// Loads the configuration of the execution.
 //==============================================================================
 void JSph::LoadConfig_T(const JCfgRun *cfg) {
@@ -698,7 +813,6 @@ void JSph::LoadCaseConfig(){
   Gf = (float)ctes.GetShear();
 
   //#Constants
-  printf("Si2D %d\n", Simulate2D);
   /*if (Simulate2D) {
 	  printf("Choix 2D\n");
 	  C1 = Delta * (1.0f - nuyz) / nf;
@@ -1042,59 +1156,6 @@ void JSph::LoadCaseConfig_T() {
 	nuyz = (float)ctes.GetPoissonYZ();
 	Gf = (float)ctes.GetShear();
 
-	/*const float  nf = Ey / Ex;
-	const float Delta = nf * Ex / (1.0f - nuyz - 2.0f*nf*nuxy*nuxy);
-
-	if (Simulate2D) {
-		C1 = Delta * (1.0f - nuyz) / nf;
-		C2 = 0.0f;
-		C3 = Delta * (1.0f - nf * nuxy*nuxy) / (1.0f + nuyz);
-		C12 = 0.0f;
-		C13 = Delta * nuxy;
-		C23 = 0.0f;
-
-		C4 = Ey / (2.0f + 2.0f*nuxy); C5 = 0.0f; C6 = Gf;
-
-		//K = (C1 + C3) / 2.0f;
-
-		S1 = 1 / Ex;		S12 = 0.0f; S13 = -nuxy / Ex;
-		S21 = 0.0f;		S2 = 0.0f;	S23 = 0.0f;
-		S31 = -nuxy / Ex; S32 = 0.0f; S3 = 1 / Ey;
-		Kani = 1 / (S1 + S12 + S13 + S21 + S2 + S23 + S31 + S32 + S3);
-
-	}
-	else {
-		C1 = Delta * (1.0f - nuyz) / nf;
-		C2 = C3 = Delta * (1.0f - nf * nuxy*nuxy) / (1.0f + nuyz);
-		C12 = C13 = Delta * nuxy;
-		C23 = Delta * (nuyz + nf * nuxy*nuxy) / (1.0f + nuyz);
-
-		C4 = Ey / (2.0f + 2.0f*nuxy); C5 = Gf; C6 = Gf;
-
-		//K = (C1 + C2 + C3) / 3.0f;
-
-		S1 = 1 / Ex; S12 = -nuxy / Ex; S13 = -nuxy / Ex;
-		S21 = -nuxy / Ex; S2 = 1 / Ey; S23 = -nuyz / Ey;
-		S31 = -nuxy / Ex; S32 = -nuyz / Ey; S3 = 1 / Ey;
-		Kani = 1 / (S1 + S12 + S13 + S21 + S2 + S23 + S31 + S32 + S3);
-		//K_M = TFloat3(Kani, Kani, Kani);
-	}
-
-
-	printf("///\n");
-	printf("C1 = %.3f, C12 = %.3f, C13 = %.3f\n", C1, C12, C13);
-	printf("C12 = %.3f, C2 = %.3f, C23 = %.3f\n", C12, C2, C23);
-	printf("C13 = %.3f, C23 = %.3f, C3 = %.3f\n", C13, C23, C3);
-	//printf("K_M = (%.3f,%.3f,%.3f)\n", K_M.x, K_M.y, K_M.z);
-	printf("S1 = %.8f, S12 = %.8f, S13 = %.8f\n", S1, S12, S13);
-	printf("S12 = %.8f, S2 = %.8f, S23 = %.8f\n", S12, S2, S23);
-	printf("S13 = %.8f, S23 = %.8f, S3 = %.8f\n", S13, S23, S3);
-
-	// New B for anisotropy
-	CteB = Kani / (Gamma);
-	//CteB_M = TFloat3(K_M.x / Gamma, K_M.y / Gamma, K_M.z / Gamma);
-	//CteB3D = TFloat3((C1 + C12 + C13) / Gamma, (C2 + C12 + C23) / Gamma, (C3 + C13 + C23) / Gamma);*/
-
 	// Pore
 	PoreZero = (float)ctes.GetPoreZero();
 	// Mass
@@ -1242,6 +1303,70 @@ void JSph::LoadCaseConfig_T() {
 }
 
 //==============================================================================
+/// Once the case is load, the xml file should update with the info from the real data - Matthias
+//==============================================================================
+void JSph::UpdateCaseConfig_Mixed_M() {
+	string directoryXml = "Def.xml";
+	JXml xml; xml.LoadFile(FileXml);
+// #xml #updateXml
+
+	// Read csv 1
+	std::ifstream file("Data.csv");
+	std::vector<string> row;
+	string line, word;
+	int np;
+
+	// Initialisation
+	np = count(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>(), '\n') - 5; // remove 4 non particle related lines
+
+	//TiXmlNode* node = xml.GetNode("case", false);
+	int res;
+	(((xml.GetNode("case.execution.particles._summary.fixed", false))->ToElement())->QueryIntAttribute("count", &res));
+
+	// Modify particles node
+	TiXmlNode* particles = xml.GetNode("case.execution.particles", false);
+	int np_temp;
+	(particles->ToElement())->QueryIntAttribute("np", &np_temp);
+	(particles->ToElement())->RemoveAttribute("np");
+	(particles->ToElement())->SetAttribute("np", np_temp+np); // new number of ptcs
+	
+	// V2 fluid _summary
+	/*TiXmlElement fluid_summary("fluid");
+	JXml::AddAttribute(&fluid_summary, "count", 1);
+	JXml::AddAttribute(&fluid_summary, "id", "1179-1179"); // wrong value
+	JXml::AddAttribute(&fluid_summary, "mkcount", 1);
+	JXml::AddAttribute(&fluid_summary, "mkvalues", 1);
+
+	TiXmlElement fluid("fluid");
+	JXml::AddAttribute(&fluid, "mkfluid", "0");
+	JXml::AddAttribute(&fluid, "mk", 1);
+	JXml::AddAttribute(&fluid, "begin", 1179);
+	JXml::AddAttribute(&fluid, "count", 1);*/
+
+	// V3 fluid
+	TiXmlElement fluid_summary("fluid");
+	JXml::AddAttribute(&fluid_summary, "count", np);
+	string s = std::to_string(res)+ "-" + std::to_string(res+np);
+	JXml::AddAttribute(&fluid_summary, "id", s); // wrong value
+	JXml::AddAttribute(&fluid_summary, "mkcount", 1);
+	JXml::AddAttribute(&fluid_summary, "mkvalues", 1);
+
+	TiXmlElement fluid("fluid");
+	JXml::AddAttribute(&fluid, "mkfluid", "0");
+	JXml::AddAttribute(&fluid, "mk", 1);
+	JXml::AddAttribute(&fluid, "begin", res);
+	JXml::AddAttribute(&fluid, "count", np);
+
+
+	// Save / update XML
+	xml.GetNode("case.execution.particles._summary", true)->InsertEndChild(fluid_summary);
+	xml.GetNode("case.execution.particles", true)->InsertEndChild(fluid);
+	if (false) xml.SaveFile(FileXml+"XXXMMMLLL.xml");//save the xml file
+	else xml.SaveFile(FileXml);//save the xml file
+
+}
+
+//==============================================================================
 /// Shows coefficients used for DEM objects.
 //==============================================================================
 void JSph::VisuDemCoefficients()const{
@@ -1271,6 +1396,8 @@ void JSph::VisuDemCoefficients()const{
 //==============================================================================
 void JSph::LoadCodeParticles(unsigned np,const unsigned *idp,typecode *code)const{
   const char met[]="LoadCodeParticles";
+  // # printf Debug GetMkBy Id
+  printf("LoadCodeParticles\n");
   //-Assigns code to each group of particles.
   for(unsigned p=0;p<np;p++)code[p]=MkInfo->GetCodeById(idp[p]);
 }

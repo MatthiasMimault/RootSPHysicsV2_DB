@@ -210,7 +210,10 @@ protected:
 	void ConfigCellDiv(JCellDivCpu* celldiv) { CellDiv = celldiv; }
 	void InitFloating(); 
 	void InitRun();
-	void InitRun_T(JPartsLoad4 *pl);
+
+	// Matthias
+	void InitRun_Mixed_M();
+	void InitRun_T(JPartsLoad4 *pl); 
 
 	void AddAccInput();
 
