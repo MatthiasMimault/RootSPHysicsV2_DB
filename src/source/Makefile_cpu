@@ -40,6 +40,9 @@ EIGEN = -I ../../../EigenLibs -I ../lib/EigenLibs
 #CCFLAGS+= -v -fPIC
 #CCLINKFLAGS+= -v -fPIC
 
+#=== Matthias - C++11 support
+CCFLAGS += -std=c++11
+
 #=== Matthias - Undefined references
 #CPPJXML = JXml.cpp JPartDataBi4.cpp
 
