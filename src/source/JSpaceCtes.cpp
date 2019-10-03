@@ -80,7 +80,7 @@ void JSpaceCtes::Reset(){
   // Mass
   LambdaMass = 0;
   // Cell division
-  LocalDiv_M = { 0,0,0 };
+  LocalDiv_M = TDouble3(0,0,0);
   Spread_M = 0;
   VelDivCoef_M = 0;
 
