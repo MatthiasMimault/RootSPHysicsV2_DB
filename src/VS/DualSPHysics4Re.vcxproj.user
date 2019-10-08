@@ -3,4 +3,9 @@
   <PropertyGroup>
     <ShowAllFiles>true</ShowAllFiles>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LocalDebuggerWorkingDirectory>../../debug/1-MixedRoot</LocalDebuggerWorkingDirectory>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerCommandArguments>-cpu DBG-MixedRoot_out/DBG-MixedRoot DBG-MixedRoot_out -dirdataout data -svres</LocalDebuggerCommandArguments>
+  </PropertyGroup>
 </Project>
