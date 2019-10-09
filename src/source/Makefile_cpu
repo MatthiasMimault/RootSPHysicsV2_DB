@@ -43,6 +43,9 @@ EIGEN = -I ../../../EigenLibs -I ../lib/EigenLibs
 #=== Matthias - Undefined references
 #CPPJXML = JXml.cpp JPartDataBi4.cpp
 
+#=== Matthias - Linux compatibility of some function related to string
+CCFLAGS += -std=c++11
+
 #=============== Files to compile ===============
 OBJXML=JXml.o tinystr.o tinyxml.o tinyxmlerror.o tinyxmlparser.o
 OBJSPHMOTION=JMotion.o JMotionList.o JMotionMov.o JMotionObj.o JMotionPos.o JSphMotion.o

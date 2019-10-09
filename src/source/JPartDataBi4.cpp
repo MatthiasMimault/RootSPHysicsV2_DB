@@ -21,7 +21,7 @@
 #include "JPartDataBi4.h"
 //#include "JBinaryData.h"
 #include "Functions.h"
-
+#include <algorithm>
 #include <fstream>
 #include <cmath>
 #include <cstring>
@@ -588,7 +588,7 @@ void JPartDataBi4::ReadCsv_M() {
 	int np;
 
 	// Initialisation
-	np = count(istreambuf_iterator<char>(file), std::istreambuf_iterator<char>(), '\n')-5; // remove 4 non particle related lines
+	np = count(istreambuf_iterator<char>(file), istreambuf_iterator<char>(), '\n')-5; // remove 4 non particle related lines
 	printf("Number of ptc %d\n", np);
 	file.clear();                 // clear fail and eof bits
 	file.seekg(0, ios::beg);
@@ -659,7 +659,7 @@ void JPartDataBi4::ReadCsv_M(int n_start, bool possingle) {
 	unsigned np;
 
 	// Initialisation
-	np = count(istreambuf_iterator<char>(file), std::istreambuf_iterator<char>(), '\n') - 5; // remove 4 non particle related lines
+	np = count(istreambuf_iterator<char>(file), istreambuf_iterator<char>(), '\n') - 5; // remove 4 non particle related lines
 	file.clear();                 // clear fail and eof bits
 	file.seekg(0, ios::beg);
 

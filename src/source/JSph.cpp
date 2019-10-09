@@ -43,9 +43,9 @@
 #include "JDamping.h"
 #include "JSphInitialize.h"
 #include <climits>
+#include <string>
 #include <iostream>
 #include <sstream>
-#include <string>
 
 //using namespace std;
 using std::string;
@@ -156,8 +156,8 @@ void JSph::InitVars(){
   Dosh=H2=Fourh2=Eta2=0;
   SpsSmag=SpsBlin=0;
   // Matthias
-  LocDiv_M = { 0,0,0 };
-  VelDiv_M = { 0,0,0 };
+  LocDiv_M = TDouble3(0,0,0);
+  VelDiv_M = TDouble3(0,0,0);
   VelDivCoef_M = 0;
   PoreZero = RateBirth_M = Spread_M = 0;
   LambdaMass = 0;
@@ -2413,8 +2413,8 @@ void JSph::SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, con
 		for (unsigned p = 0; p<npok; p++) {
 			const unsigned id = idp[p];
 			type[p] = (id >= CaseNbound ? 3 : (id<CaseNfixed ? 0 : (id<CaseNpb ? 1 : 2)));
-			stra[p] = { tau[p].xx, tau[p].yy, tau[p].zz };
-			sdev[p] = { tau[p].xy, tau[p].xz, tau[p].yz };
+			stra[p] = TFloat3( tau[p].xx, tau[p].yy, tau[p].zz );
+			sdev[p] = TFloat3( tau[p].xy, tau[p].xz, tau[p].yz );
 		}
 		//-Define campos a grabar.
 		//-Defines fields to be stored.
