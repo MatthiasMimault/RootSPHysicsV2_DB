@@ -1314,57 +1314,74 @@ void JSph::UpdateCaseConfig_Mixed_M() {
 	std::ifstream file("Data.csv");
 	std::vector<string> row;
 	string line, word;
-	int np;
-
-	// Initialisation
-	np = count(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>(), '\n') - 5; // remove 4 non particle related lines
-
-	//TiXmlNode* node = xml.GetNode("case", false);
-	int res;
-	(((xml.GetNode("case.execution.particles._summary.fixed", false))->ToElement())->QueryIntAttribute("count", &res));
-
-	// Modify particles node
-	TiXmlNode* particles = xml.GetNode("case.execution.particles", false);
-	int np_temp;
-	(particles->ToElement())->QueryIntAttribute("np", &np_temp);
-	(particles->ToElement())->RemoveAttribute("np");
-	(particles->ToElement())->SetAttribute("np", np_temp+np); // new number of ptcs
+	//int np;
 	
-	// V2 fluid _summary
-	/*TiXmlElement fluid_summary("fluid");
-	JXml::AddAttribute(&fluid_summary, "count", 1);
-	JXml::AddAttribute(&fluid_summary, "id", "1179-1179"); // wrong value
-	JXml::AddAttribute(&fluid_summary, "mkcount", 1);
-	JXml::AddAttribute(&fluid_summary, "mkvalues", 1);
+	// Initialisation
+	if (!xml.ExistsAttribute((xml.GetNode("case.execution.particles._summary.root", true))->ToElement(), "loaded")) {
+		((xml.GetNode("case.execution.particles._summary.root", true))->ToElement())->SetAttribute("loaded", 1);
+		int np = (int)count(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>(), '\n') - 5; // remove 4 non particle related lines
 
-	TiXmlElement fluid("fluid");
-	JXml::AddAttribute(&fluid, "mkfluid", "0");
-	JXml::AddAttribute(&fluid, "mk", 1);
-	JXml::AddAttribute(&fluid, "begin", 1179);
-	JXml::AddAttribute(&fluid, "count", 1);*/
+		// Set fluid counters
+		//CODE HERE//
 
-	// V3 fluid
-	TiXmlElement fluid_summary("fluid");
-	JXml::AddAttribute(&fluid_summary, "count", np);
-	//string s = to_string(42);
-	string s = std::to_string(res)+ "-" + std::to_string(res+np);
-	JXml::AddAttribute(&fluid_summary, "id", s); // wrong value
-	JXml::AddAttribute(&fluid_summary, "mkcount", 1);
-	JXml::AddAttribute(&fluid_summary, "mkvalues", 1);
+		//TiXmlNode* node = xml.GetNode("case", false);
+		int res;
+		(((xml.GetNode("case.execution.particles._summary.fixed", false))->ToElement())->QueryIntAttribute("count", &res));
 
-	TiXmlElement fluid("fluid");
-	JXml::AddAttribute(&fluid, "mkfluid", "0");
-	JXml::AddAttribute(&fluid, "mk", 1);
-	JXml::AddAttribute(&fluid, "begin", res);
-	JXml::AddAttribute(&fluid, "count", np);
+		// Modify particles node
+		TiXmlNode* particles = xml.GetNode("case.execution.particles", false);
+		int np_temp;
+		(particles->ToElement())->QueryIntAttribute("np", &np_temp);
+		(particles->ToElement())->RemoveAttribute("np");
+		(particles->ToElement())->SetAttribute("np", np_temp + np); // new number of ptcs
 
+		// V2 fluid _summary
+		/*TiXmlElement fluid_summary("fluid");
+		JXml::AddAttribute(&fluid_summary, "count", 1);
+		JXml::AddAttribute(&fluid_summary, "id", "1179-1179"); // wrong value
+		JXml::AddAttribute(&fluid_summary, "mkcount", 1);
+		JXml::AddAttribute(&fluid_summary, "mkvalues", 1);
 
-	// Save / update XML
-	xml.GetNode("case.execution.particles._summary", true)->InsertEndChild(fluid_summary);
-	xml.GetNode("case.execution.particles", true)->InsertEndChild(fluid);
-	if (false) xml.SaveFile(FileXml+"XXXMMMLLL.xml");//save the xml file
-	else xml.SaveFile(FileXml);//save the xml file
+		TiXmlElement fluid("fluid");
+		JXml::AddAttribute(&fluid, "mkfluid", "0");
+		JXml::AddAttribute(&fluid, "mk", 1);
+		JXml::AddAttribute(&fluid, "begin", 1179);
+		JXml::AddAttribute(&fluid, "count", 1);*/
 
+		// V3 fluid
+		if (!xml.ExistsAttribute((xml.GetNode("case.execution.particles._summary.fluid", true))->ToElement(), "count")) {
+			TiXmlElement fluid_summary("fluid");
+			JXml::AddAttribute(&fluid_summary, "count", np);
+			string s = std::to_string(res) + "-" + std::to_string(res + np);
+			JXml::AddAttribute(&fluid_summary, "id", s); // wrong value
+			JXml::AddAttribute(&fluid_summary, "mkcount", 1);
+			JXml::AddAttribute(&fluid_summary, "mkvalues", 1);
+
+			TiXmlElement fluid("fluid");
+			JXml::AddAttribute(&fluid, "mkfluid", "0");
+			JXml::AddAttribute(&fluid, "mk", 1);
+			JXml::AddAttribute(&fluid, "begin", res);
+			JXml::AddAttribute(&fluid, "count", np);
+
+			// Save / update XML
+			xml.GetNode("case.execution.particles._summary", true)->InsertEndChild(fluid_summary);
+			xml.GetNode("case.execution.particles", true)->InsertEndChild(fluid);
+		}
+		else {
+			TiXmlNode* fluid_summary = xml.GetNode("case.execution.particles._summary.fluid", false);
+			int mkcounter_fluid = xml.ExistsAttribute(fluid_summary->ToElement(), "mkcount");
+			(fluid_summary->ToElement())->SetAttribute("count", np); // new number of ptcs
+			string s = std::to_string(res) + "-" + std::to_string(res + np);
+			(fluid_summary->ToElement())->SetAttribute("id", s.c_str()); // new number of ptcs
+			(fluid_summary->ToElement())->SetAttribute("mkcount", mkcounter_fluid+1); // new number of ptcs
+			string s2 = std::to_string(1) + "-" + std::to_string(mkcounter_fluid + 1);
+			(fluid_summary->ToElement())->SetAttribute("count", s2.c_str()); // new number of ptcs
+
+		}
+
+		if (false) xml.SaveFile(FileXml + "XXXMMMLLL.xml");//save the xml file
+		else xml.SaveFile(FileXml);//save the xml file
+	}
 }
 
 //==============================================================================

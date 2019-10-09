@@ -9795,8 +9795,8 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT(double dt) {
 // #Symplectic_M #Version
 /// /////////////////////////////////////////////
 void JSphSolidCpu::ComputeSymplecticPre_M(double dt) {
-	bool deve = true;
-	if (deve) {
+	bool bdycompress = true;
+	if (bdycompress) {
 		if (TShifting)ComputeSymplecticPreT_CompressBdy_M<false>(dt); //-We strongly recommend running the shifting correction only for the corrector. 
 		else         ComputeSymplecticPreT_CompressBdy_M<false>(dt); // If you want to re-enable shifting in the predictor, change the value here to "true".
 	}
@@ -10169,8 +10169,8 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticPreT_CompressBdy_M(doub
 }
 
 void JSphSolidCpu::ComputeSymplecticCorr_M(double dt) {
-	bool deve = true;
-	if (deve) {
+	bool bdycompress = true;
+	if (bdycompress) {
 		// if (TShifting)ComputeSymplecticCorrT_BlockBdy_M<true>(dt);
 		// else          ComputeSymplecticCorrT_BlockBdy_M<false>(dt);
 		if (TShifting)ComputeSymplecticCorrT_CompressBdy_M<true>(dt);
@@ -10453,9 +10453,10 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT_CompressBdy_M(dou
 		const float rhopnew = float(double(VelrhopPrec[p].w) * (2. - epsilon_rdot) / (2. + epsilon_rdot));
 
 		// #Mobile #Bdy
-		// Give a velocity to the compressive part only during a certain time (50 s for 0.02 mm)
+		// Give a velocity to the compressive part only during a certain time (5000 s for 0.02 mm)
+		// Give a velocity to the compressive part only during a certain time (2500 s for 0.01 mm)
 		if (Posc[p].x > 0.0 && TimeStep < 5000.0) {
-			Velrhopc[p] = TFloat4(-0.02f / 5000.0f, 0, 0, (rhopnew < RhopZero ? RhopZero : rhopnew));
+			Velrhopc[p] = TFloat4(-0.01f / 2500.0f, 0, 0, (rhopnew < RhopZero ? RhopZero : rhopnew));
 			double dx = double(VelrhopPrec[p].x) * dt05;
 			double dy = double(VelrhopPrec[p].y) * dt05;
 			double dz = double(VelrhopPrec[p].z) * dt05;
