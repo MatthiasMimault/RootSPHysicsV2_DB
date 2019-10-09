@@ -2177,7 +2177,7 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
   GenCaseBis_T gcb;
   gcb.UseGencase(cfg->RunPath);
   // Deve region
-  if (false) {
+  if (true) {
 	  LoadConfig_Mixed_M(cfg); // XML reading, especially dp dimensions, update XML with Data.csv
 	  LoadCaseParticles_Mixed_M(); // generation particle from .bi4 and .csv, update .bi4 (ongoing)
 	  ConfigConstants(Simulate2D);
