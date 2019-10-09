@@ -20,3 +20,6 @@ bin/windows/*.ipdb
 bin/windows/*.pdb
 bin/windows/*.ilk
 bin/windows/DualSPHysics*
+
+## Ignores additional library Eigen (installed by hand)
+src/lib/EigenLibs/*
