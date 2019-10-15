@@ -1140,7 +1140,7 @@ void JSphSolidCpu::InitRun_Mixed_M() {
 		memcpy(MassM1c_M, Massc_M, sizeof(float) * Np);
 		VerletStep = 0;
 		for (unsigned p = 0; p < Np; p++) {
-			const double dp = pow(3.0 / 4.0 / PI * Massc_M[p] / RhopZero, 1 / 3);
+			const double dp = pow(3.0 / 32.0 / PI * Massc_M[p] / RhopZero, 1 / 3);
 			//MassM1c_M[p] = MassFluid;
 			QuadFormM1c_M[p] = TSymatrix3f(4 / float(pow(dp, 2)), 0, 0, 4 / float(pow(dp, 2)), 0, 4 / float(pow(dp, 2)));
 		}
@@ -1154,7 +1154,7 @@ void JSphSolidCpu::InitRun_Mixed_M() {
 	memset(Divisionc_M, 0, sizeof(bool) * Np);
 	
 	for (unsigned p = 0; p < Np; p++) {
-		const double dp = pow(3.0 / 4.0 / PI * Massc_M[p] / RhopZero, 1.0 / 3.0);
+		const double dp = pow(3.0 / 32.0 / PI * Massc_M[p] / RhopZero, 1.0 / 3.0);
 		QuadFormc_M[p] = TSymatrix3f(4 / float(pow(dp, 2)), 0, 0, 4 / float(pow(dp, 2)), 0, 4 / float(pow(dp, 2)));		
 	}
 	memset(VonMises3D, 0, sizeof(float) * Np);
