@@ -10453,10 +10453,9 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT_CompressBdy_M(dou
 		const float rhopnew = float(double(VelrhopPrec[p].w) * (2. - epsilon_rdot) / (2. + epsilon_rdot));
 
 		// #Mobile #Bdy
-		// Give a velocity to the compressive part only during a certain time (5000 s for 0.02 mm)
-		// Give a velocity to the compressive part only during a certain time (2500 s for 0.01 mm)
-		if (Posc[p].x > 0.0 && TimeStep < 2500.0) {
-			Velrhopc[p] = TFloat4(-0.01f / 2500.0f, 0, 0, (rhopnew < RhopZero ? RhopZero : rhopnew));
+		// Give a velocity to the compressive part only during a certain time (0.5 h for 0.01 mm)
+		if (Posc[p].x > 0.0 && TimeStep < 0.5) {
+			Velrhopc[p] = TFloat4(-0.01f / 0.5f, 0, 0, (rhopnew < RhopZero ? RhopZero : rhopnew));
 			double dx = double(VelrhopPrec[p].x) * dt05;
 			double dy = double(VelrhopPrec[p].y) * dt05;
 			double dz = double(VelrhopPrec[p].z) * dt05;
