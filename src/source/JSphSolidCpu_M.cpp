@@ -1144,7 +1144,7 @@ void JSphSolidCpu::InitRun_Mixed_M() {
 			//const double dp = pow(3.0 / 32.0 / PI * Massc_M[p] / RhopZero, 1 / 3);
 			const double dp = pow(Massc_M[p] / RhopZero, 1.0f / 3.0f);
 			//MassM1c_M[p] = MassFluid;
-			QuadFormM1c_M[p] = TSymatrix3f(16.0f / float(pow(dp, 2)), 0, 0, 16.0f / float(pow(dp, 2)), 0, 16.0f / float(pow(dp, 2)));
+			QuadFormM1c_M[p] = TSymatrix3f(4.0f / float(pow(dp, 2)), 0, 0, 4.0f / float(pow(dp, 2)), 0, 4.0f / float(pow(dp, 2)));
 		}
 	}
 	else if (TStep == STEP_Symplectic)DtPre = DtIni;
@@ -1158,7 +1158,7 @@ void JSphSolidCpu::InitRun_Mixed_M() {
 	for (unsigned p = 0; p < Np; p++) {
 		//const double dp = pow(3.0 / 32.0 / PI * Massc_M[p] / RhopZero, 1 / 3);
 		const double dp = pow(Massc_M[p] / RhopZero, 1.0f / 3.0f);
-		QuadFormc_M[p] = TSymatrix3f(16.0f / float(pow(dp, 2)), 0, 0, 16.0f / float(pow(dp, 2)), 0, 16.0f / float(pow(dp, 2)));
+		QuadFormc_M[p] = TSymatrix3f(4.0f / float(pow(dp, 2)), 0, 0, 4.0f / float(pow(dp, 2)), 0, 4.0f / float(pow(dp, 2)));
 	}
 	memset(VonMises3D, 0, sizeof(float) * Np);
 	memset(GradVelSave, 0, sizeof(float) * Np);
