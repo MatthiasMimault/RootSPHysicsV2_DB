@@ -1129,6 +1129,7 @@ void JSphSolidCpu::InitRun_T(JPartsLoad4 *pl) {
 //==============================================================================
 /// Initialisation of arrays and variables for execution.
 /// Inicializa vectores y variables para la ejecucion.
+/// #quadform #initialisation
 //==============================================================================
 void JSphSolidCpu::InitRun_Mixed_M() {
 	const char met[] = "InitRun_Mixed_M";
@@ -1140,9 +1141,10 @@ void JSphSolidCpu::InitRun_Mixed_M() {
 		memcpy(MassM1c_M, Massc_M, sizeof(float) * Np);
 		VerletStep = 0;
 		for (unsigned p = 0; p < Np; p++) {
-			const double dp = pow(3.0 / 32.0 / PI * Massc_M[p] / RhopZero, 1 / 3);
+			//const double dp = pow(3.0 / 32.0 / PI * Massc_M[p] / RhopZero, 1 / 3);
+			const double dp = pow(Massc_M[p] / RhopZero, 1.0f / 3.0f);
 			//MassM1c_M[p] = MassFluid;
-			QuadFormM1c_M[p] = TSymatrix3f(4 / float(pow(dp, 2)), 0, 0, 4 / float(pow(dp, 2)), 0, 4 / float(pow(dp, 2)));
+			QuadFormM1c_M[p] = TSymatrix3f(16.0f / float(pow(dp, 2)), 0, 0, 16.0f / float(pow(dp, 2)), 0, 16.0f / float(pow(dp, 2)));
 		}
 	}
 	else if (TStep == STEP_Symplectic)DtPre = DtIni;
@@ -1154,8 +1156,9 @@ void JSphSolidCpu::InitRun_Mixed_M() {
 	memset(Divisionc_M, 0, sizeof(bool) * Np);
 	
 	for (unsigned p = 0; p < Np; p++) {
-		const double dp = pow(3.0 / 32.0 / PI * Massc_M[p] / RhopZero, 1.0 / 3.0);
-		QuadFormc_M[p] = TSymatrix3f(4 / float(pow(dp, 2)), 0, 0, 4 / float(pow(dp, 2)), 0, 4 / float(pow(dp, 2)));		
+		//const double dp = pow(3.0 / 32.0 / PI * Massc_M[p] / RhopZero, 1 / 3);
+		const double dp = pow(Massc_M[p] / RhopZero, 1.0f / 3.0f);
+		QuadFormc_M[p] = TSymatrix3f(16.0f / float(pow(dp, 2)), 0, 0, 16.0f / float(pow(dp, 2)), 0, 16.0f / float(pow(dp, 2)));
 	}
 	memset(VonMises3D, 0, sizeof(float) * Np);
 	memset(GradVelSave, 0, sizeof(float) * Np);

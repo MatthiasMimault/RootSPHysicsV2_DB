@@ -6,6 +6,6 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LocalDebuggerWorkingDirectory>..\..\debug\1-MixedRoot</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerCommandArguments>-cpu DBG-MixedRoot_out\DBG-MixedRoot DBG-MixedRoot_out -dirdataout data -svres</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-cpu DBG-QuadfromGeneration_out\DBG-QuadfromGeneration DBG-QuadfromGeneration_out -dirdataout data -svres</LocalDebuggerCommandArguments>
   </PropertyGroup>
 </Project>
