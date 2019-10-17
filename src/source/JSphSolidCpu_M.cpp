@@ -10190,6 +10190,8 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT_M(double dt) {
 
 	//-Calculate rhop of boudary and set velocity=0. | Calcula rhop de contorno y vel igual a cero.
 	const int npb = int(Npb);
+
+	//
 #ifdef OMP_USE
 #pragma omp parallel for schedule (static) if(npb>OMP_LIMIT_COMPUTESTEP)
 #endif
@@ -10545,13 +10547,13 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT_CompressBdy_M(dou
 			QuadFormc_M[p].zz = float(DQD.a33);
 
 			// Source Density and Mass - To be moved upward, with E_rdot
-			const float volu = float(double(MassPrec_M[p]) / double(rhopnew));
-			float adens = float(LambdaMass) * (RhopZero / Velrhopc[p].w - 1);
+			//const float volu = float(double(MassPrec_M[p]) / double(rhopnew));
+			//float adens = float(LambdaMass) * (RhopZero / Velrhopc[p].w - 1);
 			//float adens = float(LambdaMass);
 
 			// #Growth regional
-			rhopnew = float(rhopnew + dt * adens);
-			Massc_M[p] = float(double(MassPrec_M[p]) + dt * double(adens * volu));
+			//rhopnew = float(rhopnew + dt * adens);
+			//Massc_M[p] = float(double(MassPrec_M[p]) + dt * double(adens * volu));
 
 
 
@@ -10560,6 +10562,7 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT_CompressBdy_M(dou
 			Massc_M[p] = float(double(MassPrec_M[p]) + dt * double(adens * volu));*/
 
 			Velrhopc[p].w = rhopnew;
+
 		}
 		else {//-Floating Particles.
 			Velrhopc[p] = VelrhopPrec[p];
@@ -10567,7 +10570,10 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT_CompressBdy_M(dou
 																	 //-Copy position. | Copia posicion.
 			Posc[p] = PosPrec[p];
 		}
+
 	}
+	// Growth function
+	GrowthCell_M(dt);
 
 	//-Free memory assigned to variables Pre and ComputeSymplecticPre(). | Libera memoria asignada a variables Pre en ComputeSymplecticPre().
 	ArraysCpu->Free(PosPrec);         PosPrec = NULL;
@@ -10578,6 +10584,36 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT_CompressBdy_M(dou
 	TmcStop(Timers, TMC_SuComputeStep);
 }
 // End Symplectic_M
+
+void JSphSolidCpu::GrowthCell_M(double dt) {
+// #Growth
+	int typeGrowth = 1; // (default: no Growth, 0: old growth lambda, 1: 4.1%h-1)
+	const int npb = int(Npb);
+	const int np = int(Np);
+
+#ifdef OMP_USE
+#pragma omp parallel for schedule (static) if(np>OMP_LIMIT_COMPUTESTEP)
+#endif
+	
+	for (int p = npb; p < np; p++) {
+		switch (typeGrowth) {
+			case 0: {
+				const double volu = double(MassPrec_M[p]) / double(Velrhopc[p].w);
+				const double adens = float(LambdaMass) * (RhopZero / Velrhopc[p].w - 1);
+				Massc_M[p] = float(double(MassPrec_M[p]) + dt * adens * volu);
+				Velrhopc[p].w = float(Velrhopc[p].w + dt * adens);
+				break;
+			}
+			case 1: {
+				const double volu = double(MassPrec_M[p]) / double(Velrhopc[p].w);
+				Massc_M[p] = float(double(MassPrec_M[p]) * (1.0 + dt * 4.1));
+				Velrhopc[p].w = float(Massc_M[p] / volu);
+				break;
+			}
+		}
+	}
+
+}
 
 // #CstVel - Special reformulation of Update with constant velocity
 void JSphSolidCpu::ComputeSymplecticPre_VelCst_M(double dt) {

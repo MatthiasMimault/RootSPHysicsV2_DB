@@ -591,6 +591,8 @@ protected:
 	template<bool shift> void ComputeSymplecticCorrVcT_M(double dt);
 	void ComputeSymplecticCorr_VelCst_M(double dt);
 
+	void GrowthCell_M(double dt);
+
 	template<bool shift> void ComputeSymplecticPreT_SigCst_M(double dt);
 	void ComputeSymplecticPre_SigCst_M(double dt);
 	template<bool shift> void ComputeSymplecticCorrT_SigCst_M(double dt);
