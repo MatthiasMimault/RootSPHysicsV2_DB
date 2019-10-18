@@ -147,6 +147,7 @@ void JSph::InitVars(){
 
   H=CteB=Gamma=RhopZero=CFLnumber=0;
   // Matthias
+  typeCase = typeCompression = typeGrowth = typeDivision = 0;
   CteB_M = TFloat3(0, 0, 0);
   Dp=0;
   Cs0=0;
@@ -800,6 +801,12 @@ void JSph::LoadCaseConfig(){
   MassFluid=(float)ctes.GetMassFluid();
   MassBound=(float)ctes.GetMassBound();
   //Matthias
+  // Simulation #choices markers
+  typeCase = ctes.GetCase();
+  typeCompression = ctes.GetComp();
+  typeDivision = ctes.GetDiv();
+  typeGrowth = ctes.GetGrow();
+
   // Activation des conditions de bord
   PlanMirror = (float)ctes.GetPlanMirror();
 

@@ -9798,16 +9798,20 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT(double dt) {
 // #Symplectic_M #Version
 /// /////////////////////////////////////////////
 void JSphSolidCpu::ComputeSymplecticPre_M(double dt) {
-	bool bdycompress = true;
-	if (bdycompress) {
-		if (TShifting)ComputeSymplecticPreT_CompressBdy_M<false>(dt); //-We strongly recommend running the shifting correction only for the corrector. 
-		else         ComputeSymplecticPreT_CompressBdy_M<false>(dt); // If you want to re-enable shifting in the predictor, change the value here to "true".
-	}
-	else {
+	switch (typeCompression) {
+	case 0: {
+		// No compression
 		if (TShifting)ComputeSymplecticPreT_M<false>(dt); //-We strongly recommend running the shifting correction only for the corrector. 
 		else         ComputeSymplecticPreT_M<false>(dt); // If you want to re-enable shifting in the predictor, change the value here to "true".	
+		break;
 	}
-
+	case 1: {
+		// Compression from tip boundary
+		if (TShifting)ComputeSymplecticPreT_CompressBdy_M<false>(dt); //-We strongly recommend running the shifting correction only for the corrector. 
+		else         ComputeSymplecticPreT_CompressBdy_M<false>(dt); // If you want to re-enable shifting in the predictor, change the value here to "true".
+		break;
+	}
+	}
 }
 
 template<bool shift> void JSphSolidCpu::ComputeSymplecticPreT_M(double dt) {
@@ -10172,16 +10176,20 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticPreT_CompressBdy_M(doub
 }
 
 void JSphSolidCpu::ComputeSymplecticCorr_M(double dt) {
-	bool bdycompress = true;
-	if (bdycompress) {
-		// if (TShifting)ComputeSymplecticCorrT_BlockBdy_M<true>(dt);
-		// else          ComputeSymplecticCorrT_BlockBdy_M<false>(dt);
-		if (TShifting)ComputeSymplecticCorrT_CompressBdy_M<true>(dt);
-		else          ComputeSymplecticCorrT_CompressBdy_M<false>(dt);
-	}
-	else {
+
+	switch (typeCompression) {
+	case 0: {
+		// No compression
 		if (TShifting)ComputeSymplecticCorrT_M<true>(dt);
 		else          ComputeSymplecticCorrT_M<false>(dt);
+		break;
+	}
+	case 1: {
+		// Compression from tip boundary
+		if (TShifting)ComputeSymplecticCorrT_CompressBdy_M<true>(dt);
+		else          ComputeSymplecticCorrT_CompressBdy_M<false>(dt);
+		break;
+	}
 	}
 }
 
@@ -10587,15 +10595,19 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT_CompressBdy_M(dou
 
 void JSphSolidCpu::GrowthCell_M(double dt) {
 // #Growth
-	int typeGrowth = 1; // (default: no Growth, 0: old growth lambda, 1: 4.1%h-1)
+	//int typeGrowth = 2; // (default: no Growth, 0: old growth lambda, 1: 4.1%h-1, 2: variation Beemster1998)
 	const int npb = int(Npb);
 	const int np = int(Np);
+	//maxPosX = 0.15f;
+	maxPosX = MaxPosition().x;
 
-#ifdef OMP_USE
+/*#ifdef OMP_USE
 #pragma omp parallel for schedule (static) if(np>OMP_LIMIT_COMPUTESTEP)
-#endif
+#endif*/
+
 	
 	for (int p = npb; p < np; p++) {
+		float rate = GrowthRateSpace(float(Posc[p].x));
 		switch (typeGrowth) {
 			case 0: {
 				const double volu = double(MassPrec_M[p]) / double(Velrhopc[p].w);
@@ -10606,13 +10618,59 @@ void JSphSolidCpu::GrowthCell_M(double dt) {
 			}
 			case 1: {
 				const double volu = double(MassPrec_M[p]) / double(Velrhopc[p].w);
-				Massc_M[p] = float(double(MassPrec_M[p]) * (1.0 + dt * 4.1));
+				Massc_M[p] = float(double(MassPrec_M[p]) * (1.0 + dt * 4.1 / 100.0));
+				Velrhopc[p].w = float(Massc_M[p] / volu);
+				break;
+			}
+			case 2: {
+				const double volu = double(MassPrec_M[p]) / double(Velrhopc[p].w);				
+				Massc_M[p] = float(double(MassPrec_M[p]) * (1.0 + dt * double(GrowthRateSpace(float(Posc[p].x))) / 100.0));
 				Velrhopc[p].w = float(Massc_M[p] / volu);
 				break;
 			}
 		}
 	}
 
+}
+
+// #Growth function - Beemster 1998 approx
+float JSphSolidCpu::GrowthRateSpace(float pos) {
+	float distance = abs(pos - maxPosX);
+	if (distance < 0.5f) {
+		return 13.0f / 0.5f * distance + 2.0f;
+	}
+	else if (distance < 1.0f) {
+		return -11.0f / 0.5f * distance + 26.0f;
+	}
+	else {
+		return -4.0f / 0.5f * distance + 12.0f;
+	}
+}
+
+float JSphSolidCpu::MaxValueParticles(float* field) {
+	float maxValue = 0.0f;
+	const int npb = int(Npb);
+	const int np = int(Np);
+#ifdef OMP_USE
+#pragma omp parallel for schedule (static) if(npb>OMP_LIMIT_COMPUTESTEP)
+#endif
+	for (int p = 0; p < np; p++) maxValue = max(field[p], maxValue);
+	return maxValue;
+}
+
+tfloat3 JSphSolidCpu::MaxPosition() {
+	tfloat3 maxValue = TFloat3(0.0f);
+	const int npb = int(Npb);
+	const int np = int(Np);
+#ifdef OMP_USE
+#pragma omp parallel for schedule (static) if(npb>OMP_LIMIT_COMPUTESTEP)
+#endif
+	for (int p = 0; p < np; p++) {
+		maxValue.x = max(float(Posc[p].x), maxValue.x);
+		maxValue.y = max(float(Posc[p].y), maxValue.y);
+		maxValue.z = max(float(Posc[p].z), maxValue.z);
+	}	
+	return maxValue;
 }
 
 // #CstVel - Special reformulation of Update with constant velocity

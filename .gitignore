@@ -24,3 +24,4 @@ bin/windows/DualSPHysics*
 ## Ignores additional library Eigen (installed by hand)
 src/lib/EigenLibs/*
 /debug/1-MixedRoot
+/debug/2-FreeCylinder

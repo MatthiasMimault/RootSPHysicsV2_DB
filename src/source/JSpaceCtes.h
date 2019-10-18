@@ -113,6 +113,9 @@ private:
   double MassFluid;       ///<Mass of a fluid particle.
 
   // Matthias
+  // Simulation choices
+  int typeCase, typeCompression, typeGrowth, typeDivision;
+
   // Bord mirroir
   double PlanMirror;
   // Extension domain
@@ -179,6 +182,13 @@ public:
   double GetGamma()const{ return(Gamma); }
   double GetRhop0()const{ return(Rhop0); }
   double GetEps()const{ return(Eps); }
+  
+  // Simulation choices
+  int GetCase()const { return typeCase; }
+  int GetComp()const { return typeCompression; }
+  int GetDiv()const { return typeDivision; }
+  int GetGrow()const { return typeGrowth; }
+
   // Extension Domain
   double GetBordDomain()const { return BordDomain; }
 
@@ -226,6 +236,12 @@ public:
   void SetRhop0(double v){ Rhop0=v; }
   void SetEps(double v){ Eps=v; }
   // Matthias
+  // Simulation choices
+  void SetCase(int v) { typeCase = v; }
+  void SetComp(int v) { typeCompression = v; }
+  void SetDiv(int v) { typeDivision = v; }
+  void SetGrow(int v) { typeGrowth = v; }
+
   // Plan mirroir
   void SetPlanMirror(double v) { PlanMirror = v; }
   // Extension Domain
