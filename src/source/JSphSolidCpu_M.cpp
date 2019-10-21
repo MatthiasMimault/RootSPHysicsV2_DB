@@ -10637,13 +10637,13 @@ void JSphSolidCpu::GrowthCell_M(double dt) {
 float JSphSolidCpu::GrowthRateSpace(float pos) {
 	float distance = abs(pos - maxPosX);
 	if (distance < 0.5f) {
-		return 13.0f / 0.5f * distance + 2.0f;
+		return 26.0f * distance + 2.0f;
 	}
 	else if (distance < 1.0f) {
-		return -11.0f / 0.5f * distance + 26.0f;
+		return -22.0f * distance + 26.0f;
 	}
 	else {
-		return -4.0f / 0.5f * distance + 12.0f;
+		return -8.0f * distance + 12.0f;
 	}
 }
 
