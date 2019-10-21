@@ -125,6 +125,9 @@ protected:
 	float* GradVelSave;
 	unsigned* CellOffSpring;
 
+	// Matthias - Root geometry data
+	float maxPosX;
+
 						 //-Variables for Laminar+SPS viscosity.  
 	tsymatrix3f *SpsTauc;       ///<SPS sub-particle stress tensor.
 	tsymatrix3f *SpsGradvelc;   ///<Velocity gradients.
@@ -192,7 +195,7 @@ protected:
 		, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, typecode *code);
 	unsigned GetParticlesData_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
 		, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, tfloat3 *press, float* mass, tsymatrix3f *tau, typecode *code);
-	unsigned GetParticlesData_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal, unsigned* idp, tdouble3* pos, tfloat3* vel, float* rhop, float* pore, tfloat3* press, float* mass, tsymatrix3f* tau, float* vonMises, typecode* code);
+	//unsigned GetParticlesData_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal, unsigned* idp, tdouble3* pos, tfloat3* vel, float* rhop, float* pore, tfloat3* press, float* mass, tsymatrix3f* tau, float* vonMises, typecode* code);
 	unsigned GetParticlesData_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
 		, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, tfloat3 *press, float* mass, tsymatrix3f *gradvel, tsymatrix3f *tau, typecode *code);
 	unsigned GetParticlesData_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
@@ -547,7 +550,7 @@ protected:
 
 	void ComputeSpsTau(unsigned n, unsigned pini, const tfloat4 *velrhop, const tsymatrix3f *gradvel, tsymatrix3f *tau)const;
 	void ComputeJauTauDot_M(unsigned n, unsigned pini, const tsymatrix3f *gradvel, tsymatrix3f *tau, tsymatrix3f *taudot, tsymatrix3f *omega)const;
-	void ComputeJauTauDotImplicit_M(unsigned n, unsigned pini, const double dt, const tsymatrix3f *gradvel, tsymatrix3f *tau, tsymatrix3f *taudot, tsymatrix3f *omega)const;
+	//void ComputeJauTauDotImplicit_M(unsigned n, unsigned pini, const double dt, const tsymatrix3f *gradvel, tsymatrix3f *tau, tsymatrix3f *taudot, tsymatrix3f *omega)const;
 
 	template<bool shift> void ComputeVerletVarsFluid(const tfloat4 *velrhop1, const tfloat4 *velrhop2, double dt, double dt2, tdouble3 *pos, unsigned *cell, typecode *code, tfloat4 *velrhopnew)const;
 	// Matthias
@@ -592,6 +595,9 @@ protected:
 	void ComputeSymplecticCorr_VelCst_M(double dt);
 
 	void GrowthCell_M(double dt);
+	float GrowthRateSpace(float pos);
+	float MaxValueParticles(float* field); 
+	tfloat3 MaxPosition();
 
 	template<bool shift> void ComputeSymplecticPreT_SigCst_M(double dt);
 	void ComputeSymplecticPre_SigCst_M(double dt);
