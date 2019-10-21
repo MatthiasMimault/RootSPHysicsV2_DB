@@ -10606,7 +10606,7 @@ void JSphSolidCpu::GrowthCell_M(double dt) {
 			}
 			case 1: {
 				const double volu = double(MassPrec_M[p]) / double(Velrhopc[p].w);
-				Massc_M[p] = float(double(MassPrec_M[p]) * (1.0 + dt * 4.1));
+				Massc_M[p] = float(double(MassPrec_M[p]) * (1.0 + dt * 4.1 / 100.0));
 				Velrhopc[p].w = float(Massc_M[p] / volu);
 				break;
 			}
