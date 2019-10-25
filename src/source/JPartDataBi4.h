@@ -249,6 +249,7 @@ class JPartDataBi4 : protected JObject
 	/////////////////////////////////////////////////////
   void ReadCsv_M();
   void ReadCsv_M(int n_start, bool possingle);
+  void ReadCsv_M(int n_start, bool possingle, std::string datacsvname);
 };
 
 

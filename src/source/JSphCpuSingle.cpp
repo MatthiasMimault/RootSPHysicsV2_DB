@@ -230,7 +230,8 @@ void JSphCpuSingle::LoadCaseParticles_Mixed_M() {
 
 	// #GenU #UniqueParticle
 	// Gener here unique particle, then particle with boundary
-	PartsLoaded->LoadParticles_Mixed2_M(DirCase, CaseName, PartBegin, PartBeginDir, DirCase);	
+	//PartsLoaded->LoadParticles_Mixed2_M(DirCase, CaseName, PartBegin, PartBeginDir, DirCase);	
+	PartsLoaded->LoadParticles_Mixed3_M(DirCase, CaseName, PartBegin, PartBeginDir, DirCase, Datacsvname);	
 	PartsLoaded->CheckConfig(CaseNp, CaseNfixed, CaseNmoving, CaseNfloat, CaseNfluid, PeriX, PeriY, PeriZ);
 
 	Log->Printf("Loaded particles: %u", PartsLoaded->GetCount());
@@ -2174,6 +2175,10 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
   //Log->Printf("\n---PartBeginDir : %s---\n", cfg->PartBeginDir.c_str());
   //Log->Printf("\n---CaseName : %s---\n", cfg->CaseName.c_str()); 
 
+  // #temp fix typeCase must be updated before the switch, or the switch should be postponed and a similar trunk must be defined
+  typeCase = 1;
+  
+// #typeCase #init
   switch (typeCase) {
   case 0: {
 	  LoadConfig(cfg);

@@ -88,6 +88,9 @@ protected:
   tfloat4 *VelRhop;
   float *Mass;
 
+  // Matthias
+  //string Datacsvname;
+
   void AllocMemory(unsigned count);
   template<typename T> T* SortParticles(const unsigned *vsort,unsigned count,T *v)const;
   void SortParticles();
@@ -102,6 +105,8 @@ public:
   void LoadParticles_Mixed_M(const std::string& casedir, const std::string& casename, unsigned partbegin, const std::string& casedirbegin);
   void LoadParticles_Mixed2_M(const std::string& casedir, const std::string& casename, unsigned partbegin
 	  , const std::string& casedirbegin, const std::string& datacasename);
+  void LoadParticles_Mixed3_M(const std::string& casedir, const std::string& casename, unsigned partbegin
+	  , const std::string& casedirbegin, const std::string& datacasename, const std::string& datacsvname);
   void LoadParticles_T(const std::string &casedir, const std::string &casename, unsigned partbegin, const std::string &casedirbegin);
   void CheckConfig(ullong casenp,ullong casenfixed,ullong casenmoving,ullong casenfloat,ullong casenfluid,bool perix,bool periy,bool periz)const;
   void CheckConfig(ullong casenp,ullong casenfixed,ullong casenmoving,ullong casenfloat,ullong casenfluid)const;

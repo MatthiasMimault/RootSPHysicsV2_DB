@@ -165,6 +165,7 @@ protected:
   // Addt. Xml file
   std::string DirAddXml_M;
   std::string AddFileXml_M;
+  std::string Datacsvname;
 
   //-Options for execution.
   TpStep TStep;               ///<Step Algorithm: Verlet or Symplectic.                                  | Algoritmo de paso: Verlet o Symplectic.

@@ -1318,18 +1318,20 @@ void JSph::UpdateCaseConfig_Mixed_M() {
 // #xml #updateXml
 
 	// Read csv 1
-	std::ifstream file("Data.csv");
 	std::vector<string> row;
 	string line, word;
+	Datacsvname = (((xml.GetNode("case.casedef.dataloader.file", false))->ToElement())->Attribute("name"));
 	//int np;
 	
 	// Initialisation
 	if (!xml.ExistsAttribute((xml.GetNode("case.execution.particles._summary.root", true))->ToElement(), "loaded")) {
 		((xml.GetNode("case.execution.particles._summary.root", true))->ToElement())->SetAttribute("loaded", 1);
+
+		// Real data
+		// >>> Read XML and get namefile
+		std::ifstream file(Datacsvname+".csv");
 		int np = (int)count(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>(), '\n') - 5; // remove 4 non particle related lines
 
-		// Set fluid counters
-		//CODE HERE//
 
 		//TiXmlNode* node = xml.GetNode("case", false);
 		int res;

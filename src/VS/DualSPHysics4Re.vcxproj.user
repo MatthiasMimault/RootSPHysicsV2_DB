@@ -4,8 +4,8 @@
     <ShowAllFiles>true</ShowAllFiles>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerWorkingDirectory>..\..\debug\2-FreeCylinder</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerWorkingDirectory>..\..\debug\3-DataRootLoader</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerCommandArguments>-cpu DBG-AffineGrowth_out\DBG-AffineGrowth DBG-AffineGrowth_out -dirdataout data -svres</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-cpu DBG-DataLoader_out\DBG-DataLoader DBG-DataLoader_out -dirdataout data -svres</LocalDebuggerCommandArguments>
   </PropertyGroup>
 </Project>
