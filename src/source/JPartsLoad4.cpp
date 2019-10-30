@@ -36,7 +36,7 @@ using namespace std;
 //==============================================================================
 JPartsLoad4::JPartsLoad4(bool useomp):UseOmp(useomp){
   ClassName="JPartsLoad4";
-  Idp = NULL; Pos = NULL; VelRhop = NULL; Mass = NULL;
+  Idp = NULL; Pos = NULL; VelRhop = NULL; Mass = NULL; Qf = NULL;
   Reset();
 }
 
@@ -74,12 +74,14 @@ void JPartsLoad4::AllocMemory(unsigned count){
   delete[] Pos;      Pos=NULL; 
   delete[] VelRhop;  VelRhop=NULL;
   delete[] Mass;  Mass = NULL;
+  delete[] Qf;  Qf = NULL;
   if(Count){
     try{
       Idp=new unsigned[Count];
       Pos=new tdouble3[Count];
       VelRhop=new tfloat4[Count];
 	  Mass = new float[Count];
+	  Qf = new tsymatrix3f[Count];
     }
     catch(const std::bad_alloc){
       RunException("AllocMemory","Could not allocate the requested memory.");
@@ -317,7 +319,8 @@ void JPartsLoad4::LoadParticles_T(const std::string &casedir, const std::string 
 		unsigned auxsize = 0;
 		tfloat3 *auxf3 = NULL;
 		float *auxf = NULL;
-		float *auxfbis = NULL;
+		float* auxfbis = NULL;
+		tsymatrix3f* auxf6= NULL;
 		for (unsigned piece = 0; piece<Npiece; piece++) {
 			if (piece) {
 				if (!PartBegin)pd.LoadFileCase(dir, casename, piece, Npiece);
@@ -330,9 +333,11 @@ void JPartsLoad4::LoadParticles_T(const std::string &casedir, const std::string 
 					delete[] auxf3; auxf3 = NULL;
 					delete[] auxf;  auxf = NULL;
 					delete[] auxfbis;  auxfbis = NULL;
+					delete[] auxf6;  auxf6 = NULL;
 					auxf3 = new tfloat3[auxsize];
 					auxf = new float[auxsize];
 					auxfbis = new float[auxsize];
+					auxf6 = new tsymatrix3f[auxsize];
 
 				}
 				if (possingle) {
@@ -344,13 +349,11 @@ void JPartsLoad4::LoadParticles_T(const std::string &casedir, const std::string 
 				pd.Get_Vel(npok, auxf3);
 				pd.Get_Rhop(npok, auxf);
 				pd.Get_Mass(npok, auxfbis);
-				/*for (int i = 0; i < npok; i++)
-				{
-				printf("\nx: %1.20f", auxfbis[i]);
-				}*/
+				pd.Get_Qf(npok, auxf6);
 				for (unsigned p = 0; p < npok; p++) {
 					VelRhop[ntot + p] = TFloat4(auxf3[p].x, auxf3[p].y, auxf3[p].z, auxf[p]);
 					Mass[p] = auxfbis[p];
+					Qf[p] = auxf6[p];
 				}
 			}
 			ntot += npok;
@@ -684,8 +687,6 @@ void JPartsLoad4::LoadParticles_Mixed3_M(const std::string& casedir, const std::
 	Reset();
 	PartBegin = partbegin;
 	JPartDataBi4 pd;
-	//#printf
-	printf("Call of Mixed Loadparticle2\n");
 	JPartDataBi4 pd_csv;
 
 	//-Loads file piece_0 and obtains configuration.
@@ -706,8 +707,8 @@ void JPartsLoad4::LoadParticles_Mixed3_M(const std::string& casedir, const std::
 
 	// Read Csv and load root particles
 	//ReadCsv_M(JPartDataBi4 pd_csv); Remains to be defined rhopZero, Gamma, Dp, h, m. There is a volume field 
-	//pd_csv.ReadCsv_M(pd.Get_Npok(), pd.Get_PosSimple());
-	pd_csv.ReadCsv_M(pd.Get_Npok(), pd.Get_PosSimple(), datacsvname);
+	//pd_csv.ReadCsv_M(pd.Get_Npok(), pd.Get_PosSimple(), datacsvname);
+	pd_csv.ReadCsv_Ellipsoid_M(pd.Get_Npok(), pd.Get_PosSimple(), datacsvname);
 
 
 	//> Here update the .bi4 ?
@@ -774,20 +775,26 @@ void JPartsLoad4::LoadParticles_Mixed3_M(const std::string& casedir, const std::
 		unsigned auxsize = 0;
 		tfloat3* auxf3 = NULL;
 		float* auxf = NULL;
+		float* auxfbis = NULL;
+		tsymatrix3f* auxf6 = NULL;
+
 		for (unsigned piece = 0; piece < Npiece; piece++) {
 			if (piece) {
 				if (!PartBegin)pd.LoadFileCase(dir, casename, piece, Npiece);
 				else pd.LoadFilePart(dir, PartBegin, piece, Npiece);
 			}
-
 			const unsigned npok = pd.Get_Npok();
 			if (npok) {
 				if (auxsize < npok) {
 					auxsize = npok;
 					delete[] auxf3; auxf3 = NULL;
 					delete[] auxf;  auxf = NULL;
+					delete[] auxfbis;  auxfbis = NULL;
+					delete[] auxf6;  auxf6 = NULL;
 					auxf3 = new tfloat3[auxsize];
 					auxf = new float[auxsize];
+					auxfbis = new float[auxsize];
+					auxf6 = new tsymatrix3f[auxsize];
 
 				}
 				if (possingle) {
@@ -798,8 +805,13 @@ void JPartsLoad4::LoadParticles_Mixed3_M(const std::string& casedir, const std::
 				pd.Get_Idp(npok, Idp + ntot);
 				pd.Get_Vel(npok, auxf3);
 				//pd.Get_Rhop(npok, auxf);
+				const double Dp = pow(MassFluid_csv / RhopZero_csv, 1.0f / 3.0f);
 				for (unsigned p = 0; p < npok; p++) VelRhop[ntot + p] = TFloat4(auxf3[p].x, auxf3[p].y, auxf3[p].z, RhopZero_csv);
 				for (unsigned p = 0; p < npok; p++) Mass[ntot + p] = MassFluid_csv;
+				for (unsigned p = 0; p < npok; p++) {
+					Qf[ntot + p] = TSymatrix3f(
+						4 / float(pow(Dp, 2)), 0, 0, 4 / float(pow(Dp, 2)), 0, 4 / float(pow(Dp, 2)));
+				}
 			}
 			ntot += npok;
 		}
@@ -808,25 +820,32 @@ void JPartsLoad4::LoadParticles_Mixed3_M(const std::string& casedir, const std::
 		auxsize = npok_csv;
 		delete[] auxf3; auxf3 = NULL;
 		delete[] auxf;  auxf = NULL;
+		delete[] auxfbis;  auxfbis = NULL;
+		delete[] auxf6;  auxf6 = NULL;
 		auxf3 = new tfloat3[auxsize];
 		auxf = new float[auxsize];
+		auxfbis = new float[auxsize];
+		auxf6 = new tsymatrix3f[auxsize];
 		if (possingle) {
 			pd_csv.Get_Pos(npok_csv, auxf3);
 			for (unsigned p = 0; p < npok_csv; p++)Pos[ntot + p] = ToTDouble3(auxf3[p]);
 		}
 		else pd_csv.Get_Posd(npok_csv, Pos + ntot);
 		pd_csv.Get_Idp(npok_csv, Idp + ntot);
+		pd_csv.Get_Mass(npok_csv, Mass + ntot);
 		pd_csv.Get_Vel(npok_csv, auxf3);
+		pd_csv.Get_Qf(npok_csv, auxf6);
 		for (unsigned p = 0; p < npok_csv; p++) {
 			VelRhop[ntot + p] = TFloat4(auxf3[p].x, auxf3[p].y, auxf3[p].z, RhopZero_csv);
+			Qf[ntot + p] = auxf6[p];
 		}
-		pd_csv.Get_Mass(npok_csv, Mass + ntot);
 		ntot += npok_csv;
 
 		delete[] auxf3; auxf3 = NULL;
 		delete[] auxf;  auxf = NULL;
+		delete[] auxfbis;  auxfbis = NULL;
+		delete[] auxf6;  auxf6 = NULL;
 	}
-
 
 	//-In simulations 2D, if PosY is invalid then calculates starting from position of particles.
 	if (Simulate2DPosY == DBL_MAX) {

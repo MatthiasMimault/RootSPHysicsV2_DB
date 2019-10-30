@@ -26,3 +26,4 @@ src/lib/EigenLibs/*
 /debug/1-MixedRoot
 /debug/2-FreeCylinder
 /debug/3-DataRootLoader
+/debug/4-DataRootEllipsoids

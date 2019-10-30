@@ -1155,11 +1155,11 @@ void JSphSolidCpu::InitRun_Mixed_M() {
 	memset(NabVx_M, 0, sizeof(float) * Np);
 	memset(Divisionc_M, 0, sizeof(bool) * Np);
 	
-	for (unsigned p = 0; p < Np; p++) {
+	/*for (unsigned p = 0; p < Np; p++) {
 		//const double dp = pow(3.0 / 32.0 / PI * Massc_M[p] / RhopZero, 1 / 3);
 		const double dp = pow(Massc_M[p] / RhopZero, 1.0f / 3.0f);
 		QuadFormc_M[p] = TSymatrix3f(4.0f / float(pow(dp, 2)), 0, 0, 4.0f / float(pow(dp, 2)), 0, 4.0f / float(pow(dp, 2)));
-	}
+	}*/
 	memset(VonMises3D, 0, sizeof(float) * Np);
 	memset(GradVelSave, 0, sizeof(float) * Np);
 	memset(CellOffSpring, 0, sizeof(unsigned) * Np);

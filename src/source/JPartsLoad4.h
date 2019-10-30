@@ -87,6 +87,7 @@ protected:
   tdouble3 *Pos;
   tfloat4 *VelRhop;
   float *Mass;
+  tsymatrix3f *Qf;
 
   // Matthias
   //string Datacsvname;
@@ -127,6 +128,7 @@ public:
   const tdouble3* GetPos(){ return(Pos); }
   const tfloat4* GetVelRhop(){ return(VelRhop); }
   const float* GetMass() { return(Mass); }
+  const tsymatrix3f* GetQf() { return(Qf); }
 
   tdouble3 GetCasePosMin()const{ return(CasePosMin); }
   tdouble3 GetCasePosMax()const{ return(CasePosMax); }

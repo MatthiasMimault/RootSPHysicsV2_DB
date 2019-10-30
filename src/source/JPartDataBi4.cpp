@@ -29,10 +29,13 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <Eigen/Dense>
 
 #pragma warning(disable : 4996) //Cancels sprintf() deprecated.
 
 using namespace std;
+using Eigen::Vector3f;
+using Eigen::Matrix3f;
 
 //##############################################################################
 //# JPartDataBi4
@@ -340,6 +343,21 @@ void  JPartDataBi4::AddPartData_T(unsigned npok, const int *idp, const tdouble3 
 	Part->CreateArray("Vel", JBinaryDataDef::DatFloat3, npok, vel, externalpointer);
 	Part->CreateArray("Rhop", JBinaryDataDef::DatFloat, npok, rhop, externalpointer);
 	Part->CreateArray("Mass", JBinaryDataDef::DatFloat, npok, mp, externalpointer);
+}
+
+// AddPartData designed to add QF and mass from Root Csv Data
+void  JPartDataBi4::AddPartData_M(unsigned npok, const int* idp
+	, const tdouble3* posd, const tfloat3* vel, const float* rhop, const float* mp, const tsymatrix3f* qf, bool externalpointer) {
+	const char met[] = "AddPartData";
+	if (!idp)RunException(met, "The id of particles is invalid.");
+	if (!posd)RunException(met, "The position of particles is invalid.");
+	//-Creates valid particles array.
+	Part->CreateArray("Idp", JBinaryDataDef::DatUint, npok, idp, externalpointer);
+	Part->CreateArray("Posd", JBinaryDataDef::DatDouble3, npok, posd, externalpointer);
+	Part->CreateArray("Vel", JBinaryDataDef::DatFloat3, npok, vel, externalpointer);
+	Part->CreateArray("Rhop", JBinaryDataDef::DatFloat, npok, rhop, externalpointer);
+	Part->CreateArray("Mass", JBinaryDataDef::DatFloat, npok, mp, externalpointer);
+	Part->CreateArray("Qf", JBinaryDataDef::DatSymMat, npok, qf, externalpointer);
 }
 
 //==============================================================================
@@ -749,7 +767,7 @@ void JPartDataBi4::ReadCsv_M(int n_start, bool possingle, string datacsvname) {
 	double borddomain = 0;
 
 	// Initialisation
-	unsigned np = count(istreambuf_iterator<char>(file), istreambuf_iterator<char>(), '\n') - 5; // remove 4 non particle related lines
+	unsigned np = (unsigned) count(istreambuf_iterator<char>(file), istreambuf_iterator<char>(), '\n') - 5; // remove 4 non particle related lines
 	file.clear();                 // clear fail and eof bits
 	file.seekg(0, ios::beg);
 
@@ -816,6 +834,122 @@ void JPartDataBi4::ReadCsv_M(int n_start, bool possingle, string datacsvname) {
 	AddPartInfo((unsigned)0, 0, (unsigned)np, 0, 0, 0, TDouble3(0, 0, 0), TDouble3(0, 0, 0), np, idp[np - 1]);
 	//AddPartData();
 	AddPartData_T(np, (int*)idp, posd, vel, rhop, mp, true);
+}
+
+void JPartDataBi4::ReadCsv_Ellipsoid_M(int n_start, bool possingle, string datacsvname) {
+	// Version reading Principal components from MPGX to generate qf
+	ifstream file(datacsvname + ".csv");
+	vector<string> row;
+	string line, word;
+
+	unsigned* idp;
+	tfloat3* pos;
+	tdouble3* posd;
+	tdouble3 posMin = TDouble3(0, 0, 0);
+	tdouble3 posMax = TDouble3(0, 0, 0);
+	tfloat3* vel;
+	double* vol;
+	float* mp;
+	float* rhop;
+	float rhop0;
+	double rMax = 0;
+	double borddomain = 0;
+	tsymatrix3f* qf;
+
+	// Initialisation
+	unsigned np = (unsigned) count(istreambuf_iterator<char>(file), istreambuf_iterator<char>(), '\n') - 5; // remove 4 non particle related lines
+	file.clear();                 // clear fail and eof bits
+	file.seekg(0, ios::beg);
+
+	idp = (unsigned*)malloc(sizeof(unsigned) * (np));
+	posd = (tdouble3*)malloc(sizeof(tdouble3) * (np));
+	pos = (tfloat3*)malloc(sizeof(tfloat3) * (np));
+	vel = (tfloat3*)malloc(sizeof(tfloat3) * (np));
+	vol = (double*)malloc(sizeof(double) * (np));
+	mp = (float*)malloc(sizeof(float) * (np));
+	rhop = (float*)malloc(sizeof(float) * (np));
+	qf = (tsymatrix3f*)malloc(sizeof(tsymatrix3f) * (np));
+	//rhop0 = loadRhop0();
+	rhop0 = 1000;
+
+	// Updated code with PCanalysis-MPGX, rescale in millimeters
+	if (file.good())
+	{
+		line.clear();
+		getline(file, line); //skip line, don't need first line
+		for (size_t i = 0; i < np; i++)
+		{
+			row.clear();
+			getline(file, line);
+			stringstream s(line);
+			while (getline(s, word, ',')) {
+
+				// add all the column data 
+				// of a row to a vector 
+				row.push_back(word);
+			}
+			idp[i] = n_start + int(i);
+			rhop[i] = rhop0;
+			vel[i] = TFloat3(0, 0, 0);
+			if (possingle) {
+				pos[i].x = float(::atof(row[1].c_str())) * 0.001f;
+				pos[i].y = float(::atof(row[2].c_str())) * 0.001f;
+				pos[i].z = float(::atof(row[3].c_str())) * 0.001f;
+				posd = NULL;
+				posMax = MaxValues(posMax, ToTDouble3(pos[i]));
+				posMin = MinValues(posMin, ToTDouble3(pos[i]));
+
+			}
+			else {
+				posd[i].x = ::atof(row[1].c_str()) * 0.001;
+				posd[i].y = ::atof(row[2].c_str()) * 0.001;
+				posd[i].z = ::atof(row[3].c_str()) * 0.001;
+				pos = NULL;
+				posMax = MaxValues(posMax, posd[i]);
+				posMin = MinValues(posMin, posd[i]);
+
+			}
+			// #Qf
+			// 1. Read e1 and e2
+			Vector3f e1, e2, e3;
+			e1 << (float)::atof(row[4].c_str()), (float)::atof(row[5].c_str()), (float)::atof(row[6].c_str());
+			e2 << (float)::atof(row[7].c_str()), (float)::atof(row[8].c_str()), (float)::atof(row[9].c_str());
+
+			// 2. Compute e3 = e1xe2
+			e3 << e1.cross(e2);
+
+			// 3. Construct R = [e1,e2,e3] w e_i vertical
+			Matrix3f R;
+			R << e1, e2, e3;
+
+			// 4. Q = R'*L*R
+			Matrix3f L, Q;
+			float l1 = (float)::atof(row[10].c_str()) * 0.001f;
+			float l2 = (float)::atof(row[11].c_str()) * 0.001f;
+			float l3 = (float)::atof(row[12].c_str()) * 0.001f;
+			L << 1.0f / float(pow(l1, 2)), 0.0f, 0.0f
+				, 0.0f, 1.0f / float(pow(l2, 2)), 0.0f
+				, 0.0f, 0.0f, 1.0f / float(pow(l3, 2));
+			Q << R.transpose() * L * R;
+
+			qf[i] = TSymatrix3f(Q(0,0), Q(0, 1), Q(0, 2), Q(1, 1), Q(1, 2), Q(2, 2));
+			vol[i] = l1*l2*l3;
+			mp[i] = float(vol[i]) * rhop0;
+		}
+
+		file.close();
+	}
+
+	// Configuration pd_csv
+	ConfigBasic(0, 1, "", "", "", false, 0.0, ""); // not touch
+	ConfigParticles(np, 0, 0, 0, np, posMin, posMax, NULL, NULL);	//> needs particle number and solid dimensions
+	//printf("Np %d PosMin %.8f %.8f %.8f PosMax %.8f %.8f %.8f\n", np, posMin.x, posMin.y, posMin.z, posMax.x, posMax.y, posMax.z);
+	ConfigCtes(0.01, 0.04, 40000.0, 1000, 1, 0.001, 0.001);							//> cstes Dp, h, b, rhop0, gamma, massbound, massfluid
+																	//> mass variable, what value for dp, b ? Gamma can be recollected
+	AddPartInfo((unsigned)0, 0, (unsigned)np, 0, 0, 0, TDouble3(0, 0, 0), TDouble3(0, 0, 0), np, idp[np - 1]);
+	//AddPartData();
+	//AddPartData_T(np, (int*)idp, posd, vel, rhop, mp, true);
+	AddPartData_M(np, (int*)idp, posd, vel, rhop, mp, qf, true);
 }
 
 

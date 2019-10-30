@@ -61,6 +61,7 @@ std::string JBinaryDataDef::TypeToStr(TpData type){
     case JBinaryDataDef::DatUint3:    tx="uint3";    break;
     case JBinaryDataDef::DatFloat3:   tx="float3";   break;
     case JBinaryDataDef::DatDouble3:  tx="double3";  break;
+    case JBinaryDataDef::DatSymMat: tx="tsymatrix3f";break;
   }
   return(tx);
 }
@@ -87,7 +88,8 @@ size_t JBinaryDataDef::SizeOfType(TpData type){
     case JBinaryDataDef::DatInt3:     ret=sizeof(tint3);           break;
     case JBinaryDataDef::DatUint3:    ret=sizeof(tuint3);          break;
     case JBinaryDataDef::DatFloat3:   ret=sizeof(tfloat3);         break;
-    case JBinaryDataDef::DatDouble3:  ret=sizeof(tdouble3);        break;
+	case JBinaryDataDef::DatDouble3:  ret = sizeof(tdouble3);      break;
+	case JBinaryDataDef::DatSymMat:   ret = sizeof(tsymatrix3f);   break;
   }
   return(ret);
 }
@@ -95,6 +97,7 @@ size_t JBinaryDataDef::SizeOfType(TpData type){
 //==============================================================================
 /// Devuelve true cuando el tipo es triple.
 /// Returns true when the type is triple.
+/// Matthias - Should it include a data is sextuple ? 301019
 //==============================================================================
 bool JBinaryDataDef::TypeIsTriple(TpData type){
   bool ret=false;
@@ -682,6 +685,8 @@ std::string JBinaryData::ValueToXml(const StValue &v)const{
     case JBinaryDataDef::DatUint3:    tx=tx+"x=\""+ fun::UintStr(v.vuint3.x) +"\" y=\""+ fun::UintStr(v.vuint3.y) +"\" z=\""+ fun::UintStr(v.vuint3.z) +"\" />";                             break;
     case JBinaryDataDef::DatFloat3:   tx=tx+"x=\""+ fun::FloatStr(v.vfloat3.x,FmtFloat.c_str()) +"\" y=\""+ fun::FloatStr(v.vfloat3.y,FmtFloat.c_str()) +"\" z=\""+ fun::FloatStr(v.vfloat3.z,FmtFloat.c_str()) +"\" />";           break;  //"%.7E"
     case JBinaryDataDef::DatDouble3:  tx=tx+"x=\""+ fun::DoubleStr(v.vdouble3.x,FmtDouble.c_str()) +"\" y=\""+ fun::DoubleStr(v.vdouble3.y,FmtDouble.c_str()) +"\" z=\""+ fun::DoubleStr(v.vdouble3.z,FmtDouble.c_str()) +"\" />";  break;  //"%.15E"
+    case JBinaryDataDef::DatSymMat:   tx=tx+"xx=\"" + fun::DoubleStr(v.vsymatrix3f.xx, FmtDouble.c_str()) + "\" yy=\"" + fun::DoubleStr(v.vsymatrix3f.yy, FmtDouble.c_str()) + "\" zz=\"" + fun::DoubleStr(v.vsymatrix3f.zz, FmtDouble.c_str())
+		+ "xy=\""+ fun::DoubleStr(v.vsymatrix3f.xy,FmtDouble.c_str()) +"\" xz=\""+ fun::DoubleStr(v.vsymatrix3f.xz,FmtDouble.c_str()) +"\" yz=\""+ fun::DoubleStr(v.vsymatrix3f.yz,FmtDouble.c_str()) +"\" />";  break;  //"%.15E"
     default: RunException(met,"Type of value invalid.");
   }
   return(tx);
@@ -762,6 +767,7 @@ void JBinaryData::InValue(unsigned &count,unsigned size,byte *ptr,const StValue 
     case JBinaryDataDef::DatUint3:    InUint3  (count,size,ptr,v.vuint3);    break;    
     case JBinaryDataDef::DatFloat3:   InFloat3 (count,size,ptr,v.vfloat3);   break;    
     case JBinaryDataDef::DatDouble3:  InDouble3(count,size,ptr,v.vdouble3);  break;    
+    case JBinaryDataDef::DatSymMat:   InSymatrix3(count,size,ptr,v.vsymatrix3f);break;    
     default: RunException("InValue","Type of value invalid.");
   }
 }
@@ -790,6 +796,7 @@ void JBinaryData::OutValue(unsigned &count,unsigned size,const byte *ptr){
     case JBinaryDataDef::DatUint3:    SetvUint3  (name,OutUint3  (count,size,ptr));   break;
     case JBinaryDataDef::DatFloat3:   SetvFloat3 (name,OutFloat3 (count,size,ptr));   break;
     case JBinaryDataDef::DatDouble3:  SetvDouble3(name,OutDouble3(count,size,ptr));   break;
+    case JBinaryDataDef::DatSymMat:   SetvSymatrix3(name,OutSymatrix3(count,size,ptr));break;
     default: RunException("OutValue","Type of value invalid.");
   }
 }
@@ -1299,6 +1306,7 @@ void JBinaryData::WriteFileXmlArray(const std::string &tabs,std::ofstream* pf,bo
         case JBinaryDataDef::DatUint3:    v.vuint3=  ((const tuint3 *)       data)[c];   break;   
         case JBinaryDataDef::DatFloat3:   v.vfloat3= ((const tfloat3 *)      data)[c];   break;   
         case JBinaryDataDef::DatDouble3:  v.vdouble3=((const tdouble3 *)     data)[c];   break;   
+        case JBinaryDataDef::DatSymMat:   v.vsymatrix3f=((const tsymatrix3f *)data)[c];  break;   
         default: RunException(met,"Type of value invalid.");
       }
       (*pf) << tabs << "\t" << ValueToXml(v) << endl;

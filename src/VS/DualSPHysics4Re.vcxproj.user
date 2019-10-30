@@ -4,7 +4,7 @@
     <ShowAllFiles>true</ShowAllFiles>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerWorkingDirectory>..\..\debug\3-DataRootLoader</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerWorkingDirectory>..\..\debug\4-DataRootEllipsoids</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerCommandArguments>-cpu DBG-DataLoader_out\DBG-DataLoader DBG-DataLoader_out -dirdataout data -svres</LocalDebuggerCommandArguments>
   </PropertyGroup>

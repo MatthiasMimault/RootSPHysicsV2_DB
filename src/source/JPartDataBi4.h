@@ -107,6 +107,8 @@ class JPartDataBi4 : protected JObject
   static std::string GetFileData(std::string casename,std::string dirname,unsigned cpart,byte &npiece);
 
   void AddPartData_T(unsigned npok, const int *idp, const tdouble3 *posd, const tfloat3 *vel, const float *rhop, const float *mp, bool externalpointer = true);
+  void AddPartData_M(unsigned npok, const int* idp
+	  , const tdouble3* posd, const tfloat3* vel, const float* rhop, const float* mp, const tsymatrix3f* qf, bool externalpointer);
 
   //Grabacion de datos:
   //Recording of data
@@ -239,6 +241,7 @@ class JPartDataBi4 : protected JObject
   unsigned Get_Vel  (unsigned size,tfloat3  *data)const{ return(GetArray("Vel" ,JBinaryDataDef::DatFloat3 )->GetDataCopy(size,data)); }
   unsigned Get_Rhop (unsigned size,float    *data)const{ return(GetArray("Rhop",JBinaryDataDef::DatFloat  )->GetDataCopy(size,data)); }
   unsigned Get_Mass (unsigned size,float    *data)const{ return(GetArray("Mass",JBinaryDataDef::DatFloat  )->GetDataCopy(size,data)); }
+  unsigned Get_Qf (unsigned size,tsymatrix3f*data)const{ return(GetArray("Qf"  ,JBinaryDataDef::DatSymMat )->GetDataCopy(size,data)); }
   unsigned Get_Hvar (unsigned size,float    *data)const{ return(GetArray("Hvar",JBinaryDataDef::DatFloat  )->GetDataCopy(size,data)); }
 
   double Get_Particles2dPosY()const;
@@ -250,6 +253,7 @@ class JPartDataBi4 : protected JObject
   void ReadCsv_M();
   void ReadCsv_M(int n_start, bool possingle);
   void ReadCsv_M(int n_start, bool possingle, std::string datacsvname);
+  void ReadCsv_Ellipsoid_M(int n_start, bool possingle, std::string datacsvname);
 };
 
 

@@ -223,11 +223,8 @@ void JSphCpuSingle::LoadCaseParticles_T() {
 /// Carga particulas del caso a procesar.
 //==============================================================================
 void JSphCpuSingle::LoadCaseParticles_Mixed_M() {
-
 	Log->Print("Loading initial state of particles...");
 	PartsLoaded = new JPartsLoad4(true);
-
-
 	// #GenU #UniqueParticle
 	// Gener here unique particle, then particle with boundary
 	//PartsLoaded->LoadParticles_Mixed2_M(DirCase, CaseName, PartBegin, PartBeginDir, DirCase);	
@@ -352,6 +349,7 @@ void JSphCpuSingle::ConfigDomain_Mixed_M() {
 	memcpy(Idpc, PartsLoaded->GetIdp(), sizeof(unsigned) * Np);
 	memcpy(Velrhopc, PartsLoaded->GetVelRhop(), sizeof(tfloat4) * Np);
 	memcpy(Massc_M, PartsLoaded->GetMass(), sizeof(float) * Np);
+	memcpy(QuadFormc_M, PartsLoaded->GetQf(), sizeof(tsymatrix3f) * Np);
 
 	//-Calculate floating radius. | Calcula radio de floatings.
 	if (CaseNfloat && PeriActive != 0 && !PartBegin)CalcFloatingRadius(Np, Posc, Idpc);
@@ -2203,7 +2201,7 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
 	  break;
   }
   }
-  /*//#GencaseBis
+  /*
   GenCaseBis_T gcb;
   gcb.UseGencase(cfg->RunPath);
   // Deve region
