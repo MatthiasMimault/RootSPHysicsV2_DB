@@ -48,6 +48,7 @@ protected:
   void LoadCaseParticles();
   //Matthias - Mixed case generation
   void LoadCaseParticles_T();
+  void LoadConfig_M(JCfgRun *cfg);
   void LoadCaseParticles_Mixed_M();
   void ConfigDomain();
   void ConfigDomain_Mixed_M();

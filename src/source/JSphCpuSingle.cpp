@@ -121,6 +121,20 @@ void JSphCpuSingle::LoadConfig_T(JCfgRun *cfg) {
 }
 
 //==============================================================================
+/// Load the execution configuration.
+/// Carga la configuracion de ejecucion. - Mixed case loader included
+//==============================================================================
+void JSphCpuSingle::LoadConfig_M(JCfgRun* cfg) {
+	const char met[] = "LoadConfig";
+	//-Load OpenMP configuraction. | Carga configuracion de OpenMP.
+	ConfigOmp(cfg);
+	//-Load basic general configuraction. | Carga configuracion basica general.
+	JSph::LoadConfig_Mixed_M(cfg);
+	//-Checks compatibility of selected options.
+	Log->Print("**Special case configuration is loaded");
+}
+
+//==============================================================================
 /// Load particles of case and process.
 /// Carga particulas del caso a procesar.
 //==============================================================================
@@ -2191,7 +2205,7 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
 	  break;
   }
   case 1: {
-	  LoadConfig_Mixed_M(cfg); // XML reading, especially dp dimensions, update XML with Data.csv
+	  LoadConfig_M(cfg); // XML reading, especially dp dimensions, update XML with Data.csv, OMP parameters update
 	  LoadCaseParticles_Mixed_M(); // generation particle from .bi4 and .csv, update .bi4 (ongoing)
 	  ConfigConstants(Simulate2D);
 	  ConfigDomain_Mixed_M();
