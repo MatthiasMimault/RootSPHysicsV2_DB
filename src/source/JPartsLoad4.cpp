@@ -763,11 +763,11 @@ void JPartsLoad4::LoadParticles_Mixed3_M(const std::string& casedir, const std::
 
 	// Load cst massfluid and rhop0
 	printf("Constants reading\n");
-	float RhopZero_csv, MassFluid_csv;
+	//float RhopZero_csv, MassFluid_csv;
 	JXml xml; xml.LoadFile(casedir + casename + ".xml");
-	((xml.GetNode("case.execution.constants.rhop0", false))->ToElement())->QueryFloatAttribute("value", &RhopZero_csv);
+	/*((xml.GetNode("case.execution.constants.rhop0", false))->ToElement())->QueryFloatAttribute("value", &RhopZero_csv);
 	((xml.GetNode("case.execution.constants.massfluid", false))->ToElement())->QueryFloatAttribute("value", &MassFluid_csv);
-	printf("RhopZero %.8f Massfluid %.8f\n", RhopZero_csv, MassFluid_csv);
+	printf("RhopZero %.8f Massfluid %.8f\n", RhopZero_csv, MassFluid_csv);*/
 
 	//-Loads particles.
 	{
@@ -805,9 +805,10 @@ void JPartsLoad4::LoadParticles_Mixed3_M(const std::string& casedir, const std::
 				pd.Get_Idp(npok, Idp + ntot);
 				pd.Get_Vel(npok, auxf3);
 				//pd.Get_Rhop(npok, auxf);
-				const double Dp = pow(MassFluid_csv / RhopZero_csv, 1.0f / 3.0f);
-				for (unsigned p = 0; p < npok; p++) VelRhop[ntot + p] = TFloat4(auxf3[p].x, auxf3[p].y, auxf3[p].z, RhopZero_csv);
-				for (unsigned p = 0; p < npok; p++) Mass[ntot + p] = MassFluid_csv;
+				// Dp = pow(MassFluid_csv / RhopZero_csv, 1.0f / 3.0f);
+				const double Dp = pd.Get_Dp();
+				for (unsigned p = 0; p < npok; p++) VelRhop[ntot + p] = TFloat4(auxf3[p].x, auxf3[p].y, auxf3[p].z, (float) pd.Get_Rhop0());
+				for (unsigned p = 0; p < npok; p++) Mass[ntot + p] = (float) pd.Get_MassFluid();
 				for (unsigned p = 0; p < npok; p++) {
 					Qf[ntot + p] = TSymatrix3f(
 						4 / float(pow(Dp, 2)), 0, 0, 4 / float(pow(Dp, 2)), 0, 4 / float(pow(Dp, 2)));
@@ -836,7 +837,7 @@ void JPartsLoad4::LoadParticles_Mixed3_M(const std::string& casedir, const std::
 		pd_csv.Get_Vel(npok_csv, auxf3);
 		pd_csv.Get_Qf(npok_csv, auxf6);
 		for (unsigned p = 0; p < npok_csv; p++) {
-			VelRhop[ntot + p] = TFloat4(auxf3[p].x, auxf3[p].y, auxf3[p].z, RhopZero_csv);
+			VelRhop[ntot + p] = TFloat4(auxf3[p].x, auxf3[p].y, auxf3[p].z, (float) pd.Get_Rhop0());
 			Qf[ntot + p] = auxf6[p];
 		}
 		ntot += npok_csv;

@@ -944,7 +944,8 @@ void JPartDataBi4::ReadCsv_Ellipsoid_M(int n_start, bool possingle, string datac
 	ConfigBasic(0, 1, "", "", "", false, 0.0, ""); // not touch
 	ConfigParticles(np, 0, 0, 0, np, posMin, posMax, NULL, NULL);	//> needs particle number and solid dimensions
 	//printf("Np %d PosMin %.8f %.8f %.8f PosMax %.8f %.8f %.8f\n", np, posMin.x, posMin.y, posMin.z, posMax.x, posMax.y, posMax.z);
-	ConfigCtes(0.01, 0.04, 40000.0, 1000, 1, 0.001, 0.001);							//> cstes Dp, h, b, rhop0, gamma, massbound, massfluid
+	// Dp = max l1 
+	ConfigCtes(0.01, 0.04, 1.0, 1000, 1, 0.001, 0.001);							//> cstes Dp, h, b, rhop0, gamma, massbound, massfluid
 																	//> mass variable, what value for dp, b ? Gamma can be recollected
 	AddPartInfo((unsigned)0, 0, (unsigned)np, 0, 0, 0, TDouble3(0, 0, 0), TDouble3(0, 0, 0), np, idp[np - 1]);
 	//AddPartData();
