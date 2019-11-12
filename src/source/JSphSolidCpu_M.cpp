@@ -10660,7 +10660,7 @@ tfloat3 JSphSolidCpu::MaxPosition() {
 	const int npb = int(Npb);
 	const int np = int(Np);
 	for (int p = npb; p < np; p++) {
-		const tfloat3 ps = TFloat3(Posc[p].x, Posc[p].y, Posc[p].z);
+		const tfloat3 ps = TFloat3((float) Posc[p].x, (float) Posc[p].y, (float) Posc[p].z);
 		maxValue.x = max(ps.x, maxValue.x);
 		maxValue.y = max(ps.y, maxValue.y);
 		maxValue.z = max(ps.z, maxValue.z);
