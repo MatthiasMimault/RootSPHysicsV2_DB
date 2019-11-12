@@ -10596,6 +10596,7 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT_CompressBdy_M(dou
 void JSphSolidCpu::GrowthCell_M(double dt) {
 // #Growth
 	//int typeGrowth = 2; // (default: no Growth, 0: old growth lambda, 1: 4.1%h-1, 2: variation Beemster1998)
+	// case3: beemster 2 cst lambda * f(x) in [0,1]
 	const int npb = int(Npb);
 	const int np = int(Np);
 	//maxPosX = 0.15f;
@@ -10604,10 +10605,8 @@ void JSphSolidCpu::GrowthCell_M(double dt) {
 #ifdef OMP_USE
 #pragma omp parallel for schedule (static) if(np>OMP_LIMIT_COMPUTESTEP)
 #endif
-
 	
 	for (int p = npb; p < np; p++) {
-		float rate = GrowthRateSpace(float(Posc[p].x));
 		switch (typeGrowth) {
 			case 0: {
 				const double volu = double(MassPrec_M[p]) / double(Velrhopc[p].w);
@@ -10628,6 +10627,13 @@ void JSphSolidCpu::GrowthCell_M(double dt) {
 				Velrhopc[p].w = float(Massc_M[p] / volu);
 				break;
 			}
+			case 3: {
+				const double volu = double(MassPrec_M[p]) / double(Velrhopc[p].w);
+				const float Gamma = LambdaMass*GrowthRateSpaceNormalised(float(Posc[p].x));
+				Velrhopc[p].w = Velrhopc[p].w + float(dt) * Gamma;
+				Massc_M[p] = Velrhopc[p].w * float(volu);
+				break;
+			}
 		}
 	}
 
@@ -10645,6 +10651,12 @@ float JSphSolidCpu::GrowthRateSpace(float pos) {
 	else {
 		return -8.0f * distance + 12.0f;
 	}
+}
+
+// #Growth function - Normalised
+float JSphSolidCpu::GrowthRateSpaceNormalised(float pos) {
+	float distance = abs(pos - maxPosX);
+	return exp(1.0f) / 0.25f * distance * exp(-0.25f * distance);
 }
 
 float JSphSolidCpu::MaxValueParticles(float* field) {

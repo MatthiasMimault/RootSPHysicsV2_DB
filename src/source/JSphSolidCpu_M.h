@@ -596,6 +596,7 @@ protected:
 
 	void GrowthCell_M(double dt);
 	float GrowthRateSpace(float pos);
+	float GrowthRateSpaceNormalised(float pos);
 	float MaxValueParticles(float* field); 
 	tfloat3 MaxPosition();
 
