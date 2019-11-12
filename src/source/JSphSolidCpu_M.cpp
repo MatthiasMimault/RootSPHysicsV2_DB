@@ -10651,9 +10651,6 @@ float JSphSolidCpu::MaxValueParticles(float* field) {
 	float maxValue = 0.0f;
 	const int npb = int(Npb);
 	const int np = int(Np);
-#ifdef OMP_USE
-#pragma omp parallel for schedule (static) if(npb>OMP_LIMIT_COMPUTESTEP)
-#endif
 	for (int p = 0; p < np; p++) maxValue = max(field[p], maxValue);
 	return maxValue;
 }
@@ -10662,16 +10659,15 @@ tfloat3 JSphSolidCpu::MaxPosition() {
 	tfloat3 maxValue = TFloat3(0.0f);
 	const int npb = int(Npb);
 	const int np = int(Np);
-#ifdef OMP_USE
-#pragma omp parallel for schedule (static) if(npb>OMP_LIMIT_COMPUTESTEP)
-#endif
-	for (int p = 0; p < np; p++) {
-		maxValue.x = max(float(Posc[p].x), maxValue.x);
-		maxValue.y = max(float(Posc[p].y), maxValue.y);
-		maxValue.z = max(float(Posc[p].z), maxValue.z);
-	}	
+	for (int p = npb; p < np; p++) {
+		const tfloat3 ps = TFloat3(Posc[p].x, Posc[p].y, Posc[p].z);
+		maxValue.x = max(ps.x, maxValue.x);
+		maxValue.y = max(ps.y, maxValue.y);
+		maxValue.z = max(ps.z, maxValue.z);
+	}
 	return maxValue;
 }
+
 
 // #CstVel - Special reformulation of Update with constant velocity
 void JSphSolidCpu::ComputeSymplecticPre_VelCst_M(double dt) {
