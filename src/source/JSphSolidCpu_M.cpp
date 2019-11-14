@@ -10656,8 +10656,8 @@ float JSphSolidCpu::GrowthRateSpace(float pos) {
 // #Growth function - Normalised
 float JSphSolidCpu::GrowthRateSpaceNormalised(float pos) {
 	//float distance = 0.25f *abs(pos - maxPosX); // Beemster
-	float distance = 0.03f *abs(pos - maxPosX); // Rescale to Bassel_2014 meristem data
-	return exp(1.0f) /  distance * exp(- distance);
+	float distance = 20.0f *abs(pos - maxPosX); // Rescale to Bassel_2014 meristem data
+	return exp(1.0f) * distance * exp(- distance);
 }
 
 float JSphSolidCpu::MaxValueParticles(float* field) {
