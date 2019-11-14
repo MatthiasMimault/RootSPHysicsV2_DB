@@ -10559,13 +10559,13 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT_CompressBdy_M(dou
 			//float adens = float(LambdaMass) * (RhopZero / Velrhopc[p].w - 1);
 			//float adens = float(LambdaMass);
 
-			// #Growth regional
+			// Growth regional
 			//rhopnew = float(rhopnew + dt * adens);
 			//Massc_M[p] = float(double(MassPrec_M[p]) + dt * double(adens * volu));
 
 
 
-			// Global #growth
+			// Global growth
 			/*rhopnew = float(rhopnew + dt * adens);
 			Massc_M[p] = float(double(MassPrec_M[p]) + dt * double(adens * volu));*/
 
@@ -10655,8 +10655,9 @@ float JSphSolidCpu::GrowthRateSpace(float pos) {
 
 // #Growth function - Normalised
 float JSphSolidCpu::GrowthRateSpaceNormalised(float pos) {
-	float distance = abs(pos - maxPosX);
-	return exp(1.0f) / 0.25f * distance * exp(-0.25f * distance);
+	//float distance = 0.25f *abs(pos - maxPosX); // Beemster
+	float distance = 0.03f *abs(pos - maxPosX); // Rescale to Bassel_2014 meristem data
+	return exp(1.0f) /  distance * exp(- distance);
 }
 
 float JSphSolidCpu::MaxValueParticles(float* field) {
