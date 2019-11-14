@@ -23,6 +23,7 @@
 #include "JPartDataBi4.h"
 #include "JRadixSort.h"
 #include "JXml.h"
+#include <cmath>
 #include <climits>
 #include <cfloat>
 

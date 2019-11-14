@@ -12,8 +12,8 @@ LIBS_DIRECTORIES=-L./
 LIBS_DIRECTORIES:=$(LIBS_DIRECTORIES) -L../lib/linux_gcc4
 
 #EXECNAME=DualSPHysics4.2CPU_linux64
-EXECNAME=DualSPHysics4.2CPU_linux64_191028_GrowthCl
-EXECS_DIRECTORY=../../bin/linux
+EXECNAME=DualSPHysics4.2CPU_linux64_191114_BasselGrowth
+EXECS_DIRECTORY=../../bin
 
 ifeq ($(USE_DEBUG), YES)
   CCFLAGS=-c -O0 -g -Wall -fopenmp
