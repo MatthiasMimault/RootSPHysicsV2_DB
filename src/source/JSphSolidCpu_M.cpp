@@ -10634,6 +10634,9 @@ void JSphSolidCpu::GrowthCell_M(double dt) {
 				Massc_M[p] = Velrhopc[p].w * float(volu);
 				break;
 			}
+			case 4: {
+				break;
+			}
 		}
 	}
 
