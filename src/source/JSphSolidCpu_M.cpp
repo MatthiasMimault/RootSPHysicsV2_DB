@@ -10739,7 +10739,7 @@ void JSphSolidCpu::GrowthCell_M(double dt) {
 			}
 			case 3: {
 				const double volu = double(MassPrec_M[p]) / double(Velrhopc[p].w);
-				const float Gamma = LambdaMass*GrowthRateSpaceNormalised(float(Posc[p].x));
+				const float Gamma = float(LambdaMass* GrowthRate2(Posc[p].x, 0.5)); // lambda max = lambda at 0.5 mm
 				Velrhopc[p].w = Velrhopc[p].w + float(dt) * Gamma;
 				Massc_M[p] = Velrhopc[p].w * float(volu);
 				break;
@@ -10783,6 +10783,14 @@ double JSphSolidCpu::GrowthRateSpaceNormalised(double pos) {
 	//double distance = 20.0f * abs(pos - (double) maxPosX); // Rescale to Bassel_2014 meristem data
 	double distance = 1.0/5.0 * abs(pos - (double) maxPosX); // Rescale to Smooth Lambda growth
 	return distance * exp(1.0 -distance);
+}
+
+// #Growth function - Normalised Double precision
+double JSphSolidCpu::GrowthRate2(double pos, double tip) {
+	//float distance = 0.25f *abs(pos - maxPosX); // Beemster
+	//double distance = 20.0f * abs(pos - (double) maxPosX); // Rescale to Bassel_2014 meristem data
+	double distance = abs(pos - (double)maxPosX)/tip; // Rescale to Smooth Lambda growth
+	return distance * exp(1.0 - distance);
 }
 
 float JSphSolidCpu::MaxValueParticles(float* field) {

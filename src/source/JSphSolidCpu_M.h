@@ -599,6 +599,7 @@ protected:
 	float GrowthRateSpace(float pos);
 	float GrowthRateSpaceNormalised(float pos);
 	double GrowthRateSpaceNormalised(double pos);
+	double GrowthRate2(double pos, double tip);
 	float MaxValueParticles(float* field); 
 	tfloat3 MaxPosition();
 
