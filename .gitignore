@@ -11,7 +11,6 @@ examples/*
 
 ## Ignores other directories.
 __Tools__
-doc/*
 bin/linux/*
 
 ## Ignores temporary files.
