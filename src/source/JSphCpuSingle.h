@@ -49,9 +49,12 @@ protected:
   //Matthias - Mixed case generation
   void LoadCaseParticles_T();
   void LoadConfig_M(JCfgRun *cfg);
+  void LoadConfig_Uni_M(JCfgRun *cfg);
   void LoadCaseParticles_Mixed_M();
+  void LoadCaseParticles_Uni_M();
   void ConfigDomain();
   void ConfigDomain_Mixed_M();
+  void ConfigDomain_Uni_M();
 
   void ResizeParticlesSize(unsigned newsize,float oversize,bool updatedivide);
   unsigned PeriodicMakeList(unsigned np,unsigned pini,bool stable,unsigned nmax,tdouble3 perinc,const tdouble3 *pos,const typecode *code,unsigned *listp)const;

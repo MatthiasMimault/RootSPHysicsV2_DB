@@ -216,6 +216,7 @@ protected:
 
 	// Matthias
 	void InitRun_Mixed_M();
+	void InitRun_Uni_M();
 	void InitRun_T(JPartsLoad4 *pl); 
 
 	void AddAccInput();

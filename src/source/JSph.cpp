@@ -558,6 +558,119 @@ void JSph::LoadConfig_Mixed_M(const JCfgRun* cfg) {
 }
 
 //==============================================================================
+/// Loads the configuration of the execution and modify the xml - Unified version
+//==============================================================================
+void JSph::LoadConfig_Uni_M(const JCfgRun* cfg) {
+	const char* met = "LoadConfig";
+	TimerTot.Start();
+	Stable = cfg->Stable;
+	Psingle = true; SvDouble = false; //-Options by default.
+	RunCommand = cfg->RunCommand;
+	RunPath = cfg->RunPath;
+	DirOut = fun::GetDirWithSlash(cfg->DirOut);
+	DirDataOut = (!cfg->DirDataOut.empty() ? fun::GetDirWithSlash(DirOut + cfg->DirDataOut) : DirOut);
+	CaseName = cfg->CaseName;
+	DirCase = fun::GetDirWithSlash(fun::GetDirParent(CaseName));
+	CaseName = CaseName.substr(DirCase.length());
+	if (!CaseName.length())RunException(met, "Name of the case for execution was not indicated.");
+	RunName = (cfg->RunName.length() ? cfg->RunName : CaseName);
+	FileXml = DirCase + CaseName + ".xml";
+	PartBeginDir = cfg->PartBeginDir; PartBegin = cfg->PartBegin; PartBeginFirst = cfg->PartBeginFirst;
+
+	//-Output options:
+	CsvSepComa = cfg->CsvSepComa;
+	SvData = byte(SDAT_None);
+	if (cfg->Sv_Csv && !WithMpi)SvData |= byte(SDAT_Csv);
+	if (cfg->Sv_Binx)SvData |= byte(SDAT_Binx);
+	if (cfg->Sv_Info)SvData |= byte(SDAT_Info);
+	if (cfg->Sv_Vtk)SvData |= byte(SDAT_Vtk);
+
+	SvRes = cfg->SvRes;
+	SvTimers = cfg->SvTimers;
+	SvDomainVtk = cfg->SvDomainVtk;
+
+	printf("\n");
+	RunTimeDate = fun::GetDateTime();
+	Log->Printf("[Initialising %s  %s]", ClassName.c_str(), RunTimeDate.c_str());
+
+	Log->Printf("ProgramFile=\"%s\"", fun::GetPathLevels(fun::GetCanonicalPath(RunPath, RunCommand), 3).c_str());
+	Log->Printf("ExecutionDir=\"%s\"", fun::GetPathLevels(RunPath, 3).c_str());
+	Log->Printf("XmlFile=\"%s\"", fun::GetPathLevels(fun::GetCanonicalPath(RunPath, FileXml), 3).c_str());
+	Log->Printf("OutputDir=\"%s\"", fun::GetPathLevels(fun::GetCanonicalPath(RunPath, DirOut), 3).c_str());
+	Log->Printf("OutputDataDir=\"%s\"", fun::GetPathLevels(fun::GetCanonicalPath(RunPath, DirDataOut), 3).c_str());
+
+	if (PartBegin) {
+		Log->Print(fun::VarStr("PartBegin", PartBegin));
+		Log->Print(fun::VarStr("PartBeginDir", PartBeginDir));
+		Log->Print(fun::VarStr("PartBeginFirst", PartBeginFirst));
+	}
+
+	// Load and update case
+	// #XMLUpdate
+	// #Unified - check type case
+	JXml xml; xml.LoadFile(FileXml);
+	JSpaceCtes ctes;     
+	ctes.LoadAddXmlRun_M(&xml, "case.casedef.constantsdef");
+	typeCase = ctes.GetCase();
+	if (typeCase == 1) UpdateCaseConfig_Mixed_M();
+	LoadCaseConfig();
+
+
+	//-Aplies configuration using command line.
+	if (cfg->PosDouble == 0) { Psingle = true;  SvDouble = false; }
+	else if (cfg->PosDouble == 1) { Psingle = false; SvDouble = false; }
+	else if (cfg->PosDouble == 2) { Psingle = false; SvDouble = true; }
+	if (cfg->TStep)TStep = cfg->TStep;
+	if (cfg->VerletSteps >= 0)VerletSteps = cfg->VerletSteps;
+	if (cfg->TKernel)TKernel = cfg->TKernel;
+	if (cfg->TVisco) { TVisco = cfg->TVisco; Visco = cfg->Visco; }
+	if (cfg->ViscoBoundFactor >= 0)ViscoBoundFactor = cfg->ViscoBoundFactor;
+	if (cfg->DeltaSph >= 0) {
+		DeltaSph = cfg->DeltaSph;
+		TDeltaSph = (DeltaSph ? DELTA_Dynamic : DELTA_None);
+	}
+	if (TDeltaSph == DELTA_Dynamic && Cpu)TDeltaSph = DELTA_DynamicExt; //-It is necessary because the interaction is divided in two steps: fluid-fluid/float and fluid-bound.
+
+	// #Shift
+	if (cfg->Shifting >= 0) {
+		switch (cfg->Shifting) {
+		case 0:  TShifting = SHIFT_None;     break;
+		case 1:  TShifting = SHIFT_NoBound;  break;
+		case 2:  TShifting = SHIFT_NoFixed;  break;
+		case 3:  TShifting = SHIFT_Full;     break;
+		default: RunException(met, "Shifting mode is not valid.");
+		}
+		if (TShifting != SHIFT_None) {
+			ShiftCoef = -2; ShiftTFS = 0;
+		}
+		else ShiftCoef = ShiftTFS = 0;
+	}
+
+	if (cfg->FtPause >= 0)FtPause = cfg->FtPause;
+	if (cfg->TimeMax > 0)TimeMax = cfg->TimeMax;
+	//-Configuration of JTimeOut with TimePart.
+	TimeOut = new JTimeOut();
+	if (cfg->TimePart >= 0) {
+		TimePart = cfg->TimePart;
+		TimeOut->Config(TimePart);
+	}
+	else TimeOut->Config(FileXml, "case.execution.special.timeout", TimePart);
+
+	CellOrder = cfg->CellOrder;
+	CellMode = cfg->CellMode;
+	if (cfg->DomainMode == 1) {
+		ConfigDomainParticles(cfg->DomainParticlesMin, cfg->DomainParticlesMax);
+		ConfigDomainParticlesPrc(cfg->DomainParticlesPrcMin, cfg->DomainParticlesPrcMax);
+	}
+	else if (cfg->DomainMode == 2)ConfigDomainFixed(cfg->DomainFixedMin, cfg->DomainFixedMax);
+	if (cfg->RhopOutModif) {
+		RhopOutMin = cfg->RhopOutMin; RhopOutMax = cfg->RhopOutMax;
+	}
+	RhopOut = (RhopOutMin < RhopOutMax);
+	if (!RhopOut) { RhopOutMin = -FLT_MAX; RhopOutMax = FLT_MAX; }
+}
+
+//==============================================================================
 /// Loads the configuration of the execution.
 //==============================================================================
 void JSph::LoadConfig_T(const JCfgRun *cfg) {
@@ -802,7 +915,7 @@ void JSph::LoadCaseConfig(){
   MassBound=(float)ctes.GetMassBound();
   //Matthias
   // Simulation #choices markers
-  typeCase = ctes.GetCase();
+  //typeCase = ctes.GetCase();
   typeCompression = ctes.GetComp();
   typeDivision = ctes.GetDiv();
   typeGrowth = ctes.GetGrow();

@@ -385,6 +385,7 @@ protected:
   void LoadConfig(const JCfgRun *cfg);
   void LoadConfig_T(const JCfgRun *cfg);
   void LoadConfig_Mixed_M(const JCfgRun* cfg);
+  void LoadConfig_Uni_M(const JCfgRun* cfg);
   void UpdateXml_M(const JCfgRun* cfg);
   void LoadCaseConfig();
   void LoadCaseConfig_T();

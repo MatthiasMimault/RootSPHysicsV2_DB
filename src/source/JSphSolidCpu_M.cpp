@@ -1236,6 +1236,115 @@ void JSphSolidCpu::InitRun_Mixed_M() {
 }
 
 //==============================================================================
+/// Initialisation of arrays and variables for execution.
+/// Inicializa vectores y variables para la ejecucion.
+/// #quadform #initialisation
+//==============================================================================
+void JSphSolidCpu::InitRun_Uni_M() {
+	const char met[] = "InitRun_Uni_M";
+	WithFloating = (CaseNfloat > 0);
+
+	if (TStep == STEP_Verlet) {
+		memcpy(VelrhopM1c, Velrhopc, sizeof(tfloat4) * Np);
+		memset(TauM1c_M, 0, sizeof(tsymatrix3f) * Np);
+		memcpy(MassM1c_M, Massc_M, sizeof(float) * Np);
+		VerletStep = 0;
+		for (unsigned p = 0; p < Np; p++) {
+			//const double dp = pow(3.0 / 32.0 / PI * Massc_M[p] / RhopZero, 1 / 3);
+			const double dp = pow(Massc_M[p] / RhopZero, 1.0f / 3.0f);
+			//MassM1c_M[p] = MassFluid;
+			QuadFormM1c_M[p] = TSymatrix3f(4.0f / float(pow(dp, 2)), 0, 0, 4.0f / float(pow(dp, 2)), 0, 4.0f / float(pow(dp, 2)));
+		}
+	}
+	else if (TStep == STEP_Symplectic)DtPre = DtIni;
+	if (TVisco == VISCO_LaminarSPS)memset(SpsTauc, 0, sizeof(tsymatrix3f) * Np);
+
+	// Matthias
+	memset(Tauc_M, 0, sizeof(tsymatrix3f) * Np);
+	memset(NabVx_M, 0, sizeof(float) * Np);
+	memset(Divisionc_M, 0, sizeof(bool) * Np);
+
+	/*for (unsigned p = 0; p < Np; p++) {
+		//const double dp = pow(3.0 / 32.0 / PI * Massc_M[p] / RhopZero, 1 / 3);
+		const double dp = pow(Massc_M[p] / RhopZero, 1.0f / 3.0f);
+		QuadFormc_M[p] = TSymatrix3f(4.0f / float(pow(dp, 2)), 0, 0, 4.0f / float(pow(dp, 2)), 0, 4.0f / float(pow(dp, 2)));
+	}*/
+	memset(VonMises3D, 0, sizeof(float) * Np);
+	memset(GradVelSave, 0, sizeof(float) * Np);
+	memset(CellOffSpring, 0, sizeof(unsigned) * Np);
+
+	if (UseDEM)DemDtForce = DtIni; //(DEM)
+	if (CaseNfloat)InitFloating();
+
+	//-Adjust paramaters to start.
+	PartIni = PartBeginFirst;
+	TimeStepIni = (!PartIni ? 0 : PartBeginTimeStep);
+	//-Adjust motion for the instant of the loaded PART.
+	if (CaseNmoving) {
+		MotionTimeMod = (!PartIni ? PartBeginTimeStep : 0);
+		Motion->ProcesTime(JSphMotion::MOMT_Simple, 0, TimeStepIni + MotionTimeMod);
+	}
+
+	//-Uses Inlet information from PART read.
+	if (PartBeginTimeStep && PartBeginTotalNp) {
+		TotalNp = PartBeginTotalNp;
+		IdMax = unsigned(TotalNp - 1);
+	}
+
+	//-Shows Initialize configuration.
+	if (InitializeInfo.size()) {
+		Log->Print("Initialization configuration:");
+		Log->Print(InitializeInfo);
+		Log->Print(" ");
+	}
+
+	//-Process Special configurations in XML.
+	JXml xml; xml.LoadFile(FileXml);
+
+	//-Configuration of GaugeSystem.
+	GaugeSystem->Config(Simulate2D, Simulate2DPosY, TimeMax, TimePart, Dp, DomPosMin, DomPosMax, Scell, Hdiv, H, MassFluid);
+	if (xml.GetNode("case.execution.special.gauges", false))GaugeSystem->LoadXml(&xml, "case.execution.special.gauges");
+
+	//-Prepares WaveGen configuration.
+	if (WaveGen) {
+		Log->Print("Wave paddles configuration:");
+		WaveGen->Init(GaugeSystem, MkInfo, TimeMax, Gravity);
+		WaveGen->VisuConfig("", " ");
+	}
+
+	//-Prepares Damping configuration.
+	if (Damping) {
+		Damping->Config(CellOrder);
+		Damping->VisuConfig("Damping configuration:", " ");
+	}
+
+	//-Prepares AccInput configuration.
+	if (AccInput) {
+		Log->Print("AccInput configuration:");
+		AccInput->Init(TimeMax);
+		AccInput->VisuConfig("", " ");
+	}
+
+	//-Configuration of SaveDt.
+	if (xml.GetNode("case.execution.special.savedt", false)) {
+		SaveDt = new JSaveDt(Log);
+		SaveDt->Config(&xml, "case.execution.special.savedt", TimeMax, TimePart);
+		SaveDt->VisuConfig("SaveDt configuration:", " ");
+	}
+
+	//-Shows configuration of JGaugeSystem.
+	if (GaugeSystem->GetCount())GaugeSystem->VisuConfig("GaugeSystem configuration:", " ");
+
+	//-Shows configuration of JTimeOut.
+	if (TimeOut->UseSpecialConfig())TimeOut->VisuConfig(Log, "TimeOut configuration:", " ");
+
+	Part = PartIni; Nstep = 0; PartNstep = 0; PartOut = 0;
+	TimeStep = TimeStepIni; TimeStepM1 = TimeStep;
+	if (DtFixed)DtIni = DtFixed->GetDt(TimeStep, DtIni);
+	TimePartNext = TimeOut->GetNextTime(TimeStep);
+}
+
+//==============================================================================
 /// Adds variable acceleration from input files.
 //==============================================================================
 void JSphSolidCpu::AddAccInput() {
@@ -10304,7 +10413,7 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT_M(double dt) {
 				float adens = float(LambdaMass)*(RhopZero/Velrhopc[p].w-1);
 				//float adens = float(LambdaMass);
 
-				// #Growth regional
+				// Growth regional
 				if (Posc[p].x > -0.15f) {
 					rhopnew = float(rhopnew + dt * adens);
 					Massc_M[p] = float(double(MassPrec_M[p]) + dt * double(adens*volu));
@@ -10423,13 +10532,13 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT_BlockBdy_M(double
 			float adens = float(LambdaMass) * (RhopZero / Velrhopc[p].w - 1);
 			//float adens = float(LambdaMass);
 
-			// #Growth regional
+			// Growth regional
 			rhopnew = float(rhopnew + dt * adens);
 			Massc_M[p] = float(double(MassPrec_M[p]) + dt * double(adens * volu));
 			
 
 
-			// Global #growth
+			// Global growth
 			/*rhopnew = float(rhopnew + dt * adens);
 			Massc_M[p] = float(double(MassPrec_M[p]) + dt * double(adens * volu));*/
 
@@ -10671,7 +10780,8 @@ float JSphSolidCpu::GrowthRateSpaceNormalised(float pos) {
 // #Growth function - Normalised Double precision
 double JSphSolidCpu::GrowthRateSpaceNormalised(double pos) {
 	//float distance = 0.25f *abs(pos - maxPosX); // Beemster
-	double distance = 20.0f * abs(pos - (double) maxPosX); // Rescale to Bassel_2014 meristem data
+	//double distance = 20.0f * abs(pos - (double) maxPosX); // Rescale to Bassel_2014 meristem data
+	double distance = 1.0/5.0 * abs(pos - (double) maxPosX); // Rescale to Smooth Lambda growth
 	return distance * exp(1.0 -distance);
 }
 

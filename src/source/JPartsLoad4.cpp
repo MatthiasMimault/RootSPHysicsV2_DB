@@ -229,6 +229,12 @@ void JPartsLoad4::LoadParticles(const std::string &casedir,const std::string &ca
         pd.Get_Vel(npok,auxf3);
         pd.Get_Rhop(npok,auxf);
 		for (unsigned p = 0; p<npok; p++)VelRhop[ntot + p] = TFloat4(auxf3[p].x, auxf3[p].y, auxf3[p].z, auxf[p]);
+		for (unsigned p = 0; p < npok; p++) Mass[ntot + p] = (float)pd.Get_MassFluid();
+		const double Dp = pd.Get_Dp();
+		for (unsigned p = 0; p < npok; p++) {
+			Qf[ntot + p] = TSymatrix3f(
+				4 / float(pow(Dp, 2)), 0, 0, 4 / float(pow(Dp, 2)), 0, 4 / float(pow(Dp, 2)));
+		}
       }
       ntot+=npok;
     }
