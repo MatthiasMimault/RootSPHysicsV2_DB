@@ -10739,7 +10739,7 @@ void JSphSolidCpu::GrowthCell_M(double dt) {
 			}
 			case 3: {
 				const double volu = double(MassPrec_M[p]) / double(Velrhopc[p].w);
-				const float Gamma = float(LambdaMass* GrowthRate2(Posc[p].x, 0.5)); // lambda max = lambda at 0.5 mm
+				const float Gamma = float(LambdaMass* GrowthRate2(Posc[p].x, 0.15)); // lambda max = lambda at 0.5 mm
 				Velrhopc[p].w = Velrhopc[p].w + float(dt) * Gamma;
 				Massc_M[p] = Velrhopc[p].w * float(volu);
 				break;
