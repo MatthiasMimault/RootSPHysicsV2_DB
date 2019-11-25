@@ -626,7 +626,7 @@ unsigned JSphSolidCpu::GetParticlesData_M(unsigned n, unsigned pini, bool cellor
 	if (pore)memcpy(pore, Porec_M + pini, sizeof(float)*n);
 	if (press) {
 		for (unsigned p = 0; p < n; p++) {
-			press[p] = CalcK(Posc[p].x) / Gamma * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f);
+			press[p] = CalcK(abs(MaxPosition().x-Posc[p].x)) / Gamma * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f);
 		}
 	}
 	if (mass)memcpy(mass, Massc_M + pini, sizeof(float)*n);
@@ -692,7 +692,7 @@ unsigned JSphSolidCpu::GetParticlesData_M(unsigned n, unsigned pini, bool cellor
 	if (press) {
 		for (unsigned p = 0; p < n; p++) {
 			//#Save
-			press[p] = CalcK((Posc[p].x)) / Gamma * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f);
+			press[p] = CalcK(abs(MaxPosition().x - Posc[p].x)) / Gamma * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f);
 			//press[p] = -0.5f*RhopZero*float(Posc[p].x*Posc[p].x);
 		}
 	}
@@ -759,7 +759,7 @@ unsigned JSphSolidCpu::GetParticlesData_A(unsigned n, unsigned pini, bool cellor
 	if (press) {
 		for (unsigned p = 0; p < n; p++) {
 			//#Save
-			press[p] = CalcK((Posc[p].x)) / Gamma * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f);
+			press[p] = CalcK(abs(MaxPosition().x - Posc[p].x)) / Gamma * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f);
 			//press[p] = -0.5f*RhopZero*float(Posc[p].x*Posc[p].x);
 		}
 	}
@@ -1435,7 +1435,7 @@ void JSphSolidCpu::PreInteractionVars_Forces(TpInter tinter, unsigned np, unsign
 	// #Pore #Pressure Matthias
 	for (int p = 0; p<n; p++) {
 		const float rhop = Velrhopc[p].w, rhop_r0 = rhop / RhopZero;
-		Pressc[p] = CalcK((Posc[p].x)) / Gamma * (pow(rhop_r0, Gamma) - 1.0f);
+		Pressc[p] = CalcK(abs(MaxPosition().x - Posc[p].x)) / Gamma * (pow(rhop_r0, Gamma) - 1.0f);
 		//Pressc[p] = -0.5f*RhopZero * float(Posc[p].x*Posc[p].x);
 		
 		//Pore Pressure 1 < x < 2
@@ -5039,10 +5039,12 @@ void JSphSolidCpu::ComputeTauDot_Gradual_M(unsigned n, unsigned pini, tsymatrix3
 		const tsymatrix3f gradvel = StrainDotc_M[p];
 		const tsymatrix3f omega = Spinc_M[p];
 		tsymatrix3f EM;
-		const float theta = 0;
-		const float E = theta * Ex + (1.0f - theta) * Ey;
-		const float G = theta * G + (1.0f - theta) *Ex*0.5f*(1+nuxy);
-		const float nu = theta * nuxy + (1.0f - theta) * nuyz;
+		//	const float theta = 1.0f; // Theta constant
+		//const float theta = 2.0f - float(Posc[p].x); // Theta linear
+		const float theta = SigmoidGrowth(2.0f- float(Posc[p].x)); // Theta sigmoid
+		const float E = theta * Ey + (1.0f - theta) * Ex;
+		const float G = theta * Gf + (1.0f - theta) * Ex * 0.5f * (1 + nuxy);
+		const float nu = theta * nuyz + (1.0f - theta) * nuxy;
 		const float  nf = E / Ex;
 
 		if (Simulate2D) {
@@ -5239,7 +5241,7 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 	}
 
 	// Overall computation of taudot
-	int typeYoung = 0; // Original
+	int typeYoung = 1; // Original
 	//inttypeYoung = '1'; // Gradual Young - dev version
 	switch (typeYoung) {
 		case 0: {

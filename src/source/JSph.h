@@ -400,6 +400,8 @@ protected:
   void ConfigConstants(bool simulate2d);
   // Matthias
   float CalcK(double x);
+  float SigmoidGrowth(double x)const;
+
   void VisuConfig()const;
   void VisuParticleSummary()const;
   void LoadDcellParticles(unsigned n,const typecode *code,const tdouble3 *pos,unsigned *dcell)const;

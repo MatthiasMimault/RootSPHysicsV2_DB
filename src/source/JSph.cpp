@@ -1719,14 +1719,16 @@ void JSph::ConfigConstants(bool simulate2d){
 
 //=======================
 // Calculate K value (sigmoid between isotropic and anisotropic behaviour)
-// #CalcK #S #KS
+// #CalcK  #KS
 //=======================
 float JSph::CalcK(double x) {
 	float K;
-	const float theta = 0;
-	const float E = theta * Ex + (1.0f - theta) * Ey;
-	const float G = theta * G + (1.0f - theta) * Ex * 0.5f * (1 + nuxy);
-	const float nu = theta * nuxy + (1.0f - theta) * nuyz;
+//	const float theta = 1.0f; // Theta constant
+	//const float theta = 2.0f-float(x); // Theta linear
+	const float theta = SigmoidGrowth(float(x)); // Theta sigmoid
+	const float E = theta * Ey + (1.0f - theta) * Ex;
+	const float G = theta * Gf + (1.0f - theta) * Ex * 0.5f * (1 + nuxy);
+	const float nu = theta * nuyz + (1.0f - theta) * nuxy;
 	const float  nf = E / Ex;
 
 	if (Simulate2D) {
@@ -1758,6 +1760,13 @@ float JSph::CalcK(double x) {
 	}
 
 	return K;
+}
+
+float JSph::SigmoidGrowth(double x) const {
+	float L = 1;
+	float x0 = 0.45f;
+	float k = 25.0f;
+	return 1.0f / (1.0f + exp(-k * (float(x) - x0)));
 }
 
 //==============================================================================
@@ -2235,7 +2244,7 @@ void JSph::ConfigSaveData(unsigned piece,unsigned pieces,std::string div){
     DataBi4->ConfigBasic(piece,pieces,RunCode,AppName,CaseName,Simulate2D,Simulate2DPosY,DirDataOut);
     DataBi4->ConfigParticles(CaseNp,CaseNfixed,CaseNmoving,CaseNfloat,CaseNfluid,CasePosMin,CasePosMax,NpDynamic,ReuseIds);
     //DataBi4->ConfigCtes(Dp,H,CteB,RhopZero,Gamma,MassBound,MassFluid); #dev
-    DataBi4->ConfigCtes(Dp,H, CalcK(0.0)/Gamma,RhopZero,Gamma,MassBound,MassFluid);
+    DataBi4->ConfigCtes(Dp,H, max(CalcK(0.0),CalcK(1.5))/Gamma,RhopZero,Gamma,MassBound,MassFluid);
     DataBi4->ConfigSimMap(OrderDecode(MapRealPosMin),OrderDecode(MapRealPosMax));
     JPartDataBi4::TpPeri tperi=JPartDataBi4::PERI_None;
     if(PeriodicConfig.PeriActive){
@@ -2396,7 +2405,8 @@ void JSph::SavePartData(unsigned npok, unsigned nout, const unsigned *idp, const
 			float *press = NULL;
 			if (0) {//-Example saving a new array (Pressure) in files BI4.
 				press = new float[npok];
-				for (unsigned p = 0; p<npok; p++)press[p] = (idp[p] >= CaseNbound ? CalcK((pos[p].x))/Gamma * (pow(rhop[p] / RhopZero, Gamma) - 1.0f) : 0.f);
+				// dev -> Get max pos here #dev #temp
+				for (unsigned p = 0; p<npok; p++)press[p] = (idp[p] >= CaseNbound ? CalcK((2.0-pos[p].x))/Gamma * (pow(rhop[p] / RhopZero, Gamma) - 1.0f) : 0.f);
 				DataBi4->AddPartData("Pressure", npok, press);
 			}
 			DataBi4->SaveFilePart();
