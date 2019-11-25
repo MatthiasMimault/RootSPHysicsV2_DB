@@ -626,7 +626,7 @@ unsigned JSphSolidCpu::GetParticlesData_M(unsigned n, unsigned pini, bool cellor
 	if (pore)memcpy(pore, Porec_M + pini, sizeof(float)*n);
 	if (press) {
 		for (unsigned p = 0; p < n; p++) {
-			press[p] = CteB * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f);
+			press[p] = CalcK(Posc[p].x) / Gamma * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f);
 		}
 	}
 	if (mass)memcpy(mass, Massc_M + pini, sizeof(float)*n);
@@ -692,7 +692,7 @@ unsigned JSphSolidCpu::GetParticlesData_M(unsigned n, unsigned pini, bool cellor
 	if (press) {
 		for (unsigned p = 0; p < n; p++) {
 			//#Save
-			press[p] = CteB * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f);
+			press[p] = CalcK((Posc[p].x)) / Gamma * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f);
 			//press[p] = -0.5f*RhopZero*float(Posc[p].x*Posc[p].x);
 		}
 	}
@@ -759,7 +759,7 @@ unsigned JSphSolidCpu::GetParticlesData_A(unsigned n, unsigned pini, bool cellor
 	if (press) {
 		for (unsigned p = 0; p < n; p++) {
 			//#Save
-			press[p] = CteB * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f);
+			press[p] = CalcK((Posc[p].x)) / Gamma * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f);
 			//press[p] = -0.5f*RhopZero*float(Posc[p].x*Posc[p].x);
 		}
 	}
@@ -1435,7 +1435,7 @@ void JSphSolidCpu::PreInteractionVars_Forces(TpInter tinter, unsigned np, unsign
 	// #Pore #Pressure Matthias
 	for (int p = 0; p<n; p++) {
 		const float rhop = Velrhopc[p].w, rhop_r0 = rhop / RhopZero;
-		Pressc[p] = CteB * (pow(rhop_r0, Gamma) - 1.0f);
+		Pressc[p] = CalcK((Posc[p].x)) / Gamma * (pow(rhop_r0, Gamma) - 1.0f);
 		//Pressc[p] = -0.5f*RhopZero * float(Posc[p].x*Posc[p].x);
 		
 		//Pore Pressure 1 < x < 2
@@ -5029,7 +5029,7 @@ void JSphSolidCpu::ComputeJauTauDot_M(unsigned n, unsigned pini, const tsymatrix
 //==============================================================================
 /// Computes stress tensor rate for solid - #Gradual Young
 //==============================================================================
-void JSphSolidCpu::ComputeTauDot_Gradual_M(unsigned n, unsigned pini, const tsymatrix3f* gradvel, tsymatrix3f* tau, tsymatrix3f* taudot, tsymatrix3f* omega)const {
+void JSphSolidCpu::ComputeTauDot_Gradual_M(unsigned n, unsigned pini, tsymatrix3f* taudot)const {
 	const int pfin = int(pini + n);
 #ifdef OMP_USE
 #pragma omp parallel for schedule (static)
@@ -5038,11 +5038,27 @@ void JSphSolidCpu::ComputeTauDot_Gradual_M(unsigned n, unsigned pini, const tsym
 		const tsymatrix3f tau = Tauc_M[p];
 		const tsymatrix3f gradvel = StrainDotc_M[p];
 		const tsymatrix3f omega = Spinc_M[p];
-		tsymatrix3f E;
+		tsymatrix3f EM;
+		const float theta = 0;
+		const float E = theta * Ex + (1.0f - theta) * Ey;
+		const float G = theta * G + (1.0f - theta) *Ex*0.5f*(1+nuxy);
+		const float nu = theta * nuxy + (1.0f - theta) * nuyz;
+		const float  nf = E / Ex;
 
-		//#2D
 		if (Simulate2D) {
-			E = {
+			const float Delta = 1.0f / (1.0f - nuxy * nuxy * nf);
+			const float C1 = Delta * Ex;
+			const float C12 = 0.0f;
+			const float C13 = Delta * nuxy * E;
+			const float C2 = 0.0f;
+			const float C23 = 0.0f;
+			const float C3 = Delta * E;
+			
+			const float C4 = 0.0f;
+			const float C5 = G;
+			const float C6 = 0.0f;
+
+			EM = {
 				1.0f / 2.0f * (C1 - C13) * gradvel.xx + 1.0f / 2.0f * (C13 - C3) * gradvel.zz,
 				0.0f,
 				C5 * gradvel.xz,
@@ -5051,7 +5067,19 @@ void JSphSolidCpu::ComputeTauDot_Gradual_M(unsigned n, unsigned pini, const tsym
 				1.0f / 2.0f * (-C1 + C13) * gradvel.xx + 1.0f / 2.0f * (-C13 + C3) * gradvel.zz };
 		}
 		else {
-			E = {
+			const float Delta = nf * Ex / (1.0f - nu - 2.0f * nf * nuxy * nuxy);
+			const float C1 = Delta * (1.0f - nu) / nf;
+			const float C12 = Delta * nuxy;
+			const float C13 = Delta * nuxy;
+			const float C2 = Delta * (1.0f - nf * nuxy * nuxy) / (1.0f + nu);
+			const float C23 = Delta * (nu + nf * nuxy * nuxy) / (1.0f + nu);
+			const float C3 = Delta * (1.0f - nf * nuxy * nuxy) / (1.0f + nu);
+
+			const float C4 = E / (2.0f + 2.0f * nuxy);
+			const float C5 = G;
+			const float C6 = G;
+
+			EM = {
 				(2.0f / 3.0f * C1 - 1.0f / 3.0f * C12 - 1.0f / 3.0f * C13) * gradvel.xx + (2.0f / 3.0f * C12 - 1.0f / 3.0f * C2 - 1.0f / 3.0f * C23) * gradvel.yy + (2.0f / 3.0f * C13 - 1.0f / 3.0f * C23 - 1.0f / 3.0f * C3) * gradvel.zz,
 				C4 * gradvel.xy,
 				C5 * gradvel.xz,
@@ -5060,12 +5088,12 @@ void JSphSolidCpu::ComputeTauDot_Gradual_M(unsigned n, unsigned pini, const tsym
 				(-1.0f / 3.0f * C1 - 1.0f / 3.0f * C12 + 2.0f / 3.0f * C13) * gradvel.xx + (-1.0f / 3.0f * C12 - 1.0f / 3.0f * C2 + 2.0f / 3.0f * C23) * gradvel.yy + (-1.0f / 3.0f * C13 - 1.0f / 3.0f * C23 + 2.0f / 3.0f * C3) * gradvel.zz };
 		}
 
-		taudot[p].xx = E.xx + 2.0f * tau.xy * omega.xy + 2.0f * tau.xz * omega.xz;
-		taudot[p].xy = E.xy + (tau.yy - tau.xx) * omega.xy + tau.xz * omega.yz + tau.yz * omega.xz;
-		taudot[p].xz = E.xz + (tau.zz - tau.xx) * omega.xz - tau.xy * omega.yz + tau.yz * omega.xy;
-		taudot[p].yy = E.yy - 2.0f * tau.xy * omega.xy + 2.0f * tau.yz * omega.yz;
-		taudot[p].yz = E.yz + (tau.zz - tau.yy) * omega.yz - tau.xz * omega.xy - tau.xy * omega.xz;
-		taudot[p].zz = E.zz - 2.0f * tau.xz * omega.xz - 2.0f * tau.yz * omega.yz;
+		taudot[p].xx = EM.xx + 2.0f * tau.xy * omega.xy + 2.0f * tau.xz * omega.xz;
+		taudot[p].xy = EM.xy + (tau.yy - tau.xx) * omega.xy + tau.xz * omega.yz + tau.yz * omega.xz;
+		taudot[p].xz = EM.xz + (tau.zz - tau.xx) * omega.xz - tau.xy * omega.yz + tau.yz * omega.xy;
+		taudot[p].yy = EM.yy - 2.0f * tau.xy * omega.xy + 2.0f * tau.yz * omega.yz;
+		taudot[p].yz = EM.yz + (tau.zz - tau.yy) * omega.yz - tau.xz * omega.xy - tau.xy * omega.xz;
+		taudot[p].zz = EM.zz - 2.0f * tau.xz * omega.xz - 2.0f * tau.yz * omega.yz;
 
 		GradVelSave[p] = gradvel.xx + gradvel.yy + gradvel.zz;
 	}
@@ -5219,7 +5247,7 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 			break;
 		}
 		case 1: {
-			ComputeTauDot_Gradual_M(np, 0, jaugradvel, jautau, jautaudot, jauomega);
+			ComputeTauDot_Gradual_M(np, 0, jautaudot);
 			break;
 		}
 	}

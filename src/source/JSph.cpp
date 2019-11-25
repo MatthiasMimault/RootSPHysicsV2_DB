@@ -148,7 +148,6 @@ void JSph::InitVars(){
   H=CteB=Gamma=RhopZero=CFLnumber=0;
   // Matthias
   typeCase = typeCompression = typeGrowth = typeDivision = 0;
-  CteB_M = TFloat3(0, 0, 0);
   Dp=0;
   Cs0=0;
   Delta2H=0;
@@ -1636,14 +1635,14 @@ void JSph::ConfigConstants(bool simulate2d){
   printf("Kani = %.8f\n", Kani);
 
   // New B for anisotropy
-  CteB = Kani / (Gamma);
+  //CteB = Kani / (Gamma); #dev
 
   //-Computation of constants.
   const double h=H;
   Delta2H=float(h*2*DeltaSph);
 
   // Cs0 version originale
-  Cs0=10*sqrt(double(Gamma)*double(CteB)/double(RhopZero));
+  Cs0=10*sqrt(double(Gamma)*double(max(CalcK(0.0), CalcK(1.5) )/Gamma)/double(RhopZero)); //#dev
 
   // Old anisotropic versions of Cs0 (vec3) removed - Matthias
 
@@ -1718,6 +1717,52 @@ void JSph::ConfigConstants(bool simulate2d){
   VisuConfig();
 }
 
+//=======================
+// Calculate K value (sigmoid between isotropic and anisotropic behaviour)
+//=======================
+float JSph::CalcK(double x) {
+	float K;
+	const float theta = 0;
+	const float E = theta * Ex + (1.0f - theta) * Ey;
+	const float G = theta * Ex + (1.0f - theta) * Ey;
+	const float nu = theta * Ex + (1.0f - theta) * Ey;
+	const float  nf = Ey / E;
+
+	if (Simulate2D) {
+		const float Delta = 1.0f / (1.0f - nu * nu * nf);
+
+		const float KS1 = 1 / E;
+		const float KS12 = 0.0f; 
+		const float KS13 = -nu / E;
+		const float KS21 = 0.0f;		
+		const float KS2 = 0.0f;	
+		const float KS23 = 0.0f;
+		const float KS31 = -nu / E; 
+		const float KS32 = 0.0f; 
+		const float KS3 = 1 / Ey;
+
+		K = 1 / (KS1 + KS12 + KS13 + KS21 + KS2 + KS23 + KS31 + KS32 + KS3);
+
+	}
+	else {
+		const float Delta = nf * E / (1.0f - nuyz - 2.0f * nf * nu * nu);
+
+		const float KS1 = 1 / E; 
+		const float KS12 = -nu / E; 
+		const float KS13 = -nu / E;
+		const float KS21 = -nu / E; 
+		const float KS2 = 1 / Ey; 
+		const float KS23 = -nuyz / Ey;
+		const float KS31 = -nu / E; 
+		const float KS32 = -nuyz / Ey; 
+		const float KS3 = 1 / Ey;
+
+		K = 1 / (KS1 + KS12 + KS13 + KS21 + KS2 + KS23 + KS31 + KS32 + KS3);
+	}
+
+	return K;
+}
+
 //==============================================================================
 /// Prints out configuration of the case.
 //==============================================================================
@@ -1763,11 +1808,8 @@ void JSph::VisuConfig()const{
   Log->Print(fun::VarStr("Dx",Dp));
   Log->Print(fun::VarStr("H",H));
   Log->Print(fun::VarStr("CoefficientH",H/(Dp*sqrt(Simulate2D? 2.f: 3.f))));
-  Log->Print(fun::VarStr("CteB", CteB));
+  //Log->Print(fun::VarStr("CteB", CteB));
   // Matthias
-  Log->Print(fun::VarStr("CteB_M", CteB_M.x));
-  Log->Print(fun::VarStr("CteB_M", CteB_M.y));
-  Log->Print(fun::VarStr("CteB_M", CteB_M.z));
   Log->Print(fun::VarStr("Gamma",Gamma));
   Log->Print(fun::VarStr("RhopZero",RhopZero));
   Log->Print(fun::VarStr("Cs0",Cs0));
@@ -2195,7 +2237,8 @@ void JSph::ConfigSaveData(unsigned piece,unsigned pieces,std::string div){
     DataBi4=new JPartDataBi4();
     DataBi4->ConfigBasic(piece,pieces,RunCode,AppName,CaseName,Simulate2D,Simulate2DPosY,DirDataOut);
     DataBi4->ConfigParticles(CaseNp,CaseNfixed,CaseNmoving,CaseNfloat,CaseNfluid,CasePosMin,CasePosMax,NpDynamic,ReuseIds);
-    DataBi4->ConfigCtes(Dp,H,CteB,RhopZero,Gamma,MassBound,MassFluid);
+    //DataBi4->ConfigCtes(Dp,H,CteB,RhopZero,Gamma,MassBound,MassFluid); #dev
+    DataBi4->ConfigCtes(Dp,H, CalcK(0.0)/Gamma,RhopZero,Gamma,MassBound,MassFluid);
     DataBi4->ConfigSimMap(OrderDecode(MapRealPosMin),OrderDecode(MapRealPosMax));
     JPartDataBi4::TpPeri tperi=JPartDataBi4::PERI_None;
     if(PeriodicConfig.PeriActive){
@@ -2356,7 +2399,7 @@ void JSph::SavePartData(unsigned npok, unsigned nout, const unsigned *idp, const
 			float *press = NULL;
 			if (0) {//-Example saving a new array (Pressure) in files BI4.
 				press = new float[npok];
-				for (unsigned p = 0; p<npok; p++)press[p] = (idp[p] >= CaseNbound ? CteB * (pow(rhop[p] / RhopZero, Gamma) - 1.0f) : 0.f);
+				for (unsigned p = 0; p<npok; p++)press[p] = (idp[p] >= CaseNbound ? CalcK((pos[p].x))/Gamma * (pow(rhop[p] / RhopZero, Gamma) - 1.0f) : 0.f);
 				DataBi4->AddPartData("Pressure", npok, press);
 			}
 			DataBi4->SaveFilePart();

@@ -398,6 +398,8 @@ protected:
   void ResizeMapLimits();
 
   void ConfigConstants(bool simulate2d);
+  // Matthias
+  float CalcK(double x);
   void VisuConfig()const;
   void VisuParticleSummary()const;
   void LoadDcellParticles(unsigned n,const typecode *code,const tdouble3 *pos,unsigned *dcell)const;
