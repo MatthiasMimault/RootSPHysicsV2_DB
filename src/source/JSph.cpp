@@ -1719,43 +1719,40 @@ void JSph::ConfigConstants(bool simulate2d){
 
 //=======================
 // Calculate K value (sigmoid between isotropic and anisotropic behaviour)
+// #CalcK #S #KS
 //=======================
 float JSph::CalcK(double x) {
 	float K;
 	const float theta = 0;
 	const float E = theta * Ex + (1.0f - theta) * Ey;
-	const float G = theta * Ex + (1.0f - theta) * Ey;
-	const float nu = theta * Ex + (1.0f - theta) * Ey;
-	const float  nf = Ey / E;
+	const float G = theta * G + (1.0f - theta) * Ex * 0.5f * (1 + nuxy);
+	const float nu = theta * nuxy + (1.0f - theta) * nuyz;
+	const float  nf = E / Ex;
 
 	if (Simulate2D) {
-		const float Delta = 1.0f / (1.0f - nu * nu * nf);
-
-		const float KS1 = 1 / E;
+		const float KS1 = 1 / Ex;
 		const float KS12 = 0.0f; 
-		const float KS13 = -nu / E;
+		const float KS13 = -nuxy / Ex;
 		const float KS21 = 0.0f;		
 		const float KS2 = 0.0f;	
 		const float KS23 = 0.0f;
-		const float KS31 = -nu / E; 
+		const float KS31 = -nuxy / Ex; 
 		const float KS32 = 0.0f; 
-		const float KS3 = 1 / Ey;
+		const float KS3 = 1 / E;
 
 		K = 1 / (KS1 + KS12 + KS13 + KS21 + KS2 + KS23 + KS31 + KS32 + KS3);
 
 	}
 	else {
-		const float Delta = nf * E / (1.0f - nuyz - 2.0f * nf * nu * nu);
-
-		const float KS1 = 1 / E; 
-		const float KS12 = -nu / E; 
-		const float KS13 = -nu / E;
-		const float KS21 = -nu / E; 
-		const float KS2 = 1 / Ey; 
-		const float KS23 = -nuyz / Ey;
-		const float KS31 = -nu / E; 
-		const float KS32 = -nuyz / Ey; 
-		const float KS3 = 1 / Ey;
+		const float KS1 = 1 / Ex; 
+		const float KS12 = -nuxy / Ex; 
+		const float KS13 = -nuxy / Ex;
+		const float KS21 = -nuxy / Ex;
+		const float KS2 = 1 / E; 
+		const float KS23 = -nu / E;
+		const float KS31 = -nuxy / Ex;
+		const float KS32 = -nu / E; 
+		const float KS3 = 1 / E;
 
 		K = 1 / (KS1 + KS12 + KS13 + KS21 + KS2 + KS23 + KS31 + KS32 + KS3);
 	}
