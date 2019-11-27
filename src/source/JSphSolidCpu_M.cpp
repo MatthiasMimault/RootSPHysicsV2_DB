@@ -11745,6 +11745,8 @@ void JSphSolidCpu::RunShifting(double dt) {
 	TmcStart(Timers, TMC_SuShifting);
 	const double coeftfs = (Simulate2D ? 2.0 : 3.0) - ShiftTFS;
 	const int pini = int(Npb), pfin = int(Np), npf = int(Np - Npb);
+	// Disable surface detection
+	int dev_noSurfaceDetection = 0;
 #ifdef OMP_USE
 #pragma omp parallel for schedule (static) if(npf>OMP_LIMIT_COMPUTELIGHT)
 #endif
@@ -11753,10 +11755,14 @@ void JSphSolidCpu::RunShifting(double dt) {
 		double vy = double(Velrhopc[p].y);
 		double vz = double(Velrhopc[p].z);
 		double umagn = double(ShiftCoef)*double(H)*sqrt(vx*vx + vy * vy + vz * vz)*dt;
-		if (ShiftDetectc) {
-			if (ShiftDetectc[p]<ShiftTFS)umagn = 0;
-			else umagn *= (double(ShiftDetectc[p]) - ShiftTFS) / coeftfs;
+		
+		if (dev_noSurfaceDetection) {
+			if (ShiftDetectc) {
+				if (ShiftDetectc[p]<ShiftTFS)umagn = 0;
+				else umagn *= (double(ShiftDetectc[p]) - ShiftTFS) / coeftfs;
+			}
 		}
+		
 		if (ShiftPosc[p].x == FLT_MAX)umagn = 0; //-Zero shifting near boundary. | Anula shifting por proximidad del contorno.
 		const float maxdist = 0.1f*float(Dp); //-Max shifting distance permitted (recommended).
 		const float shiftdistx = float(double(ShiftPosc[p].x)*umagn);
