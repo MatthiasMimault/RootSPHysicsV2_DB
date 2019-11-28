@@ -11738,7 +11738,7 @@ double JSphSolidCpu::DtVariable(bool final) {
 }
 
 //==============================================================================
-/// Calculate final Shifting for particles' position.
+/// Calculate final Shifting for particles' position. #shift #runshift
 /// Calcula Shifting final para posicion de particulas.
 //==============================================================================
 void JSphSolidCpu::RunShifting(double dt) {
@@ -11746,7 +11746,7 @@ void JSphSolidCpu::RunShifting(double dt) {
 	const double coeftfs = (Simulate2D ? 2.0 : 3.0) - ShiftTFS;
 	const int pini = int(Npb), pfin = int(Np), npf = int(Np - Npb);
 	// Disable surface detection
-	int dev_noSurfaceDetection = 0;
+	int dev_noSurfaceDetection = 1;
 #ifdef OMP_USE
 #pragma omp parallel for schedule (static) if(npf>OMP_LIMIT_COMPUTELIGHT)
 #endif
@@ -11755,7 +11755,6 @@ void JSphSolidCpu::RunShifting(double dt) {
 		double vy = double(Velrhopc[p].y);
 		double vz = double(Velrhopc[p].z);
 		double umagn = double(ShiftCoef)*double(H)*sqrt(vx*vx + vy * vy + vz * vz)*dt;
-		
 		if (dev_noSurfaceDetection) {
 			if (ShiftDetectc) {
 				if (ShiftDetectc[p]<ShiftTFS)umagn = 0;

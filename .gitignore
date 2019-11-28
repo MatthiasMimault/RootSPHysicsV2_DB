@@ -28,3 +28,4 @@ src/lib/EigenLibs/*
 /debug/4-DataRootEllipsoids
 /debug/5-Bdy
 /debug/6-Grw
+/debug/7-C2D
