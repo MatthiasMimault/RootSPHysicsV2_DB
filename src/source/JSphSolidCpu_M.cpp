@@ -4536,7 +4536,7 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 						}
 
 						//-Shifting correction.
-						if (0 && shift && shiftposp1.x != FLT_MAX) {
+						if (shift && shiftposp1.x != FLT_MAX) {
 							const float massrhop = massp2 / velrhop[p2].w;
 							const bool noshift = (boundp2 && (tshifting == SHIFT_NoBound || (tshifting == SHIFT_NoFixed && CODE_IsFixed(code[p2]))));
 							shiftposp1.x = (noshift ? FLT_MAX : shiftposp1.x + massrhop * frx); //-For boundary do not use shifting. | Con boundary anula shifting.
@@ -4546,13 +4546,13 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 						}
 
 						//-Shifting correction - normalised - Matthias #dev #shift
-						if (1 && shift && shiftposp1.x != FLT_MAX) {
+						if (0 && shift && shiftposp1.x != FLT_MAX) {
 							const float massrhop = massp2 / velrhop[p2].w;
 							const bool noshift = (boundp2 && (tshifting == SHIFT_NoBound || (tshifting == SHIFT_NoFixed && CODE_IsFixed(code[p2]))));
-							shiftposp1.x = (noshift ? FLT_MAX : shiftposp1.x + massrhop * frx); //-For boundary do not use shifting. | Con boundary anula shifting.
-							shiftposp1.y += massrhop * fry;
-							shiftposp1.z += massrhop * frz;
-							shiftdetectp1 -= massrhop * (drx * frx * L[p1].a11 + dry * fry * L[p1].a22 + drz * frz * L[p1].a33);
+							shiftposp1.x = (noshift ? FLT_MAX : shiftposp1.x + massrhop * frx * L[p1].a11); //-For boundary do not use shifting. | Con boundary anula shifting.
+							shiftposp1.y += massrhop * fry * L[p1].a22;
+							shiftposp1.z += massrhop * frz * L[p1].a33;
+							shiftdetectp1 -= massrhop * (drx * frx + dry * fry + drz * frz);
 						}
 
 						//===== Viscosity ======
