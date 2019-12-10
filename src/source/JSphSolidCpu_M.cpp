@@ -10805,6 +10805,7 @@ void JSphSolidCpu::GrowthCell_M(double dt) {
 	//int typeGrowth = 2; // (default: no Growth, 0: old growth lambda, 1: 4.1%h-1, 2: variation Beemster1998)
 	// case3: beemster 2 cst lambda * f(x) in [0,1]
 	// case4: density variation + beemster fit for lambda 
+	// case5: Gaussian growth curve (centered 0.5, spread 0.15)
 	const int npb = int(Npb);
 	const int np = int(Np);
 	//maxPosX = 0.15f;
@@ -10849,6 +10850,13 @@ void JSphSolidCpu::GrowthCell_M(double dt) {
 				Massc_M[p] = Velrhopc[p].w * float(volu);
 				break;
 			}
+			case 5: {
+				const double volu = double(MassPrec_M[p]) / double(Velrhopc[p].w);
+				const double Gamma = LambdaMass * GrowthRateGaussian(float(Posc[p].x));
+				Velrhopc[p].w = Velrhopc[p].w + float(dt * Gamma);
+				Massc_M[p] = Velrhopc[p].w * float(volu);
+				break;
+			}
 		}
 	}
 
@@ -10873,6 +10881,13 @@ float JSphSolidCpu::GrowthRateSpaceNormalised(float pos) {
 	//float distance = 0.25f *abs(pos - maxPosX); // Beemster
 	float distance = 20.0f * abs(pos - maxPosX); // Rescale to Bassel_2014 meristem data
 	return exp(1.0f) * distance * exp(-distance);
+}
+
+// #Growth function - Gaussian
+float JSphSolidCpu::GrowthRateGaussian(float pos) {
+	//float distance = 0.25f *abs(pos - maxPosX); // Beemster
+	float distance = maxPosX-pos; // Rescale to Bassel_2014 meristem data
+	return exp(-0.5f*pow((distance-0.75)/0.1f,2.0f));
 }
 
 // #Growth function - Normalised Double precision
