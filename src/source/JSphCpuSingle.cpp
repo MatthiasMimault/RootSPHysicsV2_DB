@@ -2058,6 +2058,8 @@ double JSphCpuSingle::ComputeStep_Eul_M() {
 double JSphCpuSingle::ComputeStep_Sym(){
   const double dt=DtPre;
 
+  maxPosX = MaxPosition().x;
+
   //-Predictor
   //-----------
   DemDtForce=dt*0.5f;                     //(DEM)

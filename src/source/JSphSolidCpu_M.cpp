@@ -5051,7 +5051,8 @@ void JSphSolidCpu::ComputeTauDot_Gradual_M(unsigned n, unsigned pini, tsymatrix3
 		tsymatrix3f EM;
 		//	const float theta = 1.0f; // Theta constant
 		//const float theta = 2.0f - float(Posc[p].x); // Theta linear
-		const float theta = SigmoidGrowth(2.0f- float(Posc[p].x)); // Theta sigmoid
+		
+		const float theta = SigmoidGrowth(maxPosX - float(Posc[p].x)); // Theta sigmoid
 		const float E = theta * Ey + (1.0f - theta) * Ex;
 		const float G = theta * Gf + (1.0f - theta) * Ex * 0.5f * (1 + nuxy);
 		const float nu = theta * nuyz + (1.0f - theta) * nuxy;
@@ -10809,7 +10810,7 @@ void JSphSolidCpu::GrowthCell_M(double dt) {
 	const int npb = int(Npb);
 	const int np = int(Np);
 	//maxPosX = 0.15f;
-	maxPosX = MaxPosition().x;
+	//maxPosX = MaxPosition().x;
 
 #ifdef OMP_USE
 #pragma omp parallel for schedule (static) if(np>OMP_LIMIT_COMPUTESTEP)
@@ -10887,7 +10888,7 @@ float JSphSolidCpu::GrowthRateSpaceNormalised(float pos) {
 float JSphSolidCpu::GrowthRateGaussian(float pos) {
 	//float distance = 0.25f *abs(pos - maxPosX); // Beemster
 	float distance = maxPosX-pos; // Rescale to Bassel_2014 meristem data
-	return exp(-0.5f*pow((distance-0.75)/0.1f,2.0f));
+	return exp(-0.5f*pow((distance-0.75f)/0.1f,2.0f));
 }
 
 // #Growth function - Normalised Double precision

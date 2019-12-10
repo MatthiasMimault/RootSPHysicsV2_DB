@@ -51,6 +51,7 @@
 using std::string;
 using std::ofstream;
 using std::endl;
+using std::max;
 
 //==============================================================================
 /// Constructor.
@@ -1642,7 +1643,7 @@ void JSph::ConfigConstants(bool simulate2d){
   Delta2H=float(h*2*DeltaSph);
 
   // Cs0 version originale
-  Cs0=10*sqrt(double(Gamma)*double(std::max(CalcK(0.0), CalcK(1.5) )/Gamma)/double(RhopZero)); //#dev
+  Cs0=10*sqrt(double(Gamma)*double(max(CalcK(0.0), CalcK(1.5) )/Gamma)/double(RhopZero)); //#dev
 
   // Old anisotropic versions of Cs0 (vec3) removed - Matthias
 
@@ -2244,7 +2245,7 @@ void JSph::ConfigSaveData(unsigned piece,unsigned pieces,std::string div){
     DataBi4->ConfigBasic(piece,pieces,RunCode,AppName,CaseName,Simulate2D,Simulate2DPosY,DirDataOut);
     DataBi4->ConfigParticles(CaseNp,CaseNfixed,CaseNmoving,CaseNfloat,CaseNfluid,CasePosMin,CasePosMax,NpDynamic,ReuseIds);
     //DataBi4->ConfigCtes(Dp,H,CteB,RhopZero,Gamma,MassBound,MassFluid); #dev
-    DataBi4->ConfigCtes(Dp,H, std::max(CalcK(0.0),CalcK(1.5))/Gamma,RhopZero,Gamma,MassBound,MassFluid);
+    DataBi4->ConfigCtes(Dp,H, max(CalcK(0.0),CalcK(1.5))/Gamma,RhopZero,Gamma,MassBound,MassFluid);
     DataBi4->ConfigSimMap(OrderDecode(MapRealPosMin),OrderDecode(MapRealPosMax));
     JPartDataBi4::TpPeri tperi=JPartDataBi4::PERI_None;
     if(PeriodicConfig.PeriActive){
