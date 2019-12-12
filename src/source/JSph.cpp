@@ -1765,8 +1765,8 @@ float JSph::CalcK(double x) {
 
 float JSph::SigmoidGrowth(double x) const {
 	float L = 1;
-	float x0 = 0.6f;
-	float k = 20.0f;
+	float x0 = 1.5f;
+	float k = 5.0f;
 	return 1.0f / (1.0f + exp(-k * (float(x) - x0)));
 }
 

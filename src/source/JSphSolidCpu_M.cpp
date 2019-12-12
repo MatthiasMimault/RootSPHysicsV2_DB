@@ -5253,7 +5253,7 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 
 	// Overall computation of taudot
 	int typeYoung = 1; // Original
-	//inttypeYoung = '1'; // Gradual Young - dev version
+	//inttypeYoung = '1'; // Gradual Young - dev version #Young
 	switch (typeYoung) {
 		case 0: {
 			ComputeJauTauDot_M(np, 0, jaugradvel, jautau, jautaudot, jauomega);
@@ -10802,11 +10802,12 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT_CompressBdy_M(dou
 // End Symplectic_M
 
 void JSphSolidCpu::GrowthCell_M(double dt) {
-// #Growth
+// #Growth #typeGrowth
 	//int typeGrowth = 2; // (default: no Growth, 0: old growth lambda, 1: 4.1%h-1, 2: variation Beemster1998)
 	// case3: beemster 2 cst lambda * f(x) in [0,1]
 	// case4: density variation + beemster fit for lambda 
 	// case5: Gaussian growth curve (centered 0.5, spread 0.15)
+	// case7: Constant lambda growth
 	const int npb = int(Npb);
 	const int np = int(Np);
 	//maxPosX = 0.15f;
@@ -10865,6 +10866,13 @@ void JSphSolidCpu::GrowthCell_M(double dt) {
 				Massc_M[p] = Velrhopc[p].w * float(volu);				
 				break;
 			}
+			case 7: {
+				const double volu = double(MassPrec_M[p]) / double(Velrhopc[p].w);
+				const double Gamma = LambdaMass;
+				Velrhopc[p].w = Velrhopc[p].w + float(dt * Gamma);
+				Massc_M[p] = Velrhopc[p].w * float(volu);
+				break;
+			}
 		}
 	}
 
@@ -10896,8 +10904,8 @@ float JSphSolidCpu::GrowthRateGaussian(float pos) {
 	switch (typeGrowth) {
 		case 6: {
 			const float distance = maxPosX-pos; // Rescale to Bassel_2014 meristem data
-			const float eps = 0.2;
-			return exp(-0.5f*pow((distance-0.6f)/0.12f,2.0f))+eps*(1-0.4*distance);
+			const float eps = 0.2f;
+			return exp(-0.5f*pow((distance-0.6f)/0.12f,2.0f))+eps*(1-0.4f*distance);
 		break;}
 		default: {
 			//float distance = 0.25f *abs(pos - maxPosX); // Beemster
