@@ -10858,6 +10858,13 @@ void JSphSolidCpu::GrowthCell_M(double dt) {
 				Massc_M[p] = Velrhopc[p].w * float(volu);
 				break;
 			}
+			case 6:{
+				const double volu = double(MassPrec_M[p]) / double(Velrhopc[p].w);
+				const double Gamma = LambdaMass * GrowthRateGaussian(float(Posc[p].x));
+				Velrhopc[p].w = Velrhopc[p].w + float(dt * Gamma);
+				Massc_M[p] = Velrhopc[p].w * float(volu);				
+				break;
+			}
 		}
 	}
 
@@ -10886,9 +10893,18 @@ float JSphSolidCpu::GrowthRateSpaceNormalised(float pos) {
 
 // #Growth function - Gaussian
 float JSphSolidCpu::GrowthRateGaussian(float pos) {
-	//float distance = 0.25f *abs(pos - maxPosX); // Beemster
-	float distance = maxPosX-pos; // Rescale to Bassel_2014 meristem data
-	return exp(-0.5f*pow((distance-0.75f)/0.1f,2.0f));
+	switch (typeGrowth) {
+		case 6: {
+			const float distance = maxPosX-pos; // Rescale to Bassel_2014 meristem data
+			const float eps = 0.2;
+			return exp(-0.5f*pow((distance-0.6f)/0.12f,2.0f))+eps*(1-0.4*distance);
+		break;}
+		default: {
+			//float distance = 0.25f *abs(pos - maxPosX); // Beemster
+			const float distance = maxPosX-pos; // Rescale to Bassel_2014 meristem data
+			return exp(-0.5f*pow((distance-0.75f)/0.1f,2.0f));
+		}
+	}
 }
 
 // #Growth function - Normalised Double precision
