@@ -808,6 +808,7 @@ void JSphCpuSingle::RunCellDivide(bool updateperiodic){
   // Augustin
   CellDivSingle->SortArray(VonMises3D);
   CellDivSingle->SortArray(GradVelSave);
+  CellDivSingle->SortArray(StrainDotSave);
   CellDivSingle->SortArray(CellOffSpring);
 
   //-Collect divide data. | Recupera datos del divide.
@@ -1107,15 +1108,10 @@ void JSphCpuSingle::RunSizeDivision_M2(double stepdt){
 					, Posc, Velrhopc, Tauc_M, Divisionc_M, Porec_M, Massc_M, QuadFormc_M, VelrhopM1c, TauM1c_M, MassM1c_M, QuadFormM1c_M);
 			}
 			else {
-				/*MarkedDivisionSymp_M(count, Np, Npb, DomCells, Idpc, Codec, Dcellc
-					, Posc, Velrhopc, Tauc_M, Divisionc_M, Porec_M, Massc_M, QuadFormc_M
-					, PosPrec, VelrhopPrec, TauPrec_M, MassPrec_M, QuadFormPrec_M);
-				MarkedDivisionSymp_M(count, Np, Npb, DomCells, Idpc, Codec, Dcellc
-					, Posc, Velrhopc, Tauc_M, Divisionc_M, Porec_M, Massc_M, QuadFormc_M
-					, PosPrec, VelrhopPrec, TauPrec_M, MassPrec_M, QuadFormPrec_M, NabVx_M);*/
 				MarkedDivisionSymp_AM(count, Np, Npb, DomCells, Idpc, Codec, Dcellc
 					, Posc, Velrhopc, Tauc_M, Divisionc_M, Porec_M, Massc_M, QuadFormc_M
-					, PosPrec, VelrhopPrec, TauPrec_M, MassPrec_M, QuadFormPrec_M, NabVx_M, CellOffSpring, GradVelSave, VonMises3D);
+					, PosPrec, VelrhopPrec, TauPrec_M, MassPrec_M, QuadFormPrec_M, NabVx_M, CellOffSpring, GradVelSave, VonMises3D,
+					StrainDotSave);
 
 			}
 			Np += count;
@@ -1852,6 +1848,108 @@ void JSphCpuSingle::MarkedDivisionSymp_AM(unsigned countMax, unsigned np, unsign
 
 }
 
+// Division update 1: with float3 straindot save
+void JSphCpuSingle::MarkedDivisionSymp_AM(unsigned countMax, unsigned np, unsigned pini, tuint3 cellmax
+	, unsigned* idp, typecode* code, unsigned* dcell
+	, tdouble3* pos, tfloat4* velrhop, tsymatrix3f* taup, bool* divisionp, float* porep, float* massp, tsymatrix3f* qfp
+	, tdouble3* pospre, tfloat4* velrhopre, tsymatrix3f* taupre, float* masspre, tsymatrix3f* qfpre
+	, float* nabvx, unsigned* cellOSpr, float* straindot, float* vonMises, tfloat3* sds)const {
+
+	const char met[] = "MarkedDivision_M";
+	unsigned count = 0;
+	//unsigned p = pini + (rand() % np);
+	tdouble3 orientation;
+
+	for (unsigned p = pini; p < Np; p++) {
+		if (divisionp[p]) {
+			// #Disparition #Division
+
+			const unsigned pnew = np + count;
+
+			// Eigen resolution of qf[p], defintion of V, D
+			Matrix3f Qg;
+			Qg << qfp[p].xx, qfp[p].xy, qfp[p].xz, qfp[p].xy, qfp[p].yy, qfp[p].yz, qfp[p].xz, qfp[p].yz, qfp[p].zz;
+			EigenSolver<Matrix3f> es(Qg);
+
+			//printf("Max index\n");
+			// Index of maximal eigenvalue
+			float l0 = es.eigenvalues()[0].real();
+			float l1 = es.eigenvalues()[1].real();
+			float l2 = es.eigenvalues()[2].real();
+			unsigned i;
+			if (l0 < l1) {
+				if (l0 > l2) i = 2;
+				else i = 0;
+			}
+			else {
+				if (l1 > l2) i = 2;
+				else i = 1;
+			}
+
+			//printf("UpdateQ\n");
+			Matrix3f D = es.eigenvalues().real().asDiagonal();
+			Matrix3f V = es.eigenvectors().real();
+			D(i, i) *= 4.0;
+			Matrix3f Qt = V * D * V.transpose();
+
+			qfp[p] = TSymatrix3f(Qt(0, 0), Qt(0, 1), Qt(0, 2), Qt(1, 1), Qt(1, 2), Qt(2, 2));
+
+			// Update Pos
+			orientation = TDouble3(V(0, i) / sqrt(D(i, i)), V(1, i) / sqrt(D(i, i)), V(2, i) / sqrt(D(i, i)));
+			tdouble3 ps = { pos[p].x + orientation.x, pos[p].y + orientation.y, pos[p].z + orientation.z };
+
+			//-Calculate coordinates of cell inside of domain / Calcula coordendas de celda dentro de dominio.
+			unsigned cx = unsigned((ps.x - DomPosMin.x) / Scell);
+			unsigned cy = unsigned((ps.y - DomPosMin.y) / Scell);
+			unsigned cz = unsigned((ps.z - DomPosMin.z) / Scell);
+			//-Adjust coordinates of cell is they exceed maximum / Ajusta las coordendas de celda si sobrepasan el maximo.
+			cx = (cx <= cellmax.x ? cx : cellmax.x);
+			cy = (cy <= cellmax.y ? cy : cellmax.y);
+			cz = (cz <= cellmax.z ? cz : cellmax.z);
+
+			// Augustin -- CellOffSpring
+			cellOSpr[p]++;
+
+			//-Record position and cell of new particles /  Graba posicion y celda de nuevas particulas.
+			pos[pnew] = ps;
+			dcell[pnew] = PC__Cell(DomCellCode, cx, cy, cz);
+			idp[pnew] = pnew;
+			code[pnew] = code[p];
+			velrhop[pnew] = velrhop[p];
+			taup[pnew] = taup[p];
+			porep[pnew] = porep[p];
+			massp[pnew] = massp[p] / 2;
+			qfp[pnew] = qfp[p];
+			nabvx[pnew] = nabvx[p];
+			divisionp[pnew] = false;
+			cellOSpr[pnew] = cellOSpr[p];
+			vonMises[pnew] = vonMises[p];
+			straindot[pnew] = straindot[p];
+			sds[pnew] = sds[p];
+
+
+			// MOVE
+			//-Get pos of particle to be duplicated / Obtiene pos de particula a duplicar.
+			ps = { pos[p].x - orientation.x, pos[p].y - orientation.y, pos[p].z - orientation.z };
+
+			//-Calculate coordinates of cell inside of domain / Calcula coordendas de celda dentro de dominio.
+			cx = unsigned((ps.x - DomPosMin.x) / Scell);
+			cy = unsigned((ps.y - DomPosMin.y) / Scell);
+			cz = unsigned((ps.z - DomPosMin.z) / Scell);
+			//-Adjust coordinates of cell is they exceed maximum / Ajusta las coordendas de celda si sobrepasan el maximo.
+			cx = (cx <= cellmax.x ? cx : cellmax.x);
+			cy = (cy <= cellmax.y ? cy : cellmax.y);
+			cz = (cz <= cellmax.z ? cz : cellmax.z);
+			pos[p] = ps;
+			dcell[p] = PC__Cell(DomCellCode, cx, cy, cz);
+			massp[p] = massp[pnew];
+			divisionp[p] = false;
+			count++;
+		}
+	}
+
+}
+
 //==============================================================================
 /// Manages excluded particles fixed, moving and floating before aborting the execution.
 /// Gestiona particulas excluidas fixed, moving y floating antes de abortar la ejecucion.
@@ -2321,8 +2419,21 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
   delete PartsLoaded; PartsLoaded = NULL;
   RunGaugeSystem(TimeStep);
   UpdateMaxValues();
+
+  // Save step #Save
+  int typeSave = 1;
+  switch (typeSave) {
+  default: {
+	  SaveData_A(); // Original version up to date 17/12/2019
+	  break;
+  }
+  case 1: {
+	  SaveData_M1(); // Addition of float3 deformation
+	  break;
+  }
+  }
   // SaveData_M();
-  SaveData_A();
+  
   PrintAllocMemory(GetAllocMemoryCpu());
   TmcResetValues(Timers);
   TmcStop(Timers,TMC_Init);
@@ -2361,8 +2472,17 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
         Log->PrintWarning("Particles OUT limit reached...");
         TimeMax=TimeStep;
       }
-	  // SaveData_M();
-	  SaveData_A();
+	  // #save step
+	  switch (typeSave) {
+	  default: {
+		  SaveData_A(); // Original version up to date 17/12/2019
+		  break;
+	  }
+	  case 1: {
+		  SaveData_M1(); // Addition of float3 deformation
+		  break;
+	  }
+	  }
 	  Part++;
       PartNstep=Nstep;
       TimeStepM1=TimeStep;
@@ -2577,6 +2697,90 @@ void JSphCpuSingle::SaveData_A() {
 	ArraysCpu->Free(vonMises);
 	ArraysCpu->Free(grVelSav);
 	ArraysCpu->Free(cellOSpr);
+	TmcStop(Timers, TMC_SuSavePart);
+}
+
+//==============================================================================
+/// Generates files with output data, update 17/12/2019: addition float3 deformation
+//==============================================================================
+void JSphCpuSingle::SaveData_M1() {
+	const bool save = (SvData != SDAT_None && SvData != SDAT_Info);
+	const unsigned npsave = Np - NpbPer - NpfPer; //-Subtracts the periodic particles if they exist. | Resta las periodicas si las hubiera.
+	TmcStart(Timers, TMC_SuSavePart);
+	//-Collect particle values in original order. | Recupera datos de particulas en orden original.
+	unsigned* idp = NULL;
+	tdouble3* pos = NULL;
+	tfloat3* vel = NULL;
+	float* rhop = NULL;
+	float* press = NULL;
+	// Special fields
+	float* pore = NULL;
+	float* mass = NULL;
+	float* volu = NULL;
+	tsymatrix3f* qf = NULL;
+	float* nablavx = NULL;
+	float* vonMises = NULL;
+	float* grVelSav = NULL;
+	unsigned* cellOSpr = NULL;
+	tfloat3* gradvel = NULL;
+
+	if (save) {
+		//-Assign memory and collect particle values. | Asigna memoria y recupera datos de las particulas.
+		idp = ArraysCpu->ReserveUint();
+		pos = ArraysCpu->ReserveDouble3();
+		vel = ArraysCpu->ReserveFloat3();
+		rhop = ArraysCpu->ReserveFloat();
+		pore = ArraysCpu->ReserveFloat();
+		mass = ArraysCpu->ReserveFloat();
+		volu = ArraysCpu->ReserveFloat();
+		press = ArraysCpu->ReserveFloat();
+		qf = ArraysCpu->ReserveSymatrix3f();
+		nablavx = ArraysCpu->ReserveFloat();
+		vonMises = ArraysCpu->ReserveFloat();
+		grVelSav = ArraysCpu->ReserveFloat();
+		cellOSpr = ArraysCpu->ReserveUint();
+		gradvel = ArraysCpu->ReserveFloat3();
+
+		unsigned npnormal = GetParticlesData_M1(Np, 0, true, PeriActive != 0, idp, pos, vel, rhop
+			, pore, press, mass, qf, nablavx, vonMises, grVelSav, cellOSpr, gradvel, NULL);
+		if (npnormal != npsave)RunException("SaveData", "The number of particles is invalid.");
+	}
+	//-Gather additional information. | Reune informacion adicional..
+	StInfoPartPlus infoplus;
+	memset(&infoplus, 0, sizeof(StInfoPartPlus));
+	if (SvData & SDAT_Info) {
+		infoplus.nct = CellDivSingle->GetNct();
+		infoplus.npbin = NpbOk;
+		infoplus.npbout = Npb - NpbOk;
+		infoplus.npf = Np - Npb;
+		infoplus.npbper = NpbPer;
+		infoplus.npfper = NpfPer;
+		infoplus.memorycpualloc = this->GetAllocMemoryCpu();
+		infoplus.gpudata = false;
+		TimerSim.Stop();
+		infoplus.timesim = TimerSim.GetElapsedTimeD() / 1000.;
+	}
+
+	//-Stores particle data. | Graba datos de particulas.
+	const tdouble3 vdom[2] = { OrderDecode(CellDivSingle->GetDomainLimits(true)),OrderDecode(CellDivSingle->GetDomainLimits(false)) };
+
+	JSph::SaveData_M1(npsave, idp, pos, vel, rhop
+		, pore, press, mass, qf, nablavx, vonMises, grVelSav, cellOSpr, gradvel, 1, vdom, &infoplus);
+	//-Free auxiliary memory for particle data. | Libera memoria auxiliar para datos de particulas.
+	ArraysCpu->Free(idp);
+	ArraysCpu->Free(pos);
+	ArraysCpu->Free(vel);
+	ArraysCpu->Free(rhop);
+	ArraysCpu->Free(pore);
+	ArraysCpu->Free(mass);
+	ArraysCpu->Free(volu);
+	ArraysCpu->Free(press);
+	ArraysCpu->Free(qf);
+	ArraysCpu->Free(nablavx);
+	ArraysCpu->Free(vonMises);
+	ArraysCpu->Free(grVelSav);
+	ArraysCpu->Free(cellOSpr);
+	ArraysCpu->Free(gradvel);
 	TmcStop(Timers, TMC_SuSavePart);
 }
 

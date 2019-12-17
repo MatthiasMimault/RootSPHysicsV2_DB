@@ -124,6 +124,7 @@ protected:
 	float* VonMises3D;
 	float* GradVelSave;
 	unsigned* CellOffSpring;
+	tfloat3* StrainDotSave;
 
 	// Matthias - Root geometry data
 	float maxPosX;
@@ -173,6 +174,7 @@ protected:
 	tsymatrix3f* SaveArrayCpu(unsigned np, const tsymatrix3f *datasrc)const { return(TSaveArrayCpu<tsymatrix3f>(np, datasrc)); }
 	// Matthias
 	tmatrix3f*   SaveArrayCpu(unsigned np, const tmatrix3f *datasrc)const { return(TSaveArrayCpu<tmatrix3f>(np, datasrc)); }
+	tfloat3*   SaveArrayCpu(unsigned np, const tfloat3 *datasrc)const { return(TSaveArrayCpu<tfloat3>(np, datasrc)); }
 	bool*		 SaveArrayCpu(unsigned np, const bool      *datasrc)const { return(TSaveArrayCpu<bool>(np, datasrc)); }
 
 	template<class T> void TRestoreArrayCpu(unsigned np, T *data, T *datanew)const;
@@ -187,6 +189,7 @@ protected:
 	void RestoreArrayCpu(unsigned np, tmatrix3f *data, tmatrix3f *datanew)const { TRestoreArrayCpu<tmatrix3f>(np, data, datanew); }
 	// Matthias
 	void RestoreArrayCpu(unsigned np, bool *data, bool*datanew)const { TRestoreArrayCpu<bool>(np, data, datanew); }
+	void RestoreArrayCpu(unsigned np, tfloat3* data, tfloat3* datanew)const { TRestoreArrayCpu<tfloat3>(np, data, datanew); }
 
 	llong GetAllocMemoryCpu()const;
 	void PrintAllocMemory(llong mcpu)const;
@@ -204,8 +207,12 @@ protected:
 		, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, float *press, float* mass, tsymatrix3f *qf, typecode *code);
 	unsigned GetParticlesData_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
 		, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, float *press, float* mass, tsymatrix3f *qf, float *nabvx, typecode *code);
-
-	unsigned GetParticlesData_A(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal, unsigned* idp, tdouble3* pos, tfloat3* vel, float* rhop, float* pore, float* press, float* mass, tsymatrix3f* qf, float* nabvx, float* vonMises, float* grVelSav, unsigned* cellOSpr, typecode* code);
+	unsigned GetParticlesData_A(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
+		, unsigned* idp, tdouble3* pos, tfloat3* vel, float* rhop, float* pore, float* press, float* mass, tsymatrix3f* qf
+		, float* nabvx, float* vonMises, float* grVelSav, unsigned* cellOSpr, typecode* code);
+	unsigned GetParticlesData_M1(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
+			, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, float *press, float* mass, tsymatrix3f *qf
+			, float *nabvx, float* vonMises, float* grVelSav, unsigned* cellOSpr, tfloat3* gradvel, typecode *code);
 
 	void ConfigOmp(const JCfgRun *cfg);
 

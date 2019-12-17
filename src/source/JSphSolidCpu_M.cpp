@@ -99,6 +99,7 @@ void JSphSolidCpu::InitVars() {
 	VonMises3D = NULL;
 	GradVelSave = NULL;
 	CellOffSpring = NULL;
+	StrainDotSave = NULL;
 
 	RidpMove = NULL;
 	FtRidp = NULL;
@@ -208,6 +209,7 @@ void JSphSolidCpu::AllocCpuMemoryParticles(unsigned np, float over) {
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_4B, 1); // VonMises3D
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_4B, 1); // GradVelSave
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_4B, 1); // CellOffSpring
+	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_12B, 1); // CellOffSpring
 
 	//-Shows the allocated memory.
 	MemCpuParticles = ArraysCpu->GetAllocMemoryCpu();
@@ -243,6 +245,7 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	float         *vonMises = SaveArrayCpu(Np, VonMises3D);
 	float  	      *gradVelSav = SaveArrayCpu(Np, GradVelSave);
 	unsigned      *cellOSpr = SaveArrayCpu(Np, CellOffSpring);
+	tfloat3      *sds= SaveArrayCpu(Np, StrainDotSave);
 
 	//-Frees pointers.
 	ArraysCpu->Free(Idpc);
@@ -268,6 +271,7 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	ArraysCpu->Free(VonMises3D);
 	ArraysCpu->Free(GradVelSave);
 	ArraysCpu->Free(CellOffSpring);
+	ArraysCpu->Free(StrainDotSave);
 
 	//-Resizes CPU memory allocation.
 	const double mbparticle = (double(MemCpuParticles) / (1024 * 1024)) / CpuParticlesSize; //-MB por particula.
@@ -298,6 +302,7 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	if (vonMises) VonMises3D = ArraysCpu->ReserveFloat();
 	if (gradVelSav) GradVelSave = ArraysCpu->ReserveFloat();
 	if (cellOSpr) CellOffSpring = ArraysCpu->ReserveUint();
+	if (sds) StrainDotSave = ArraysCpu->ReserveFloat3();
 
 	//-Restore data in CPU memory.
 	RestoreArrayCpu(Np, idp, Idpc);
@@ -309,7 +314,7 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	RestoreArrayCpu(Np, pospre, PosPrec);
 	RestoreArrayCpu(Np, velrhoppre, VelrhopPrec);
 	RestoreArrayCpu(Np, spstau, SpsTauc);
-	// Matthias
+	// RootSPH
 	RestoreArrayCpu(Np, division, Divisionc_M);
 	RestoreArrayCpu(Np, pore, Porec_M);
 	RestoreArrayCpu(Np, mass, Massc_M);
@@ -319,10 +324,10 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	RestoreArrayCpu(Np, jautaum12, TauM1c_M);
 	RestoreArrayCpu(Np, quadform, QuadFormc_M);
 	RestoreArrayCpu(Np, quadformm1, QuadFormM1c_M);
-	// Augustin
 	RestoreArrayCpu(Np, vonMises, VonMises3D);
 	RestoreArrayCpu(Np, gradVelSav, GradVelSave);
 	RestoreArrayCpu(Np, cellOSpr, CellOffSpring);
+	RestoreArrayCpu(Np, sds, StrainDotSave);
 
 	//-Updates values.
 	CpuParticlesSize = npnew;
@@ -372,17 +377,17 @@ void JSphSolidCpu::ReserveBasicArraysCpu() {
 	}
 	if (TVisco == VISCO_LaminarSPS)SpsTauc = ArraysCpu->ReserveSymatrix3f();
 
-	// Matthias
+	// RootSPH
 	Divisionc_M = ArraysCpu->ReserveBool();
 	Porec_M = ArraysCpu->ReserveFloat();
 	Massc_M = ArraysCpu->ReserveFloat();
 	NabVx_M = ArraysCpu->ReserveFloat();
 	Tauc_M = ArraysCpu->ReserveSymatrix3f();
 	QuadFormc_M = ArraysCpu->ReserveSymatrix3f();
-	// Augustin
 	VonMises3D = ArraysCpu->ReserveFloat();
 	GradVelSave = ArraysCpu->ReserveFloat();
 	CellOffSpring = ArraysCpu->ReserveUint();
+	StrainDotSave = ArraysCpu->ReserveFloat3();
 }
 
 //==============================================================================
@@ -691,7 +696,6 @@ unsigned JSphSolidCpu::GetParticlesData_M(unsigned n, unsigned pini, bool cellor
 	if (pore)memcpy(pore, Porec_M + pini, sizeof(float) * n);
 	if (press) {
 		for (unsigned p = 0; p < n; p++) {
-			//#Save
 			press[p] = CalcK(abs(MaxPosition().x - Posc[p].x)) / Gamma * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f);
 			//press[p] = -0.5f*RhopZero*float(Posc[p].x*Posc[p].x);
 		}
@@ -758,7 +762,6 @@ unsigned JSphSolidCpu::GetParticlesData_A(unsigned n, unsigned pini, bool cellor
 	if (pore)memcpy(pore, Porec_M + pini, sizeof(float)*n);
 	if (press) {
 		for (unsigned p = 0; p < n; p++) {
-			//#Save
 			press[p] = CalcK(abs(MaxPosition().x - Posc[p].x)) / Gamma * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f);
 			//press[p] = -0.5f*RhopZero*float(Posc[p].x*Posc[p].x);
 		}
@@ -868,6 +871,80 @@ unsigned JSphSolidCpu::GetParticlesData_M(unsigned n, unsigned pini, bool cellor
 	return(num);
 }
 
+
+//////////////////////////////////////
+// Collect data from a range of particles, update 1: add float3 deformation
+//////////////////////////////////////
+unsigned JSphSolidCpu::GetParticlesData_M1(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
+	, unsigned* idp, tdouble3* pos, tfloat3* vel, float* rhop, float* pore, float* press, float* mass
+	, tsymatrix3f* qf, float* nabvx, float* vonMises, float* grVelSav, unsigned* cellOSpr, tfloat3* gradvel, typecode* code)
+{
+	const char met[] = "GetParticlesData";
+	unsigned num = n;
+	//-Copy selected values.
+	if (code)memcpy(code, Codec + pini, sizeof(typecode) * n);
+	if (idp)memcpy(idp, Idpc + pini, sizeof(unsigned) * n);
+	if (pos)memcpy(pos, Posc + pini, sizeof(tdouble3) * n);
+	if (vel && rhop) {
+		for (unsigned p = 0; p < n; p++) {
+			tfloat4 vr = Velrhopc[p + pini];
+			vel[p] = TFloat3(vr.x, vr.y, vr.z);
+			rhop[p] = vr.w;
+		}
+	}
+	else {
+		if (vel) for (unsigned p = 0; p < n; p++) { tfloat4 vr = Velrhopc[p + pini]; vel[p] = TFloat3(vr.x, vr.y, vr.z); }
+		if (rhop)for (unsigned p = 0; p < n; p++)rhop[p] = Velrhopc[p + pini].w;
+	}
+
+	// Matthias
+	if (pore)memcpy(pore, Porec_M + pini, sizeof(float) * n);
+	if (press) {
+		for (unsigned p = 0; p < n; p++) {
+			press[p] = CalcK(abs(MaxPosition().x - Posc[p].x)) / Gamma * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f);
+			//press[p] = -0.5f*RhopZero*float(Posc[p].x*Posc[p].x);
+		}
+	}
+	if (mass)memcpy(mass, Massc_M + pini, sizeof(float) * n);
+	if (qf)memcpy(qf, QuadFormc_M + pini, sizeof(tsymatrix3f) * n);
+	if (nabvx) memcpy(nabvx, NabVx_M + pini, sizeof(float) * n);
+	if (vonMises) memcpy(vonMises, VonMises3D + pini, sizeof(float) * n);
+	if (grVelSav) memcpy(grVelSav, GradVelSave + pini, sizeof(float) * n);
+	if (cellOSpr) memcpy(cellOSpr, CellOffSpring + pini, sizeof(unsigned) * n);
+	if (gradvel) memcpy(gradvel, StrainDotSave + pini, sizeof(unsigned) * n);
+	
+
+	//-Eliminate non-normal particles (periodic & others). | Elimina particulas no normales (periodicas y otras).
+	if (onlynormal) {
+		printf("NonNormalPart_SavePart\n");
+		if (!idp || !pos || !vel || !rhop)RunException(met, "Pointers without data.");
+		typecode* code2 = code;
+		if (!code2) {
+			code2 = ArraysCpu->ReserveTypeCode();
+			memcpy(code2, Codec + pini, sizeof(typecode) * n);
+		}
+		unsigned ndel = 0;
+		for (unsigned p = 0; p < n; p++) {
+			bool normal = CODE_IsNormal(code2[p]);
+			if (ndel && normal) {
+				const unsigned pdel = p - ndel;
+				idp[pdel] = idp[p];
+				pos[pdel] = pos[p];
+				vel[pdel] = vel[p];
+				rhop[pdel] = rhop[p];
+				code2[pdel] = code2[p];
+			}
+			if (!normal)ndel++;
+		}
+		num -= ndel;
+		if (!code)ArraysCpu->Free(code2);
+	}
+	//-Reorder components in their original order. | Reordena componentes en su orden original.
+	if (cellorderdecode)DecodeCellOrder(n, pos, vel);
+	return(num);
+}
+
+
 //==============================================================================
 /// Load the execution configuration with OpenMP.
 /// Carga la configuracion de ejecucion con OpenMP.
@@ -944,6 +1021,7 @@ void JSphSolidCpu::InitRun() {
 	memset(VonMises3D, 0, sizeof(float)* Np);
 	memset(GradVelSave, 0, sizeof(float) * Np);
 	memset(CellOffSpring, 0, sizeof(unsigned) * Np);
+	memset(StrainDotSave, 0, sizeof(tfloat3) * Np);
 
 	  
 	if (UseDEM)DemDtForce = DtIni; //(DEM)
@@ -1053,6 +1131,7 @@ void JSphSolidCpu::InitRun_T(JPartsLoad4 *pl) {
 	memset(VonMises3D, 0, sizeof(float) * Np);
 	memset(GradVelSave, 0, sizeof(float) * Np);
 	memset(CellOffSpring, 0, sizeof(unsigned) * Np);
+	memset(StrainDotSave, 0, sizeof(tfloat3) * Np);
 
 
 	if (UseDEM)DemDtForce = DtIni; //(DEM)
@@ -1163,6 +1242,7 @@ void JSphSolidCpu::InitRun_Mixed_M() {
 	memset(VonMises3D, 0, sizeof(float) * Np);
 	memset(GradVelSave, 0, sizeof(float) * Np);
 	memset(CellOffSpring, 0, sizeof(unsigned) * Np);
+	memset(StrainDotSave, 0, sizeof(tfloat3) * Np);
 
 	if (UseDEM)DemDtForce = DtIni; //(DEM)
 	if (CaseNfloat)InitFloating();
@@ -1272,6 +1352,7 @@ void JSphSolidCpu::InitRun_Uni_M() {
 	memset(VonMises3D, 0, sizeof(float) * Np);
 	memset(GradVelSave, 0, sizeof(float) * Np);
 	memset(CellOffSpring, 0, sizeof(unsigned) * Np);
+	memset(StrainDotSave, 0, sizeof(tfloat3) * Np);
 
 	if (UseDEM)DemDtForce = DtIni; //(DEM)
 	if (CaseNfloat)InitFloating();
@@ -5032,6 +5113,7 @@ void JSphSolidCpu::ComputeJauTauDot_M(unsigned n, unsigned pini, const tsymatrix
 		taudot[p].zz = E.zz - 2.0f*tau.xz*omega.xz - 2.0f*tau.yz*omega.yz;
 
 		GradVelSave[p] = gradvel.xx + gradvel.yy + gradvel.zz;
+		StrainDotSave[p] = TFloat3(gradvel.xx, gradvel.yy, gradvel.zz);
 	}
 }
 
@@ -5109,6 +5191,7 @@ void JSphSolidCpu::ComputeTauDot_Gradual_M(unsigned n, unsigned pini, tsymatrix3
 		taudot[p].zz = EM.zz - 2.0f * tau.xz * omega.xz - 2.0f * tau.yz * omega.yz;
 
 		GradVelSave[p] = gradvel.xx + gradvel.yy + gradvel.zz;
+		StrainDotSave[p] = TFloat3(gradvel.xx, gradvel.yy, gradvel.zz);
 	}
 }
 

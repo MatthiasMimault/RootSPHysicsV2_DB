@@ -104,6 +104,11 @@ protected:
 	  , tdouble3* pos, tfloat4* velrhop, tsymatrix3f* taup, bool* divisionp, float* porep, float* massp, tsymatrix3f* qfp
 	  , tdouble3* pospre, tfloat4* velrhopre, tsymatrix3f* taupre, float* masspre, tsymatrix3f* qfpre
 	  , float* nabvx, unsigned* cellOSpr, float* straindot, float* vonMises)const;
+  void MarkedDivisionSymp_AM(unsigned countMax, unsigned np, unsigned pini, tuint3 cellmax
+	  , unsigned* idp, typecode* code, unsigned* dcell
+	  , tdouble3* pos, tfloat4* velrhop, tsymatrix3f* taup, bool* divisionp, float* porep, float* massp, tsymatrix3f* qfp
+	  , tdouble3* pospre, tfloat4* velrhopre, tsymatrix3f* taupre, float* masspre, tsymatrix3f* qfpre
+	  , float* nabvx, unsigned* cellOSpr, float* straindot, float* vonMises, tfloat3* sds)const;
 
   void AbortBoundOut();
 
@@ -133,6 +138,7 @@ protected:
   void SaveData();
   void SaveData_M();
   void SaveData_A();
+  void SaveData_M1();
   void FinishRun(bool stop);
 
 public:
