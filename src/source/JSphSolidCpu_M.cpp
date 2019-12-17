@@ -10904,8 +10904,8 @@ float JSphSolidCpu::GrowthRateGaussian(float pos) {
 	switch (typeGrowth) {
 		case 6: {
 			const float distance = maxPosX-pos; // Rescale to Bassel_2014 meristem data
-			const float eps = 0.2f;
-			return exp(-0.5f*pow((distance-0.6f)/0.12f,2.0f))+eps*(1-0.4f*distance);
+			const float eps = 0.5f;
+			return exp(-0.5f*pow((distance-0.6f)/0.15f,2.0f))+pow(eps*(1-0.4f*distance),4.0f);
 		break;}
 		default: {
 			//float distance = 0.25f *abs(pos - maxPosX); // Beemster

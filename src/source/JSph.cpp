@@ -1724,9 +1724,23 @@ void JSph::ConfigConstants(bool simulate2d){
 //=======================
 float JSph::CalcK(double x) {
 	float K;
-//	const float theta = 1.0f; // Theta constant
+	int typeYoung = 1;
+	float theta = 1.0f; // Theta constant
 	//const float theta = 2.0f-float(x); // Theta linear
-	const float theta = SigmoidGrowth(float(x)); // Theta sigmoid
+	switch (typeYoung){
+		case 0: {
+			theta = 1.0f;
+			break;
+		}
+		case 1: {
+			theta = SigmoidGrowth(float(x)); // Theta sigmoid
+			break;
+		}
+		case 2: {
+			//const float theta = CircleShapeGrowth(float(x));
+			break;
+		}
+	}
 	const float E = theta * Ey + (1.0f - theta) * Ex;
 	const float G = theta * Gf + (1.0f - theta) * Ex * 0.5f * (1 + nuxy);
 	const float nu = theta * nuyz + (1.0f - theta) * nuxy;
@@ -1765,8 +1779,8 @@ float JSph::CalcK(double x) {
 
 float JSph::SigmoidGrowth(double x) const {
 	float L = 1;
-	float x0 = 1.5f;
-	float k = 5.0f;
+	float x0 = 1.0f;
+	float k = 10.0f;
 	return 1.0f / (1.0f + exp(-k * (float(x) - x0)));
 }
 
