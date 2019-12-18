@@ -209,7 +209,7 @@ void JSphSolidCpu::AllocCpuMemoryParticles(unsigned np, float over) {
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_4B, 1); // VonMises3D
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_4B, 1); // GradVelSave
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_4B, 1); // CellOffSpring
-	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_12B, 1); // CellOffSpring
+	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_12B, 2); // Grad vel save
 
 	//-Shows the allocated memory.
 	MemCpuParticles = ArraysCpu->GetAllocMemoryCpu();

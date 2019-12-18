@@ -12,7 +12,7 @@ LIBS_DIRECTORIES=-L./
 LIBS_DIRECTORIES:=$(LIBS_DIRECTORIES) -L../lib/linux_gcc4
 
 #EXECNAME=DualSPHysics4.2CPU_linux64
-EXECNAME=RootSPH31_linux64_191216_YngSensitivity_Sigmoid
+EXECNAME=RootSPH31_linux64_191218_SenstyAnalysis_FullA
 EXECS_DIRECTORY=../../bin
 
 ifeq ($(USE_DEBUG), YES)
