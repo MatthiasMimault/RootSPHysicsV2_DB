@@ -2422,6 +2422,7 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
 
   // Save step #Save
   int typeSave = 1;
+  
   switch (typeSave) {
   default: {
 	  SaveData_A(); // Original version up to date 17/12/2019

@@ -1724,6 +1724,7 @@ void JSph::ConfigConstants(bool simulate2d){
 //=======================
 float JSph::CalcK(double x) {
 	float K;
+	// #MdYoung
 	int typeMdYoung = 0;
 	float theta = 1.0f; // Theta constant
 	//const float theta = 2.0f-float(x); // Theta linear
@@ -1785,8 +1786,8 @@ float JSph::SigmoidGrowth(double x) const {
 }
 
 float JSph::CircleYoung(double x) const {
-	const float radius = 0.5;
-	const float x0 = 1.0;
+	const float radius = 0.5f;
+	const float x0 = 1.0f;
 	if (x > radius) return 1 / radius * (radius - sqrt(pow(radius, 2) - pow(x - x0, 2)));
 	else return 0.0f;
 }

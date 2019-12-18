@@ -5133,8 +5133,26 @@ void JSphSolidCpu::ComputeTauDot_Gradual_M(unsigned n, unsigned pini, tsymatrix3
 		tsymatrix3f EM;
 		//	const float theta = 1.0f; // Theta constant
 		//const float theta = 2.0f - float(Posc[p].x); // Theta linear
-		
-		const float theta = SigmoidGrowth(maxPosX - float(Posc[p].x)); // Theta sigmoid
+
+		// #MdYoung
+		int typeMdYoung = 0;
+		float theta = 1.0f; // Theta constant
+		//const float theta = 2.0f-float(x); // Theta linear
+		switch (typeMdYoung) {
+		case 1: {
+			theta = SigmoidGrowth(maxPosX - float(Posc[p].x)); // Theta sigmoid
+			break;
+		}
+		case 2: {
+			theta = CircleYoung(maxPosX - float(Posc[p].x)); // Circle shape theta
+			break;
+		}
+		default: {
+			theta = 1.0f; // FullA
+			break;
+		}
+		}
+
 		const float E = theta * Ey + (1.0f - theta) * Ex;
 		const float G = theta * Gf + (1.0f - theta) * Ex * 0.5f * (1 + nuxy);
 		const float nu = theta * nuyz + (1.0f - theta) * nuxy;
