@@ -265,6 +265,7 @@ protected:
 	(unsigned n, unsigned pini, tint4 nc, int hdiv, unsigned cellinitial
 		, const unsigned* beginendcell, tint3 cellzero, const unsigned* dcell
 		, const tdouble3* pos, const tfloat3* pspos, const tfloat4* velrhopp, const typecode* code, const unsigned* id
+		, const float* mass
 		, float& viscdt, float* ar, tsymatrix3f* gradvel, tsymatrix3f* omega, tmatrix3f* L)const;
 
 	template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph tdelta, bool shift> void InteractionForcesFluid

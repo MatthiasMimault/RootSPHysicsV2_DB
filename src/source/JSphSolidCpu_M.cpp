@@ -2004,13 +2004,13 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode> void JSphSolidCpu::Intera
 (unsigned n, unsigned pinit, tint4 nc, int hdiv, unsigned cellinitial
 	, const unsigned* beginendcell, tint3 cellzero, const unsigned* dcell
 	, const tdouble3* pos, const tfloat3* pspos, const tfloat4* velrhop, const typecode* code, const unsigned* idp
+	, const float* mass
 	, float& viscdt, float* ar, tsymatrix3f* gradvel, tsymatrix3f* omega, tmatrix3f* L)const
 {
 	//-Initialize viscth to calculate max viscdt with OpenMP. | Inicializa viscth para calcular visdt maximo con OpenMP.
 	float viscth[OMP_MAXTHREADS * OMP_STRIDE];
 	for (int th = 0; th < OmpThreads; th++)viscth[th * OMP_STRIDE] = 0;
 	
-	float drhop1 = 0.0f;
 	
 	//-Starts execution using OpenMP.
 	const int pfin = int(pinit + n);
@@ -2018,7 +2018,7 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode> void JSphSolidCpu::Intera
 #pragma omp parallel for schedule (guided)
 #endif
 	for (int p1 = int(pinit); p1 < pfin; p1++) {
-		float visc = 0, arp1 = 0;
+		float visc = 0, arp1 = 0, drhop1 = 0.0f;
 		tsymatrix3f gradvelp1 = { 0, 0, 0, 0, 0, 0 };
 		tsymatrix3f omegap1 = { 0, 0, 0, 0, 0, 0 };
 
@@ -2057,7 +2057,8 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode> void JSphSolidCpu::Intera
 						else fr = 0.0f;
 
 						//===== Get mass of particle p2 ===== 
-						float massp2 = MassFluid; //-Contains particle mass of incorrect fluid. | Contiene masa de particula por defecto fluid.
+//						float massp2 = MassFluid; //-Contains particle mass of incorrect fluid. | Contiene masa de particula por defecto fluid.
+						float massp2 = mass[p2]; //-Contiene masa de particula segun sea bound o fluid.
 						bool compute = true;      //-Deactivate when using DEM and/or bound-float. | Se desactiva cuando se usa DEM y es bound-float.
 						if (USE_FLOATING) {
 							bool ftp2 = CODE_IsFloating(code[p2]);
@@ -2070,7 +2071,9 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode> void JSphSolidCpu::Intera
 						if (compute) arp1 += massp2 * (dvx * frx * L[p1].a11 + dvy * fry * L[p1].a22 + dvz * frz * L[p1].a33);
 
 						// #temp - Direct density
-						if (compute) drhop1 += Lo_M[p1] * massp2 * fr;
+//						if (compute) drhop1 += Lo_M[p1] * massp2 * fr;
+//						float massfr = massp2 * fr;
+						if (compute) drhop1 += massp2 * fr;
 
 						//-Viscosity.
 						if (compute) {
@@ -4785,9 +4788,7 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 	for (int th = 0; th < OmpThreads; th++)viscth[th * OMP_STRIDE] = 0;
 	//-Initialise execution with OpenMP. | Inicia ejecucion con OpenMP..
 	const int pfin = int(pinit + n);
-
 	
-
 #ifdef OMP_USE
 #pragma omp parallel for schedule (guided)
 #endif
@@ -4854,7 +4855,9 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 						else fr = 0.0f;
 
 						//===== Get mass of particle p2 ===== 
-						float massp2 = (boundp2 ? MassBound : mass[p2]); //-Contiene masa de particula segun sea bound o fluid.
+//						float massp2 = (boundp2 ? MassBound : mass[p2]); //-Contiene masa de particula segun sea bound o fluid.
+						float massp2 = mass[p2]; //-Contiene masa de particula segun sea bound o fluid.
+
 						bool ftp2 = false;    //-Indicate if it is floating | Indica si es floating.
 						bool compute = true;  //-Deactivate when using DEM and if it is of type float-float or float-bound | Se desactiva cuando se usa DEM y es float-float o float-bound.
 						if (USE_FLOATING) {
@@ -4894,10 +4897,10 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 						const float dvx = velp1.x - velrhop[p2].x, dvy = velp1.y - velrhop[p2].y, dvz = velp1.z - velrhop[p2].z;
 						if (compute)arp1 += massp2 * (dvx * frx * L[p1].a11 + dvy * fry * L[p1].a22 + dvz * frz * L[p1].a33);
 
-						const float cbar = (float)Cs0;
-
 						// #temp - Direct density
 						if (compute) drhop1 += Lo_M[p1] * massp2 * fr;
+
+						const float cbar = (float)Cs0;
 
 						//-Density derivative (DeltaSPH Molteni).
 						if ((tdelta == DELTA_Dynamic || tdelta == DELTA_DynamicExt) && deltap1 != FLT_MAX) {
@@ -5620,37 +5623,18 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 	const unsigned cellfluid = nc.w*nc.z + 1;
 	const int hdiv = (CellMode == CELLMODE_H ? 2 : 1);
 
-	if (npf) {
+	if (npf && true) {
+		// Correction coefficients
 		ComputeNsphCorrection14 < psingle, tker>(np, 0, nc, hdiv, cellfluid, begincell, cellzero, dcell, pos, pspos, velrhop, mass, L);
-
 		memset(DirectRhop_M, 0, sizeof(float) * np);
-		//ComputeNsphCorrectionX < psingle, tker>(np, 0, nc, hdiv, cellfluid, begincell, cellzero, dcell, pos, pspos, velrhop, mass, L);
 
-		//-Interaction Fluid-Fluid.
+		// Interaction unified: From fluids, from bounds
 		InteractionForces_V11b_M<psingle, tker, ftmode, lamsps, tdelta, shift>
-			(npf, npb, nc, hdiv, cellfluid, Visco, begincell, cellzero, dcell
+			(np, 0, nc, hdiv, cellfluid, Visco, begincell, cellzero, dcell
 				, jautau, jaugradvel, jauomega, pos, pspos, velrhop, code, idp, press, pore, mass, L, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);
-
-		//-Interaction Fluid-Bound.
 		InteractionForces_V11b_M<psingle, tker, ftmode, lamsps, tdelta, shift>
-			(npf, npb, nc, hdiv, 0, Visco*ViscoBoundFactor, begincell, cellzero, dcell
+			(np, 0, nc, hdiv, 0, Visco, begincell, cellzero, dcell
 				, jautau, jaugradvel, jauomega, pos, pspos, velrhop, code, idp, press, pore, mass, L, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);
-
-		//-Interaction of DEM Floating-Bound & Floating-Floating. //(DEM)
-		if (USE_DEM)InteractionForcesDEM<psingle>(CaseNfloat, nc, hdiv, cellfluid, begincell, cellzero, dcell, FtRidp, DemData, pos, pspos, velrhop, code, idp, viscdt, ace);
-
-		//-Computes tau for Laminar+SPS.
-		//if (lamsps)ComputeSpsTau(npf, npb, velrhop, spsgradvel, spstau);
-
-		// Compute Sdot
-		//ComputeJauTauDot_M(npf, npb, jaugradvel, jautau, jautaudot, jauomega);
-		
-	}
-	if (npbok) {
-		//-Interaction Bound-Fluid.
-		InteractionForcesBound12_M<psingle, tker, ftmode>(npbok, 0, nc, hdiv, cellfluid, begincell, cellzero, dcell, pos, pspos, velrhop, code, idp, viscdt
-			, ar, jaugradvel, jauomega, L);
-		
 
 	}
 
