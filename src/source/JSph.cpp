@@ -1724,8 +1724,8 @@ void JSph::ConfigConstants(bool simulate2d){
 //=======================
 float JSph::CalcK(double x) {
 	float K;
-	// #MdYoung
-	int typeMdYoung = 0;
+	// #MdYoung #Gradual
+	int typeMdYoung = 3;
 	float theta = 1.0f; // Theta constant
 	//const float theta = 2.0f-float(x); // Theta linear
 	switch (typeMdYoung){

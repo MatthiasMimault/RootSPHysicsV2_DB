@@ -129,6 +129,9 @@ protected:
 	// Matthias - Root geometry data
 	float maxPosX;
 
+	// Direct density estimation - #temp
+	float* DirectRhop_M;
+
 						 //-Variables for Laminar+SPS viscosity.  
 	tsymatrix3f *SpsTauc;       ///<SPS sub-particle stress tensor.
 	tsymatrix3f *SpsGradvelc;   ///<Velocity gradients.
@@ -147,6 +150,7 @@ protected:
 
 	// NSPH
 	tmatrix3f   *L_M;
+	float* Lo_M;
 
 	TimersCpu Timers;
 
@@ -239,6 +243,7 @@ protected:
 	inline void GetKernelGaussian(float rr2, float drx, float dry, float drz, float &frx, float &fry, float &frz)const;
 	inline void GetKernelCubic(float rr2, float drx, float dry, float drz, float &frx, float &fry, float &frz)const;
 	inline float GetKernelCubicTensil(float rr2, float rhopp1, float pressp1, float rhopp2, float pressp2)const;
+	inline void GetKernelDirectWend_M(float rr2, float& f)const;
 
 	inline void GetInteractionCells(unsigned rcell
 		, int hdiv, const tint4 &nc, const tint3 &cellzero
@@ -255,6 +260,12 @@ protected:
 		, const unsigned *beginendcell, tint3 cellzero, const unsigned *dcell
 		, const tdouble3 *pos, const tfloat3 *pspos, const tfloat4 *velrhopp, const typecode *code, const unsigned *id
 		, float &viscdt, float *ar, tsymatrix3f* gradvel, tsymatrix3f* omega, tmatrix3f* L)const;
+
+	template<bool psingle, TpKernel tker, TpFtMode ftmode> void InteractionForcesBound12_M
+	(unsigned n, unsigned pini, tint4 nc, int hdiv, unsigned cellinitial
+		, const unsigned* beginendcell, tint3 cellzero, const unsigned* dcell
+		, const tdouble3* pos, const tfloat3* pspos, const tfloat4* velrhopp, const typecode* code, const unsigned* id
+		, float& viscdt, float* ar, tsymatrix3f* gradvel, tsymatrix3f* omega, tmatrix3f* L)const;
 
 	template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph tdelta, bool shift> void InteractionForcesFluid
 	(unsigned n, unsigned pini, tint4 nc, int hdiv, unsigned cellfluid, float visco
@@ -325,8 +336,14 @@ protected:
 		, const unsigned *beginendcell, tint3 cellzero, const unsigned *dcell
 		, const tdouble3 *pos, const tfloat3 *pspos, const tfloat4 *velrhop
 		, const float *mass, tmatrix3f *L)const;
-	
+
 	template<bool psingle, TpKernel tker> void ComputeNsphCorrection13
+	(unsigned n, unsigned pinit, tint4 nc, int hdiv, unsigned cellinitial
+		, const unsigned* beginendcell, tint3 cellzero, const unsigned* dcell
+		, const tdouble3* pos, const tfloat3* pspos, const tfloat4* velrhop
+		, const float* mass, tmatrix3f* L)const;
+
+	template<bool psingle, TpKernel tker> void ComputeNsphCorrection14
 	(unsigned n, unsigned pinit, tint4 nc, int hdiv, unsigned cellinitial
 		, const unsigned* beginendcell, tint3 cellzero, const unsigned* dcell
 		, const tdouble3* pos, const tfloat3* pspos, const tfloat4* velrhop

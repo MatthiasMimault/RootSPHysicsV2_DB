@@ -369,8 +369,7 @@ void JSphCpuSingle::ConfigDomain(){
   memcpy(Posc,PartsLoaded->GetPos(),sizeof(tdouble3)*Np);
   memcpy(Idpc,PartsLoaded->GetIdp(),sizeof(unsigned)*Np);
   memcpy(Velrhopc, PartsLoaded->GetVelRhop(), sizeof(tfloat4)*Np);
-
-
+   
   //-Calculate floating radius. | Calcula radio de floatings.
   if(CaseNfloat && PeriActive!=0 && !PartBegin)CalcFloatingRadius(Np,Posc,Idpc);
 
@@ -487,7 +486,7 @@ void JSphCpuSingle::ConfigDomain_Uni_M() {
 	memcpy(Velrhopc, PartsLoaded->GetVelRhop(), sizeof(tfloat4) * Np);
 	memcpy(Massc_M, PartsLoaded->GetMass(), sizeof(float) * Np);
 	memcpy(QuadFormc_M, PartsLoaded->GetQf(), sizeof(tsymatrix3f) * Np);
-
+	
 	//-Calculate floating radius. | Calcula radio de floatings.
 	if (CaseNfloat && PeriActive != 0 && !PartBegin)CalcFloatingRadius(Np, Posc, Idpc);
 
@@ -805,6 +804,7 @@ void JSphCpuSingle::RunCellDivide(bool updateperiodic){
   CellDivSingle->SortArray(Divisionc_M);
   CellDivSingle->SortArray(Porec_M);
   CellDivSingle->SortArray(QuadFormc_M);
+  CellDivSingle->SortArray(DirectRhop_M);
   // Augustin
   CellDivSingle->SortArray(VonMises3D);
   CellDivSingle->SortArray(GradVelSave);
@@ -2151,7 +2151,7 @@ double JSphCpuSingle::ComputeStep_Eul_M() {
 /// Realiza interaccion y actualizacion de particulas segun las fuerzas
 /// calculadas en la interaccion usando Symplectic.
 
-// Modified with #Symplectic_M #Update
+// Modified with #Symplectic_M #Update #compute
 //=============================================================================
 double JSphCpuSingle::ComputeStep_Sym(){
   const double dt=DtPre;
@@ -2187,7 +2187,7 @@ double JSphCpuSingle::ComputeStep_Sym(){
   if(CaseNfloat)RunFloating(dt,false);    //-Control of floating bodies.
   PosInteraction_Forces();                //-Free memory used for interaction.
   if(Damping)RunDamping(dt,Np,Npb,Posc,Codec,Velrhopc); //-Applies Damping.
-
+  
   DtPre=min(ddt_p,ddt_c);
 
   return(dt);
