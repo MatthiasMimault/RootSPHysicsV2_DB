@@ -5635,7 +5635,6 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 		InteractionForces_V11b_M<psingle, tker, ftmode, lamsps, tdelta, shift>
 			(np, 0, nc, hdiv, 0, Visco, begincell, cellzero, dcell
 				, jautau, jaugradvel, jauomega, pos, pspos, velrhop, code, idp, press, pore, mass, L, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);
-
 	}
 
 	// Overall computation of taudot
