@@ -2158,35 +2158,39 @@ double JSphCpuSingle::ComputeStep_Sym(){
 
   // Growth marker #Matthias
   maxPosX = MaxPosition().x;
+  bool devdr = true;
 
   //-Predictor
   //-----------
   DemDtForce=dt*0.5f;                     //(DEM)
-  Interaction_Forces(INTER_Forces);       //-Interaction.
+  if (devdr) Interaction_Forces(INTER_Forces);       //-Interaction.
+  else Interaction_Forces(INTER_Forces);
     const double ddt_p=DtVariable(false);   //-Calculate dt of predictor step.
   if(TShifting)RunShifting(dt*.5);        //-Shifting. 
 
   //-Apply Symplectic-Predictor to particles - case compression or no
-  if (false)  ComputeSymplecticPre_T19(dt);
+  if (devdr)  ComputeSymplecticPre_M(dt);
   else ComputeSymplecticPre_M(ddt_p);
 
   if(CaseNfloat)RunFloating(dt*.5,true);  //-Control of floating bodies.
-  PosInteraction_Forces();                //-Free memory used for interaction.
+  if (devdr) PosInteraction_Forces();                //-Free memory used for interaction.
 
   //-Corrector
   //-----------
   DemDtForce=dt;                          //(DEM)
   RunCellDivide(true);
-  Interaction_Forces(INTER_ForcesCorr);   //Interaction.
+  if (devdr) Interaction_Forces(INTER_ForcesCorr);   //Interaction.
+  else Interaction_Forces(INTER_ForcesCorr);
   const double ddt_c=DtVariable(true);    //-Calculate dt of corrector step.
   if(TShifting)RunShifting(dt);           //-Shifting.
 
   //-Apply Symplectic-Corrector to particles - case compression or no
-  if (false)  ComputeSymplecticCorr_T19(dt);
+  if (devdr)   ComputeSymplecticCorr_M(dt);
   else ComputeSymplecticCorr_M(ddt_p);            
 
   if(CaseNfloat)RunFloating(dt,false);    //-Control of floating bodies.
-  PosInteraction_Forces();                //-Free memory used for interaction.
+  if (devdr) PosInteraction_Forces();                //-Free memory used for interaction.
+  else PosInteraction_Forces();
   if(Damping)RunDamping(dt,Np,Npb,Posc,Codec,Velrhopc); //-Applies Damping.
   
   DtPre=min(ddt_p,ddt_c);
