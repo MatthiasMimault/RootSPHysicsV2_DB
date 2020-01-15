@@ -5431,7 +5431,7 @@ void JSphSolidCpu::ComputeTauDot_Gradual_M(unsigned n, unsigned pini, tsymatrix3
 		//const float theta = 2.0f - float(Posc[p].x); // Theta linear
 
 		// #MdYoung
-		int typeMdYoung = 3;
+		int typeMdYoung = 0;
 		float theta = 1.0f; // Theta constant
 		//const float theta = 2.0f-float(x); // Theta linear
 		switch (typeMdYoung) {
@@ -10911,16 +10911,15 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT_M(double dt) {
 				QuadFormc_M[p].zz = float(DQD.a33);
 
 				// Source Density and Mass - To be moved upward, with E_rdot
-				const float volu = float(double(MassPrec_M[p]) / double(rhopnew));
-				float adens = float(LambdaMass)*(RhopZero/Velrhopc[p].w-1);
+				//const float volu = float(double(MassPrec_M[p]) / double(rhopnew));
+				//float adens = float(LambdaMass) * (RhopZero / Velrhopc[p].w - 1);
 				//float adens = float(LambdaMass);
 
 				// Growth regional
-				if (Posc[p].x > -0.15f) {
-					rhopnew = float(rhopnew + dt * adens);
-					Massc_M[p] = float(double(MassPrec_M[p]) + dt * double(adens*volu));
-				}
-				
+				//rhopnew = float(rhopnew + dt * adens);
+				//Massc_M[p] = float(double(MassPrec_M[p]) + dt * double(adens * volu));
+
+
 
 				// Global growth
 				/*rhopnew = float(rhopnew + dt * adens);
@@ -10935,6 +10934,8 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT_M(double dt) {
 				Posc[p] = PosPrec[p];
 			}
 	}
+	// Growth function
+	GrowthCell_M(dt);
 
 	//-Free memory assigned to variables Pre and ComputeSymplecticPre(). | Libera memoria asignada a variables Pre en ComputeSymplecticPre().
 	ArraysCpu->Free(PosPrec);         PosPrec = NULL;

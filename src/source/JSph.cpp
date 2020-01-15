@@ -1725,7 +1725,7 @@ void JSph::ConfigConstants(bool simulate2d){
 float JSph::CalcK(double x) {
 	float K;
 	// #MdYoung #Gradual
-	int typeMdYoung = 3;
+	int typeMdYoung = 0;
 	float theta = 1.0f; // Theta constant
 	//const float theta = 2.0f-float(x); // Theta linear
 	switch (typeMdYoung){
@@ -1735,6 +1735,10 @@ float JSph::CalcK(double x) {
 		}
 		case 2: {
 			theta = CircleYoung(float(x)); // Circle shape theta
+			break;
+		}
+		case 3: {
+			theta = 0.0f; // FullI
 			break;
 		}
 		default: {
