@@ -148,7 +148,7 @@ void JSph::InitVars(){
 
   H=CteB=Gamma=RhopZero=CFLnumber=0;
   // Matthias
-  typeCase = typeCompression = typeGrowth = typeDivision = 0;
+  typeCase = typeCompression = typeGrowth = typeDivision = typeYoung = 0;
   Dp=0;
   Cs0=0;
   Delta2H=0;
@@ -919,6 +919,7 @@ void JSph::LoadCaseConfig(){
   typeCompression = ctes.GetComp();
   typeDivision = ctes.GetDiv();
   typeGrowth = ctes.GetGrow();
+  typeYoung = ctes.GetYoung();
 
   // Activation des conditions de bord
   PlanMirror = (float)ctes.GetPlanMirror();
@@ -1725,10 +1726,10 @@ void JSph::ConfigConstants(bool simulate2d){
 float JSph::CalcK(double x) {
 	float K;
 	// #MdYoung #Gradual
-	int typeMdYoung = 0;
+	//int typeMdYoung = 0;
 	float theta = 1.0f; // Theta constant
 	//const float theta = 2.0f-float(x); // Theta linear
-	switch (typeMdYoung){
+	switch (typeYoung){
 		case 1: {
 			theta = SigmoidGrowth(float(x)); // Theta sigmoid
 			break;
@@ -1789,11 +1790,13 @@ float JSph::SigmoidGrowth(double x) const {
 	return 1.0f / (1.0f + exp(-k * (float(x) - x0)));
 }
 
-float JSph::CircleYoung(double x) const {
+float JSph::CircleYoung(float x) const {
 	const float radius = 0.5f;
-	const float x0 = 1.0f;
-	if (x > radius) return 1 / radius * (radius - sqrt(pow(radius, 2) - pow(x - x0, 2)));
-	else return 0.0f;
+	//float c = 2.0f * (radius - sqrt(pow(radius, 2) - pow(x - radius, 2)));
+	//if (x < radius) return 2.0f * (radius - sqrt(pow(radius, 2) - pow(x - radius, 2)));
+	if (x < 0.0f) return 0.0f;
+	else if (x < radius) return 2.0f * (sqrt(pow(radius, 2) - pow(radius - x, 2)));
+	else return 1.0f;
 }
 
 //==============================================================================

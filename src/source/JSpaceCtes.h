@@ -114,7 +114,7 @@ private:
 
   // Matthias
   // Simulation choices
-  int typeCase, typeCompression, typeGrowth, typeDivision;
+  int typeCase, typeCompression, typeGrowth, typeDivision, typeYoung;
 
   // Bord mirroir
   double PlanMirror;
@@ -188,6 +188,7 @@ public:
   int GetComp()const { return typeCompression; }
   int GetDiv()const { return typeDivision; }
   int GetGrow()const { return typeGrowth; }
+  int GetYoung()const { return typeYoung; }
 
   // Extension Domain
   double GetBordDomain()const { return BordDomain; }
@@ -241,6 +242,7 @@ public:
   void SetComp(int v) { typeCompression = v; }
   void SetDiv(int v) { typeDivision = v; }
   void SetGrow(int v) { typeGrowth = v; }
+  void SetYoung(int v) { typeYoung = v; }
 
   // Plan mirroir
   void SetPlanMirror(double v) { PlanMirror = v; }

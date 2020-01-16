@@ -5431,26 +5431,26 @@ void JSphSolidCpu::ComputeTauDot_Gradual_M(unsigned n, unsigned pini, tsymatrix3
 		//const float theta = 2.0f - float(Posc[p].x); // Theta linear
 
 		// #MdYoung
-		int typeMdYoung = 0;
+		//int typeMdYoung = 0;
 		float theta = 1.0f; // Theta constant
 		//const float theta = 2.0f-float(x); // Theta linear
-		switch (typeMdYoung) {
-		case 1: {
-			theta = SigmoidGrowth(maxPosX - float(Posc[p].x)); // Theta sigmoid
-			break;
-		}
-		case 2: {
-			theta = CircleYoung(maxPosX - float(Posc[p].x)); // Circle shape theta
-			break;
-		}
-		case 3: {
-			theta = 0.0f; // FullIso
-			break;
-		}
-		default: {
-			theta = 1.0f; // FullA
-			break;
-		}
+		switch (typeYoung) {
+			case 1: {
+				theta = SigmoidGrowth(maxPosX - float(Posc[p].x)); // Theta sigmoid
+				break;
+			}
+			case 2: {
+				theta = CircleYoung(maxPosX - float(Posc[p].x)); // Circle shape theta
+				break;
+			}
+			case 3: {
+				theta = 0.0f; // FullIso
+				break;
+			}
+			default: {
+				theta = 1.0f; // FullA
+				break;
+			}
 		}
 
 		const float E = theta * Ey + (1.0f - theta) * Ex;
@@ -5655,14 +5655,14 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 	}
 
 	// Overall computation of taudot
-	int typeYoung = 1; // Original
+	//int typeYoung = 1; // Original
 	//inttypeYoung = '1'; // Gradual Young - dev version #Young
 	switch (typeYoung) {
 		case 0: {
 			ComputeJauTauDot_M(np, 0, jaugradvel, jautau, jautaudot, jauomega);
 			break;
 		}
-		case 1: {
+		default: {
 			ComputeTauDot_Gradual_M(np, 0, jautaudot);
 			break;
 		}
