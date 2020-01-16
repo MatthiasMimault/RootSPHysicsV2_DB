@@ -44,16 +44,12 @@ protected:
   llong GetAllocMemoryCpu()const;
   void UpdateMaxValues();
   void LoadConfig(JCfgRun *cfg);
-  void LoadConfig_T(JCfgRun *cfg);
   void LoadCaseParticles();
+
   //Matthias - Mixed case generation
-  void LoadCaseParticles_T();
-  void LoadConfig_M(JCfgRun *cfg);
-  void LoadConfig_Uni_M(JCfgRun *cfg);
-  void LoadCaseParticles_Mixed_M();
   void LoadCaseParticles_Uni_M();
+  void LoadConfig_Uni_M(JCfgRun *cfg);
   void ConfigDomain();
-  void ConfigDomain_Mixed_M();
   void ConfigDomain_Uni_M();
 
   void ResizeParticlesSize(unsigned newsize,float oversize,bool updatedivide);
@@ -68,7 +64,6 @@ protected:
   void RunCellDivide(bool updateperiodic);
   // Matthias - Cell division
   void RunRandomDivision_M();
-  void RunSizeDivision_M();
   //Mathis - Cell Divison stepdt
   void RunSizeDivision_M2(double stepdt);
   void RunDivisionDisplacement_M();
@@ -87,23 +82,6 @@ protected:
 	  , unsigned *idp, typecode *code, unsigned *dcell, tdouble3 *pos, tfloat4 *velrhop, tsymatrix3f *taup
 	  , bool *divisionp, float *porep, float *massp, tsymatrix3f *qfp, tfloat4 *velrhopm1, tsymatrix3f *taupm1, float *masspm1, tsymatrix3f *qfpm1)const;
 
-  void MarkedDivisionSymp_M(unsigned countMax, unsigned np, unsigned pini, tuint3 cellmax
-	  , unsigned *idp, typecode *code, unsigned *dcell
-	  , tdouble3 *pos, tfloat4 *velrhop, tsymatrix3f *taup, bool *divisionp, float *porep, float *massp, tsymatrix3f *qfp
-	  , tdouble3 *pospre, tfloat4 *velrhopre, tsymatrix3f *taupre, float *masspre, tsymatrix3f *qfpre)const;
-
-  void MarkedDivisionSymp_M(unsigned countMax, unsigned np, unsigned pini, tuint3 cellmax
-	  , unsigned *idp, typecode *code, unsigned *dcell
-	  , tdouble3 *pos, tfloat4 *velrhop, tsymatrix3f *taup, bool *divisionp, float *porep, float *massp, tsymatrix3f *qfp
-	  , tdouble3 *pospre, tfloat4 *velrhopre, tsymatrix3f *taupre, float *masspre, tsymatrix3f *qfpre, float *nabvx)const;
-
-  void MarkedDivisionSymp_A(unsigned countMax, unsigned np, unsigned pini, tuint3 cellmax, unsigned* idp, typecode* code, unsigned* dcell, tdouble3* pos, tfloat4* velrhop, tsymatrix3f* taup, bool* divisionp, float* porep, float* massp, tsymatrix3f* qfp, tdouble3* pospre, tfloat4* velrhopre, tsymatrix3f* taupre, float* masspre, tsymatrix3f* qfpre, float* nabvx, unsigned* cellOSpr) const;
-
-  void MarkedDivisionSymp_AM(unsigned countMax, unsigned np, unsigned pini, tuint3 cellmax
-	  , unsigned* idp, typecode* code, unsigned* dcell
-	  , tdouble3* pos, tfloat4* velrhop, tsymatrix3f* taup, bool* divisionp, float* porep, float* massp, tsymatrix3f* qfp
-	  , tdouble3* pospre, tfloat4* velrhopre, tsymatrix3f* taupre, float* masspre, tsymatrix3f* qfpre
-	  , float* nabvx, unsigned* cellOSpr, float* straindot, float* vonMises)const;
   void MarkedDivisionSymp_AM(unsigned countMax, unsigned np, unsigned pini, tuint3 cellmax
 	  , unsigned* idp, typecode* code, unsigned* dcell
 	  , tdouble3* pos, tfloat4* velrhop, tsymatrix3f* taup, bool* divisionp, float* porep, float* massp, tsymatrix3f* qfp
@@ -136,8 +114,6 @@ protected:
   void RunGaugeSystem(double timestep);
 
   void SaveData();
-  void SaveData_M();
-  void SaveData_A();
   void SaveData_M1();
   void FinishRun(bool stop);
 

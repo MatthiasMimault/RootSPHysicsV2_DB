@@ -438,21 +438,7 @@ protected:
 
   tfloat3* GetPointerDataFloat3(unsigned n,const tdouble3* v)const;
   void SavePartData(unsigned npok,unsigned nout,const unsigned *idp,const tdouble3 *pos,const tfloat3 *vel,const float *rhop,unsigned ndom,const tdouble3 *vdom,const StInfoPartPlus *infoplus);
-  void SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, const tdouble3 *pos, const tfloat3 *vel
-	  , const float *rhop, const float *pore, const tfloat3 *press, const float *mass, const tsymatrix3f *tau
-	  , unsigned ndom, const tdouble3 *vdom, const StInfoPartPlus *infoplus);
- /* void SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, const tdouble3 *pos, const tfloat3 *vel
-	  , const float *rhop, const float *pore, const tfloat3 *press, const float *mass, const tsymatrix3f *gradvel, const tsymatrix3f *tau
-	  , unsigned ndom, const tdouble3 *vdom, const StInfoPartPlus *infoplus);
-  void SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, const tdouble3 *pos, const tfloat3 *vel
-	  , const float *rhop, const float *pore, const float *press, const float *massp, const tsymatrix3f *qf
-	  , unsigned ndom, const tdouble3 *vdom, const StInfoPartPlus *infoplus); */
-void SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, const tdouble3 *pos, const tfloat3 *vel
-		  , const float *rhop, const float *pore, const float *press, const float *massp, const tsymatrix3f *qf, const float *nabvx
-		  , unsigned ndom, const tdouble3 *vdom, const StInfoPartPlus *infoplus);
-void SavePartData_A(unsigned npok, unsigned nout, const unsigned* idp, const tdouble3* pos, const tfloat3* vel, const float* rhop
-		  , const float* pore, const float* press, const float* massp, const tsymatrix3f* qfp, const float* nabvx, const float* vonMises
-		  , const float* grVelSave, const unsigned* cellOSpr, unsigned ndom, const tdouble3* vdom, const StInfoPartPlus* infoplus);
+ 
 void SavePartData_M1(unsigned npok, unsigned nout, const unsigned* idp, const tdouble3* pos, const tfloat3* vel, const float* rhop
 		  , const float* pore, const float* press, const float* massp, const tsymatrix3f* qfp, const float* nabvx, const float* vonMises
 		  , const float* grVelSave, const unsigned* cellOSpr, tfloat3* gradvel, unsigned ndom, const tdouble3* vdom, const StInfoPartPlus* infoplus);

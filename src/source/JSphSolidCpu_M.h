@@ -112,14 +112,13 @@ protected:
 
 						  //-Variables for computing forces [INTER_Forces,INTER_ForcesCorr] | Vars. derivadas para computo de fuerzas [INTER_Forces,INTER_ForcesCorr]
 	float *Pressc;       ///< Press[]=B*((Rhop/Rhop0)^gamma-1)
-	//tfloat3 *Press3Dc_M;       ///< Press[]=B*((Rhop/Rhop0)^gamma-1)
 
 	// Matthias - Pore pressure
 	bool *Divisionc_M;
 	float *Porec_M; 
 	float *Massc_M; // Mass, Delta mass
 	float *NabVx_M;
-	//float TimeGoing;
+
 	// Augustin
 	float* VonMises3D;
 	float* GradVelSave;
@@ -128,19 +127,14 @@ protected:
 
 	// Matthias - Root geometry data
 	float maxPosX;
-
-	// Direct density estimation - #temp
-	float* DirectRhop_M;
-
+	
 						 //-Variables for Laminar+SPS viscosity.  
 	tsymatrix3f *SpsTauc;       ///<SPS sub-particle stress tensor.
 	tsymatrix3f *SpsGradvelc;   ///<Velocity gradients.
 
 								// Matthias - Solid
-	//tmatrix3f *JauTauc_M;
 	tsymatrix3f *Tauc_M;
 	tsymatrix3f *TauM1c_M;
-	//tmatrix3f *JauGradvelc_M;
 	tsymatrix3f *StrainDotc_M;
 	tsymatrix3f *TauDotc_M;
 	tsymatrix3f *Spinc_M;
@@ -200,20 +194,6 @@ protected:
 
 	unsigned GetParticlesData(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
 		, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, typecode *code);
-	unsigned GetParticlesData_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
-		, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, tfloat3 *press, float* mass, tsymatrix3f *tau, typecode *code);
-	//unsigned GetParticlesData_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal, unsigned* idp, tdouble3* pos, tfloat3* vel, float* rhop, float* pore, tfloat3* press, float* mass, tsymatrix3f* tau, float* vonMises, typecode* code);
-	unsigned GetParticlesData_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
-		, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, tfloat3 *press, float* mass, tsymatrix3f *gradvel, tsymatrix3f *tau, typecode *code);
-	unsigned GetParticlesData_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
-		, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, tfloat3 *press, float* mass, tsymatrix3f *gradvel, tsymatrix3f *tau, tsymatrix3f *qf, typecode *code);
-	unsigned GetParticlesData_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
-		, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, float *press, float* mass, tsymatrix3f *qf, typecode *code);
-	unsigned GetParticlesData_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
-		, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, float *press, float* mass, tsymatrix3f *qf, float *nabvx, typecode *code);
-	unsigned GetParticlesData_A(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
-		, unsigned* idp, tdouble3* pos, tfloat3* vel, float* rhop, float* pore, float* press, float* mass, tsymatrix3f* qf
-		, float* nabvx, float* vonMises, float* grVelSav, unsigned* cellOSpr, typecode* code);
 	unsigned GetParticlesData_M1(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
 			, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, float *press, float* mass, tsymatrix3f *qf
 			, float *nabvx, float* vonMises, float* grVelSav, unsigned* cellOSpr, tfloat3* gradvel, typecode *code);
@@ -226,9 +206,7 @@ protected:
 	void InitRun();
 
 	// Matthias
-	void InitRun_Mixed_M();
 	void InitRun_Uni_M();
-	void InitRun_T(JPartsLoad4 *pl); 
 
 	void AddAccInput();
 
@@ -389,11 +367,6 @@ protected:
 	template<bool shift> void ComputeSymplecticCorrT_CompressBdy_M(double dt);
 	void ComputeSymplecticCorr_M(double dt);
 
-	template<bool shift> void ComputeSymplecticPreVcT_M(double dt);
-	void ComputeSymplecticPre_VelCst_M(double dt);
-	template<bool shift> void ComputeSymplecticCorrVcT_M(double dt);
-	void ComputeSymplecticCorr_VelCst_M(double dt);
-
 	void GrowthCell_M(double dt);
 	float GrowthRateSpace(float pos);
 	float GrowthRateSpaceNormalised(float pos);
@@ -402,18 +375,7 @@ protected:
 	double GrowthRate2(double pos, double tip);
 	float MaxValueParticles(float* field); 
 	tfloat3 MaxPosition();
-
-	template<bool shift> void ComputeSymplecticPreT_SigCst_M(double dt);
-	void ComputeSymplecticPre_SigCst_M(double dt);
-	template<bool shift> void ComputeSymplecticCorrT_SigCst_M(double dt);
-	void ComputeSymplecticCorr_SigCst_M(double dt);
 	// End Matthias
-
-	// T19
-	template<bool shift> void ComputeSymplecticPreT_T19(double dt);
-	void ComputeSymplecticPre_T19(double dt);
-	template<bool shift> void ComputeSymplecticCorrT_T19(double dt);
-	void ComputeSymplecticCorr_T19(double dt);
 
 	void RunShifting(double dt);
 
