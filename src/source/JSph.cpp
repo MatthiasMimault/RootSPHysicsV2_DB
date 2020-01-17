@@ -1637,14 +1637,14 @@ void JSph::ConfigConstants(bool simulate2d){
   printf("Kani = %.8f\n", Kani);
 
   // New B for anisotropy
-  //CteB = Kani / (Gamma); #dev
+  //CteB = Kani / (Gamma); 
 
   //-Computation of constants.
   const double h=H;
   Delta2H=float(h*2*DeltaSph);
 
   // Cs0 version originale
-  Cs0=10*sqrt(double(Gamma)*double(max(CalcK(0.0), CalcK(1.5) )/Gamma)/double(RhopZero)); //#dev
+  Cs0=10*sqrt(double(Gamma)*double(max(CalcK(0.0), CalcK(1.5) )/Gamma)/double(RhopZero)); 
 
   // Old anisotropic versions of Cs0 (vec3) removed - Matthias
 
@@ -2273,7 +2273,7 @@ void JSph::ConfigSaveData(unsigned piece,unsigned pieces,std::string div){
     DataBi4=new JPartDataBi4();
     DataBi4->ConfigBasic(piece,pieces,RunCode,AppName,CaseName,Simulate2D,Simulate2DPosY,DirDataOut);
     DataBi4->ConfigParticles(CaseNp,CaseNfixed,CaseNmoving,CaseNfloat,CaseNfluid,CasePosMin,CasePosMax,NpDynamic,ReuseIds);
-    //DataBi4->ConfigCtes(Dp,H,CteB,RhopZero,Gamma,MassBound,MassFluid); #dev
+    //DataBi4->ConfigCtes(Dp,H,CteB,RhopZero,Gamma,MassBound,MassFluid); #Gradual #Young
     DataBi4->ConfigCtes(Dp,H, max(CalcK(0.0),CalcK(1.5))/Gamma,RhopZero,Gamma,MassBound,MassFluid);
     DataBi4->ConfigSimMap(OrderDecode(MapRealPosMin),OrderDecode(MapRealPosMax));
     JPartDataBi4::TpPeri tperi=JPartDataBi4::PERI_None;
@@ -2435,7 +2435,6 @@ void JSph::SavePartData(unsigned npok, unsigned nout, const unsigned *idp, const
 			float *press = NULL;
 			if (0) {//-Example saving a new array (Pressure) in files BI4.
 				press = new float[npok];
-				// dev -> Get max pos here #dev 
 				for (unsigned p = 0; p<npok; p++)press[p] = (idp[p] >= CaseNbound ? CalcK((2.0-pos[p].x))/Gamma * (pow(rhop[p] / RhopZero, Gamma) - 1.0f) : 0.f);
 				DataBi4->AddPartData("Pressure", npok, press);
 			}

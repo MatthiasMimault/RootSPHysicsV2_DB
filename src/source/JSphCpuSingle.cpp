@@ -734,8 +734,8 @@ uint64_t nanos()
 	return ns;
 }
 
-//#Mathis #V31-Dd
-void JSphCpuSingle::RunSizeDivision_M2(double stepdt){
+// #V32-Da
+void JSphCpuSingle::RunSizeDivision12_M(double stepdt){
 	const char met[] = "RunSizeDivision_M2";
 	//double distance;
 	double proba;
@@ -744,6 +744,95 @@ void JSphCpuSingle::RunSizeDivision_M2(double stepdt){
 //	double test;
 	double tip = 0.15;
 //	double ms;
+	TmcStart(Timers, TMC_SuPeriodic); // Use of Periodic timer for creation of particles
+	bool run = false;
+	unsigned count = 0;
+	double number;	
+
+	// 1. Test division cellulaire
+	switch (typeDivision) {
+		default: { // No division
+			break;
+		}
+		case 1: { // Size double
+
+			break;
+		}
+		case 2: { // Mathis 2019
+			for (unsigned p = Npb; p < Np; p++) {
+				//random number generator
+				std::default_random_engine generator((unsigned)nanos());
+				std::uniform_real_distribution<double> distribution(0.0, 1.0);
+				number = distribution(generator);
+				proba = SizeDivision_M;
+				proba1 = proba * stepdt;
+				
+				//version 1
+				if ((Posc[p].x < maxPosX - 0.05) && (Posc[p].x > maxPosX - 0.25) && (number < proba * stepdt)) {
+					Divisionc_M[p] = true;
+					count++;
+					run = true;
+				}
+			}
+			break;		
+		}
+	}
+
+	
+
+	while (run) {
+
+		// 2. Prepare memory for count particles
+		//-Maximum number of particles that fit in the list / Numero maximo de particulas que caben en la lista.
+		unsigned nmax = CpuParticlesSize - 1;
+
+		if (Np >= 0x80000000)RunException(met, "The number of particles is too big.");//-Because the last bit is used to mark the direction in which a new periodic particle is created / Pq el ultimo bit se usa para marcar el sentido en que se crea la nueva periodica.
+																					  // Maximal number of division per turn
+
+																					  //-Redimension memory for particles if there is insufficient space and repeat the search process.
+		if (count > nmax || count + Np > CpuParticlesSize) {
+			TmcStop(Timers, TMC_SuPeriodic);
+			// Peut etre qu'ici on a la source de certains bug (trop particles, need extend)
+			ResizeParticlesSize(Np + count, PERIODIC_OVERMEMORYNP, false);
+			TmcStart(Timers, TMC_SuPeriodic);
+		}
+
+		// 3. Divide marked particles
+		else {
+			//printf("Division\n");
+			run = false;
+			// Divide the selected particles in X direction
+			if (TStep == STEP_Verlet) {
+				MarkedDivision_M(count, Np, Npb, DomCells, Idpc, Codec, Dcellc
+					, Posc, Velrhopc, Tauc_M, Divisionc_M, Porec_M, Massc_M, QuadFormc_M, VelrhopM1c, TauM1c_M, MassM1c_M, QuadFormM1c_M);
+			}
+			else {
+				MarkedDivisionSymp_AM(count, Np, Npb, DomCells, Idpc, Codec, Dcellc
+					, Posc, Velrhopc, Tauc_M, Divisionc_M, Porec_M, Massc_M, QuadFormc_M
+					, PosPrec, VelrhopPrec, TauPrec_M, MassPrec_M, QuadFormPrec_M, NabVx_M, CellOffSpring, GradVelSave, VonMises3D,
+					StrainDotSave);
+
+			}
+			Np += count;
+
+		}
+	}
+	//printf("RUnsizeDivision2\n");
+	TmcStop(Timers, TMC_SuPeriodic);
+	//printf("RuSizeDiv1\n");
+}
+
+
+//#Mathis #V31-Dd
+void JSphCpuSingle::RunSizeDivision_M2(double stepdt) {
+	const char met[] = "RunSizeDivision_M2";
+	//double distance;
+	double proba;
+	double proba1;
+	//double posx_quiescent;
+//	double test;
+	double tip = 0.15;
+	//	double ms;
 	TmcStart(Timers, TMC_SuPeriodic); // Use of Periodic timer for creation of particles
 	bool run = false;
 	unsigned count = 0;
@@ -1793,7 +1882,8 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
 	
 	// Matthias - Cell division
 	//RunSizeDivision_M();
-	RunSizeDivision_M2(stepdt);
+	if (true) RunSizeDivision12_M(stepdt);
+	else RunSizeDivision_M2(stepdt);
 	RunCellDivide(true);
 
     TimeStep+=stepdt;

@@ -1856,7 +1856,7 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 							shiftdetectp1 -= massrhop * (drx * frx + dry * fry + drz * frz);
 						}
 
-						//-Shifting correction - normalised - Matthias #dev #shift
+						//-Shifting correction - normalised - Matthias #shift
 						if (0 && shift && shiftposp1.x != FLT_MAX) {
 							const float massrhop = massp2 / velrhop[p2].w;
 							const bool noshift = (boundp2 && (tshifting == SHIFT_NoBound || (tshifting == SHIFT_NoFixed && CODE_IsFixed(code[p2]))));

@@ -22,13 +22,4 @@ bin/windows/DualSPHysics*
 
 ## Ignores additional library Eigen (installed by hand)
 src/lib/EigenLibs/*
-/debug/1-MixedRoot
-/debug/2-FreeCylinder
-/debug/3-DataRootLoader
-/debug/4-DataRootEllipsoids
-/debug/5-Bdy
-/debug/6-Grw
-/debug/7-C2D
-/debug/8-DNS
-/debug/8-DST
-/debug/9-Div
+/debug/*
