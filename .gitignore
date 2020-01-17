@@ -20,3 +20,4 @@ bin/windows/*.ipdb
 bin/windows/*.pdb
 bin/windows/*.ilk
 bin/windows/DualSPHysics*
+/debug
