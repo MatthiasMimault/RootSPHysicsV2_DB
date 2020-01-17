@@ -91,6 +91,10 @@ public:
   unsigned Size()const{ return(MkListSize); }
   const JSphMkBlock* Mkblock(unsigned c)const{ return(MkList[c]); }
 
+  // Matthias
+  unsigned GetMkListBound() { return(MkListBound); }
+  unsigned GetMkListFluid() { return(MkListFluid); }
+
   typecode GetCodeNewFluid()const{ return(CodeNewFluid); }
 
 

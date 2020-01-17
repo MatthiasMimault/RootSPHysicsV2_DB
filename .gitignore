@@ -11,8 +11,7 @@ examples/*
 
 ## Ignores other directories.
 __Tools__
-doc/*
-bin/linux/*
+bin/*
 
 ## Ignores temporary files.
 bin/windows/*.iobj
@@ -20,4 +19,15 @@ bin/windows/*.ipdb
 bin/windows/*.pdb
 bin/windows/*.ilk
 bin/windows/DualSPHysics*
-/debug
+
+## Ignores additional library Eigen (installed by hand)
+src/lib/EigenLibs/*
+/debug/1-MixedRoot
+/debug/2-FreeCylinder
+/debug/3-DataRootLoader
+/debug/4-DataRootEllipsoids
+/debug/5-Bdy
+/debug/6-Grw
+/debug/7-C2D
+/debug/8-DNS
+/debug/8-DST

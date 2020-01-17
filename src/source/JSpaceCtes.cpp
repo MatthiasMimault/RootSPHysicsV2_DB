@@ -70,6 +70,7 @@ void JSpaceCtes::Reset(){
   H=B=MassBound=MassFluid=0;
   Dp=0;
   //Matthias
+  typeCase = typeCompression = typeDivision = typeGrowth = typeYoung = 0;
   // Extension Domain
   BordDomain = 0;
   // Solid
@@ -80,7 +81,7 @@ void JSpaceCtes::Reset(){
   // Mass
   LambdaMass = 0;
   // Cell division
-  LocalDiv_M = { 0,0,0 };
+  LocalDiv_M = TDouble3(0,0,0);
   Spread_M = 0;
   VelDivCoef_M = 0;
 
@@ -250,6 +251,14 @@ void JSpaceCtes::ReadAddXmlRun_M(JXml *sxml, TiXmlElement* node) {
 	SetLocalDivision(sxml->ReadElementDouble3(node, "localdivision"));
 	SetSpreadDivision(sxml->ReadElementFloat(node, "spreaddivision", "value"));
 	SetVelocityDivisionCoef(sxml->ReadElementFloat(node, "velocitydivisioncoef", "value"));
+	
+	// Simulation choices
+	SetCase(sxml->ReadElementInt(node, "typeCase", "value"));
+	SetComp(sxml->ReadElementInt(node, "typeCompression", "value"));
+	SetDiv(sxml->ReadElementInt(node, "typeDivision", "value"));
+	SetGrow(sxml->ReadElementInt(node, "typeGrowth", "value"));
+	SetYoung(sxml->ReadElementInt(node, "typeYoung", "value"));
+
 	//SetAnisotropyK(sxml->ReadElementDouble3(node, "anisotropyk"));
 	//SetAnisotropyG(sxml->ReadElementTsymatrix3f(node, "anisotropyg", "value"));
 

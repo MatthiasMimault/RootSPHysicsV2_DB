@@ -40,6 +40,8 @@
 #include <sstream>
 #include <iostream>
 #include <fstream>
+#include <string>
+#include <cstdlib>
 
 class JSphMk;
 class JSphMotion;
@@ -163,6 +165,7 @@ protected:
   // Addt. Xml file
   std::string DirAddXml_M;
   std::string AddFileXml_M;
+  std::string Datacsvname;
 
   //-Options for execution.
   TpStep TStep;               ///<Step Algorithm: Verlet or Symplectic.                                  | Algoritmo de paso: Verlet o Symplectic.
@@ -223,6 +226,8 @@ protected:
   float SpsSmag;             ///<Smagorinsky constant used in SPS turbulence model.
   float SpsBlin;             ///<Blin constant used in the SPS turbulence model.
   // Matthias
+  // Simulation #choice markers
+  int typeCase, typeGrowth, typeCompression, typeDivision, typeYoung;
   // Plan mirroir
   float PlanMirror;
   // Extension Domain
@@ -379,8 +384,12 @@ protected:
 
   void LoadConfig(const JCfgRun *cfg);
   void LoadConfig_T(const JCfgRun *cfg);
+  void LoadConfig_Mixed_M(const JCfgRun* cfg);
+  void LoadConfig_Uni_M(const JCfgRun* cfg);
+  void UpdateXml_M(const JCfgRun* cfg);
   void LoadCaseConfig();
   void LoadCaseConfig_T();
+  void UpdateCaseConfig_Mixed_M();
 
   void VisuDemCoefficients()const;
 
@@ -389,6 +398,11 @@ protected:
   void ResizeMapLimits();
 
   void ConfigConstants(bool simulate2d);
+  // Matthias
+  float CalcK(double x);
+  float SigmoidGrowth(double x)const;
+  float CircleYoung(float x)const;
+
   void VisuConfig()const;
   void VisuParticleSummary()const;
   void LoadDcellParticles(unsigned n,const typecode *code,const tdouble3 *pos,unsigned *dcell)const;
@@ -424,29 +438,23 @@ protected:
 
   tfloat3* GetPointerDataFloat3(unsigned n,const tdouble3* v)const;
   void SavePartData(unsigned npok,unsigned nout,const unsigned *idp,const tdouble3 *pos,const tfloat3 *vel,const float *rhop,unsigned ndom,const tdouble3 *vdom,const StInfoPartPlus *infoplus);
-  void SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, const tdouble3 *pos, const tfloat3 *vel
-	  , const float *rhop, const float *pore, const tfloat3 *press, const float *mass, const tsymatrix3f *tau
-	  , unsigned ndom, const tdouble3 *vdom, const StInfoPartPlus *infoplus);
- /* void SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, const tdouble3 *pos, const tfloat3 *vel
-	  , const float *rhop, const float *pore, const tfloat3 *press, const float *mass, const tsymatrix3f *gradvel, const tsymatrix3f *tau
-	  , unsigned ndom, const tdouble3 *vdom, const StInfoPartPlus *infoplus);
-  void SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, const tdouble3 *pos, const tfloat3 *vel
-	  , const float *rhop, const float *pore, const float *press, const float *massp, const tsymatrix3f *qf
-	  , unsigned ndom, const tdouble3 *vdom, const StInfoPartPlus *infoplus); */
-	  void SavePartData_M(unsigned npok, unsigned nout, const unsigned *idp, const tdouble3 *pos, const tfloat3 *vel
-		  , const float *rhop, const float *pore, const float *press, const float *massp, const tsymatrix3f *qf, const float *nabvx
-		  , unsigned ndom, const tdouble3 *vdom, const StInfoPartPlus *infoplus);
-	  void SavePartData_A(unsigned npok, unsigned nout, const unsigned* idp, const tdouble3* pos, const tfloat3* vel, const float* rhop, const float* pore, const float* press, const float* massp, const tsymatrix3f* qfp, const float* nabvx, const float* vonMises, const float* grVelSave, const unsigned* cellOSpr, unsigned ndom, const tdouble3* vdom, const StInfoPartPlus* infoplus);
-	  void SaveData(unsigned npok,const unsigned *idp,const tdouble3 *pos,const tfloat3 *vel,const float *rhop,unsigned ndom,const tdouble3 *vdom,const StInfoPartPlus *infoplus);
-  void SaveData_M(unsigned npok, const unsigned *idp, const tdouble3 *pos, const tfloat3 *vel, const float *rhop, const float *pore
+ 
+void SavePartData_M1(unsigned npok, unsigned nout, const unsigned* idp, const tdouble3* pos, const tfloat3* vel, const float* rhop
+		  , const float* pore, const float* press, const float* massp, const tsymatrix3f* qfp, const float* nabvx, const float* vonMises
+		  , const float* grVelSave, const unsigned* cellOSpr, tfloat3* gradvel, unsigned ndom, const tdouble3* vdom, const StInfoPartPlus* infoplus);
+	  
+void SaveData(unsigned npok,const unsigned *idp,const tdouble3 *pos,const tfloat3 *vel,const float *rhop,unsigned ndom,const tdouble3 *vdom,const StInfoPartPlus *infoplus);
+  /*void SaveData_M(unsigned npok, const unsigned *idp, const tdouble3 *pos, const tfloat3 *vel, const float *rhop, const float *pore
 	  , const tfloat3 *press, const float *mass, const tsymatrix3f *gradvel, const tsymatrix3f *tau, unsigned ndom, const tdouble3 *vdom, const StInfoPartPlus *infoplus);
   void SaveData_M(unsigned npok, const unsigned *idp, const tdouble3 *pos, const tfloat3 *vel, const float *rhop, const float *pore
-	  , const float *press, const float *mass, const tsymatrix3f *qf, unsigned ndom, const tdouble3 *vdom, const StInfoPartPlus *infoplus);  
+	  , const float *press, const float *mass, const tsymatrix3f *qf, unsigned ndom, const tdouble3 *vdom, const StInfoPartPlus *infoplus);  */
   void SaveData_M(unsigned npok, const unsigned *idp, const tdouble3 *pos, const tfloat3 *vel, const float *rhop, const float *pore
 		  , const float *press, const float *mass, const tsymatrix3f *qf, const float *nablavx, unsigned ndom, const tdouble3 *vdom, const StInfoPartPlus *infoplus);
 
   void SaveData_A(unsigned npok, const unsigned* idp, const tdouble3* pos, const tfloat3* vel, const float* rhop, const float* pore, const float* press, const float* mass, const tsymatrix3f* qf, const float* nabvx, const float* vonMises, const float* gradVelSav, unsigned* cellOSpr, unsigned ndom, const tdouble3* vdom, const StInfoPartPlus* infoplus);
-
+  void SaveData_M1(unsigned npok, const unsigned* idp, const tdouble3* pos, const tfloat3* vel, const float* rhop
+	  , const float* pore, const float* press, const float* mass, const tsymatrix3f* qf, const float* nabvx
+	  , const float* vonMises, const float* gradVelSav, unsigned* cellOSpr, tfloat3* gradvel, unsigned ndom, const tdouble3* vdom, const StInfoPartPlus* infoplus);
 
 
 
