@@ -755,7 +755,13 @@ void JSphCpuSingle::RunSizeDivision12_M(double stepdt){
 			break;
 		}
 		case 1: { // Size double
-
+			for (unsigned p = Npb; p < Np; p++) {
+				if (Massc_M[p]> SizeDivision_M * MassFluid) {
+					Divisionc_M[p] = true;
+					count++;
+					run = true;
+				}
+			}
 			break;
 		}
 		case 2: { // Mathis 2019
@@ -764,7 +770,7 @@ void JSphCpuSingle::RunSizeDivision12_M(double stepdt){
 				std::default_random_engine generator((unsigned)nanos());
 				std::uniform_real_distribution<double> distribution(0.0, 1.0);
 				number = distribution(generator);
-				proba = SizeDivision_M;
+				proba = VelDivCoef_M;
 				proba1 = proba * stepdt;
 				
 				//version 1
@@ -788,7 +794,6 @@ void JSphCpuSingle::RunSizeDivision12_M(double stepdt){
 
 		if (Np >= 0x80000000)RunException(met, "The number of particles is too big.");//-Because the last bit is used to mark the direction in which a new periodic particle is created / Pq el ultimo bit se usa para marcar el sentido en que se crea la nueva periodica.
 																					  // Maximal number of division per turn
-
 																					  //-Redimension memory for particles if there is insufficient space and repeat the search process.
 		if (count > nmax || count + Np > CpuParticlesSize) {
 			TmcStop(Timers, TMC_SuPeriodic);
