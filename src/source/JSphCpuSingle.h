@@ -89,6 +89,12 @@ protected:
 	  , tdouble3* pospre, tfloat4* velrhopre, tsymatrix3f* taupre, float* masspre, tsymatrix3f* qfpre
 	  , float* nabvx, unsigned* cellOSpr, float* straindot, float* vonMises, tfloat3* sds)const;
 
+  void MarkedDivisionSymp11_M(unsigned countMax, unsigned np, unsigned pini, tuint3 cellmax
+	  , unsigned* idp, typecode* code, unsigned* dcell
+	  , tdouble3* pos, tfloat4* velrhop, tsymatrix3f* taup, bool* divisionp, float* porep, float* massp, tsymatrix3f* qfp
+	  , tdouble3* pospre, tfloat4* velrhopre, tsymatrix3f* taupre, float* masspre, tsymatrix3f* qfpre
+	  , unsigned* cellOSpr, float* straindot, float* vonMises, tfloat3* sds)const;
+
   void AbortBoundOut();
 
   inline void GetInteractionCells(unsigned rcell
@@ -116,6 +122,7 @@ protected:
 
   void SaveData();
   void SaveData_M1();
+  void SaveData11_M();
   void FinishRun(bool stop);
 
 public:

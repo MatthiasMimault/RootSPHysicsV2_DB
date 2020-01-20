@@ -90,7 +90,6 @@ void JSphSolidCpu::InitVars() {
 	// Matthias
 	Porec_M = NULL;
 	Massc_M = NULL;
-	NabVx_M = NULL;
 	Divisionc_M = NULL;
 	QuadFormc_M = NULL;	QuadFormM1c_M = NULL;
 	L_M = NULL; Lo_M = NULL;
@@ -201,7 +200,6 @@ void JSphSolidCpu::AllocCpuMemoryParticles(unsigned np, float over) {
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_1B, 1);  //division
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_4B, 1); // Pore
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_4B, 1); // Mass
-	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_4B, 1); // NabVx
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_24B, 4); //-JauGradvel, JauTau2, Omega and Taudot, QuadForm
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_4B, 7); // SaveFields
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_36B, 1); // Matrix3f L_M
@@ -235,7 +233,6 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	bool		  *division = SaveArrayCpu(Np, Divisionc_M);
 	float		  *pore = SaveArrayCpu(Np, Porec_M);
 	float		  *mass = SaveArrayCpu(Np, Massc_M);
-	float		  *nabvx = SaveArrayCpu(Np, NabVx_M);
 	float		  *massm1 = SaveArrayCpu(Np, MassM1c_M);
 	tsymatrix3f *jautau2 = SaveArrayCpu(Np, Tauc_M);
 	tsymatrix3f *jautaum12 = SaveArrayCpu(Np, TauM1c_M);
@@ -261,7 +258,6 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	ArraysCpu->Free(Divisionc_M);
 	ArraysCpu->Free(Porec_M);
 	ArraysCpu->Free(Massc_M);
-	ArraysCpu->Free(NabVx_M);
 	ArraysCpu->Free(MassM1c_M);
 	ArraysCpu->Free(Tauc_M);
 	ArraysCpu->Free(TauM1c_M);
@@ -292,7 +288,6 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	Divisionc_M = ArraysCpu->ReserveBool();
 	Porec_M = ArraysCpu->ReserveFloat();
 	Massc_M = ArraysCpu->ReserveFloat();
-	NabVx_M = ArraysCpu->ReserveFloat();
 	if (massm1) MassM1c_M = ArraysCpu->ReserveFloat();
 	Tauc_M = ArraysCpu->ReserveSymatrix3f();
 	if (jautaum12) TauM1c_M = ArraysCpu->ReserveSymatrix3f();
@@ -318,7 +313,6 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	RestoreArrayCpu(Np, division, Divisionc_M);
 	RestoreArrayCpu(Np, pore, Porec_M);
 	RestoreArrayCpu(Np, mass, Massc_M);
-	RestoreArrayCpu(Np, nabvx, NabVx_M);
 	RestoreArrayCpu(Np, massm1, MassM1c_M);
 	RestoreArrayCpu(Np, jautau2, Tauc_M);
 	RestoreArrayCpu(Np, jautaum12, TauM1c_M);
@@ -381,7 +375,6 @@ void JSphSolidCpu::ReserveBasicArraysCpu() {
 	Divisionc_M = ArraysCpu->ReserveBool();
 	Porec_M = ArraysCpu->ReserveFloat();
 	Massc_M = ArraysCpu->ReserveFloat();
-	NabVx_M = ArraysCpu->ReserveFloat();
 	Tauc_M = ArraysCpu->ReserveSymatrix3f();
 	QuadFormc_M = ArraysCpu->ReserveSymatrix3f();
 	VonMises3D = ArraysCpu->ReserveFloat();
@@ -509,12 +502,84 @@ unsigned JSphSolidCpu::GetParticlesData_M1(unsigned n, unsigned pini, bool cello
 	}
 	if (mass)memcpy(mass, Massc_M + pini, sizeof(float) * n);
 	if (qf)memcpy(qf, QuadFormc_M + pini, sizeof(tsymatrix3f) * n);
-	if (nabvx) memcpy(nabvx, NabVx_M + pini, sizeof(float) * n);
 	if (vonMises) memcpy(vonMises, VonMises3D + pini, sizeof(float) * n);
 	if (grVelSav) memcpy(grVelSav, GradVelSave + pini, sizeof(float) * n);
 	if (cellOSpr) memcpy(cellOSpr, CellOffSpring + pini, sizeof(unsigned) * n);
 	if (gradvel) memcpy(gradvel, StrainDotSave + pini, sizeof(tfloat3) * n);
 	
+
+	//-Eliminate non-normal particles (periodic & others). | Elimina particulas no normales (periodicas y otras).
+	if (onlynormal) {
+		printf("NonNormalPart_SavePart\n");
+		if (!idp || !pos || !vel || !rhop)RunException(met, "Pointers without data.");
+		typecode* code2 = code;
+		if (!code2) {
+			code2 = ArraysCpu->ReserveTypeCode();
+			memcpy(code2, Codec + pini, sizeof(typecode) * n);
+		}
+		unsigned ndel = 0;
+		for (unsigned p = 0; p < n; p++) {
+			bool normal = CODE_IsNormal(code2[p]);
+			if (ndel && normal) {
+				const unsigned pdel = p - ndel;
+				idp[pdel] = idp[p];
+				pos[pdel] = pos[p];
+				vel[pdel] = vel[p];
+				rhop[pdel] = rhop[p];
+				code2[pdel] = code2[p];
+			}
+			if (!normal)ndel++;
+		}
+		num -= ndel;
+		if (!code)ArraysCpu->Free(code2);
+	}
+	//-Reorder components in their original order. | Reordena componentes en su orden original.
+	if (cellorderdecode)DecodeCellOrder(n, pos, vel);
+	return(num);
+}
+
+
+//////////////////////////////////////
+// Collect data from a range of particles, update 1: add float3 deformation, remove NabVx
+// V32-Da
+//////////////////////////////////////
+unsigned JSphSolidCpu::GetParticlesData11_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
+	, unsigned* idp, tdouble3* pos, tfloat3* vel, float* rhop, float* pore, float* press, float* mass
+	, tsymatrix3f* qf, float* vonMises, float* grVelSav, unsigned* cellOSpr, tfloat3* gradvel, typecode* code)
+{
+	const char met[] = "GetParticlesData";
+	unsigned num = n;
+	//-Copy selected values.
+	if (code)memcpy(code, Codec + pini, sizeof(typecode) * n);
+	if (idp)memcpy(idp, Idpc + pini, sizeof(unsigned) * n);
+	if (pos)memcpy(pos, Posc + pini, sizeof(tdouble3) * n);
+	if (vel && rhop) {
+		for (unsigned p = 0; p < n; p++) {
+			tfloat4 vr = Velrhopc[p + pini];
+			vel[p] = TFloat3(vr.x, vr.y, vr.z);
+			rhop[p] = vr.w;
+		}
+	}
+	else {
+		if (vel) for (unsigned p = 0; p < n; p++) { tfloat4 vr = Velrhopc[p + pini]; vel[p] = TFloat3(vr.x, vr.y, vr.z); }
+		if (rhop)for (unsigned p = 0; p < n; p++)rhop[p] = Velrhopc[p + pini].w;
+	}
+
+	// Matthias
+	if (pore)memcpy(pore, Porec_M + pini, sizeof(float) * n);
+	if (press) {
+		for (unsigned p = 0; p < n; p++) {
+			press[p] = CalcK(abs(MaxPosition().x - Posc[p].x)) / Gamma * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f);
+			//press[p] = -0.5f*RhopZero*float(Posc[p].x*Posc[p].x);
+		}
+	}
+	if (mass)memcpy(mass, Massc_M + pini, sizeof(float) * n);
+	if (qf)memcpy(qf, QuadFormc_M + pini, sizeof(tsymatrix3f) * n);
+	if (vonMises) memcpy(vonMises, VonMises3D + pini, sizeof(float) * n);
+	if (grVelSav) memcpy(grVelSav, GradVelSave + pini, sizeof(float) * n);
+	if (cellOSpr) memcpy(cellOSpr, CellOffSpring + pini, sizeof(unsigned) * n);
+	if (gradvel) memcpy(gradvel, StrainDotSave + pini, sizeof(tfloat3) * n);
+
 
 	//-Eliminate non-normal particles (periodic & others). | Elimina particulas no normales (periodicas y otras).
 	if (onlynormal) {
@@ -614,7 +679,6 @@ void JSphSolidCpu::InitRun() {
 
 	// Matthias
 	memset(Tauc_M, 0, sizeof(tsymatrix3f)*Np);
-	memset(NabVx_M, 0, sizeof(float)*Np);
 	memset(Divisionc_M, 0, sizeof(bool)*Np);
 	for (unsigned p = 0; p < Np; p++) {
 		Massc_M[p] = MassFluid;
@@ -720,7 +784,6 @@ void JSphSolidCpu::InitRun_Uni_M() {
 
 	// Matthias
 	memset(Tauc_M, 0, sizeof(tsymatrix3f) * Np);
-	memset(NabVx_M, 0, sizeof(float) * Np);
 	memset(Divisionc_M, 0, sizeof(bool) * Np);
 	memset(VonMises3D, 0, sizeof(float) * Np);
 	memset(GradVelSave, 0, sizeof(float) * Np);
@@ -5133,9 +5196,18 @@ void JSphSolidCpu::GrowthCell_M(double dt) {
 				Massc_M[p] = Velrhopc[p].w * float(volu);				
 				break;
 			}
-			case 7: {
+			case 7: { // Constant global growth
 				const double volu = double(MassPrec_M[p]) / double(Velrhopc[p].w);
 				const double Gamma = LambdaMass;
+				Velrhopc[p].w = Velrhopc[p].w + float(dt * Gamma);
+				Massc_M[p] = Velrhopc[p].w * float(volu);
+				break;
+			}
+			case 8: { // #Sigmoid growth centered on third PosXmax
+				const double volu = double(MassPrec_M[p]) / double(Velrhopc[p].w);
+				float x0 = maxPosX/3.0f;
+				float k = 15.0f;
+				const double Gamma = LambdaMass/ (1.0f + exp(-k * (float(Posc[p].x) - x0)));
 				Velrhopc[p].w = Velrhopc[p].w + float(dt * Gamma);
 				Massc_M[p] = Velrhopc[p].w * float(volu);
 				break;

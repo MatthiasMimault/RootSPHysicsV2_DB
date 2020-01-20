@@ -117,7 +117,6 @@ protected:
 	bool *Divisionc_M;
 	float *Porec_M; 
 	float *Massc_M; // Mass, Delta mass
-	float *NabVx_M;
 
 	// Augustin
 	float* VonMises3D;
@@ -197,6 +196,9 @@ protected:
 	unsigned GetParticlesData_M1(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
 			, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, float *press, float* mass, tsymatrix3f *qf
 			, float *nabvx, float* vonMises, float* grVelSav, unsigned* cellOSpr, tfloat3* gradvel, typecode *code);
+	unsigned GetParticlesData11_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
+		, unsigned* idp, tdouble3* pos, tfloat3* vel, float* rhop, float* pore, float* press, float* mass, tsymatrix3f* qf
+		, float* vonMises, float* grVelSav, unsigned* cellOSpr, tfloat3* gradvel, typecode* code);
 
 	void ConfigOmp(const JCfgRun *cfg);
 
