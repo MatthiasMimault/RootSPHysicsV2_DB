@@ -5156,10 +5156,13 @@ void JSphSolidCpu::GrowthCell_M(double dt) {
 				Velrhopc[p].w = float(Velrhopc[p].w + dt * adens);
 				break;
 			}
-			case 1: {
+			case 1: {// #Sigmoid growth 0.5 from PosXmax
 				const double volu = double(MassPrec_M[p]) / double(Velrhopc[p].w);
-				Massc_M[p] = float(double(MassPrec_M[p]) * (1.0 + dt * 4.1 / 100.0));
-				Velrhopc[p].w = float(Massc_M[p] / volu);
+				float x0 = maxPosX - 0.5f;
+				float k = 15.0f;
+				const double Gamma = LambdaMass / (1.0f + exp(-k * (float(Posc[p].x) - x0)));
+				Velrhopc[p].w = Velrhopc[p].w + float(dt * Gamma);
+				Massc_M[p] = Velrhopc[p].w * float(volu);
 				break;
 			}
 			case 2: {
