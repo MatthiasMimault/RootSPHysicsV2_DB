@@ -1,5 +1,5 @@
 #DualSPHysics CPU v4.2.038 (21-03-2018)
-#Matthias (24/06/2019)
+#Matthias (16/01/2020)
 
 #=============== Compilation Options ===============
 USE_DEBUG=NO
@@ -12,7 +12,7 @@ LIBS_DIRECTORIES=-L./
 LIBS_DIRECTORIES:=$(LIBS_DIRECTORIES) -L../lib/linux_gcc4
 
 #EXECNAME=DualSPHysics4.2CPU_linux64
-EXECNAME=RootSPH31_linux64_191218_SenstyAnalysis_FullA
+EXECNAME=RootSPH32_linux64_200120_Div2CstGrowth
 EXECS_DIRECTORY=../../bin
 
 ifeq ($(USE_DEBUG), YES)
