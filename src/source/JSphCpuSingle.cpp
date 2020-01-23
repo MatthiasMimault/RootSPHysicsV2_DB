@@ -778,8 +778,22 @@ void JSphCpuSingle::RunSizeDivision12_M(double stepdt){
 					count++;
 					run = true;
 				}
+			}	
+			break;	
+		}
+		case 3: { // Mass cubic distribution
+			for (unsigned p = Npb; p < Np; p++) {
+				float a = 0.2f;
+				float x = maxPosX - float(Posc[p].x);
+				float x0 = 0.1f;
+				float m0 = SizeDivision_M * (MassFluid + a * pow(x - x0, 2.0f));
+				if (Massc_M[p] > m0) {
+					Divisionc_M[p] = true;
+					count++;
+					run = true;
+				}
 			}
-			break;		
+			break;
 		}
 	}
 
@@ -803,7 +817,7 @@ void JSphCpuSingle::RunSizeDivision12_M(double stepdt){
 
 		// 3. Divide marked particles
 		else {
-			//printf("Division\n");
+			// #division
 			run = false;
 			// Divide the selected particles in X direction
 			if (TStep == STEP_Verlet) {

@@ -83,12 +83,6 @@ protected:
 	  , unsigned *idp, typecode *code, unsigned *dcell, tdouble3 *pos, tfloat4 *velrhop, tsymatrix3f *taup
 	  , bool *divisionp, float *porep, float *massp, tsymatrix3f *qfp, tfloat4 *velrhopm1, tsymatrix3f *taupm1, float *masspm1, tsymatrix3f *qfpm1)const;
 
-  void MarkedDivisionSymp_AM(unsigned countMax, unsigned np, unsigned pini, tuint3 cellmax
-	  , unsigned* idp, typecode* code, unsigned* dcell
-	  , tdouble3* pos, tfloat4* velrhop, tsymatrix3f* taup, bool* divisionp, float* porep, float* massp, tsymatrix3f* qfp
-	  , tdouble3* pospre, tfloat4* velrhopre, tsymatrix3f* taupre, float* masspre, tsymatrix3f* qfpre
-	  , float* nabvx, unsigned* cellOSpr, float* straindot, float* vonMises, tfloat3* sds)const;
-
   void MarkedDivisionSymp11_M(unsigned countMax, unsigned np, unsigned pini, tuint3 cellmax
 	  , unsigned* idp, typecode* code, unsigned* dcell
 	  , tdouble3* pos, tfloat4* velrhop, tsymatrix3f* taup, bool* divisionp, float* porep, float* massp, tsymatrix3f* qfp
