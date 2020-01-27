@@ -360,11 +360,13 @@ protected:
 	void ComputeEuler_M(double dt);
 
 	template<bool shift> void ComputeSymplecticPreT_M(double dt);
+	template<bool shift> void ComputeSymplecticPreT_Dev(double dt);
 	template<bool shift> void ComputeSymplecticPreT_BlockBdy_M(double dt);
 	template<bool shift> void ComputeSymplecticPreT_CompressBdy_M(double dt);
 
 	void ComputeSymplecticPre_M(double dt);
 	template<bool shift> void ComputeSymplecticCorrT_M(double dt);
+	template<bool shift> void ComputeSymplecticCorrT_Dev(double dt);
 	template<bool shift> void ComputeSymplecticCorrT_BlockBdy_M(double dt);
 	template<bool shift> void ComputeSymplecticCorrT_CompressBdy_M(double dt);
 	void ComputeSymplecticCorr_M(double dt);
