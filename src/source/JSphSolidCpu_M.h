@@ -240,15 +240,6 @@ protected:
 		, const unsigned* beginendcell, tint3 cellzero, const unsigned* dcell
 		, const tdouble3* pos, const tfloat3* pspos, const tfloat4* velrhopp, const typecode* code, const unsigned* id
 		, float& viscdt, float* ar, tsymatrix3f* gradvel, tsymatrix3f* omega, tmatrix3f* L)const;
-	
-	template<bool psingle, TpKernel tker, TpFtMode ftmode> void InteractionForcesBound13_Dev
-	(unsigned n, unsigned pini, tint4 nc, int hdiv, unsigned cellinitial
-		, const unsigned* beginendcell, tint3 cellzero, const unsigned* dcell
-		, const tsymatrix3f* tau, tsymatrix3f* gradvel, tsymatrix3f* omega
-		, const tdouble3* pos, const tfloat3* pspos, const tfloat4* velrhop, const typecode* code, const unsigned* idp
-		, const float* press, const float* pore, const float* mass
-		, tmatrix3f* L
-		, float& viscdt, float* ar, tfloat3* ace)const;
 
 	template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph tdelta, bool shift> void InteractionForcesFluid
 	(unsigned n, unsigned pini, tint4 nc, int hdiv, unsigned cellfluid, float visco
@@ -369,13 +360,13 @@ protected:
 	void ComputeEuler_M(double dt);
 
 	template<bool shift> void ComputeSymplecticPreT_M(double dt);
-	template<bool shift> void ComputeSymplecticPreT_Dev(double dt);
+	template<bool shift> void ComputeSymplecticPreT2_M(double dt);
 	template<bool shift> void ComputeSymplecticPreT_BlockBdy_M(double dt);
 	template<bool shift> void ComputeSymplecticPreT_CompressBdy_M(double dt);
 
 	void ComputeSymplecticPre_M(double dt);
 	template<bool shift> void ComputeSymplecticCorrT_M(double dt);
-	template<bool shift> void ComputeSymplecticCorrT_Dev(double dt);
+	template<bool shift> void ComputeSymplecticCorrT2_M(double dt);
 	template<bool shift> void ComputeSymplecticCorrT_BlockBdy_M(double dt);
 	template<bool shift> void ComputeSymplecticCorrT_CompressBdy_M(double dt);
 	void ComputeSymplecticCorr_M(double dt);
