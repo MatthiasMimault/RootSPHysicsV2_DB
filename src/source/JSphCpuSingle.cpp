@@ -797,7 +797,7 @@ void JSphCpuSingle::RunSizeDivision12_M(double stepdt){
 		}
 		case 4: { // Mass cubic distribution x2
 			for (unsigned p = Npb; p < Np; p++) {
-				float a = 45.0f;
+				float a = 22.0f;
 				float x = maxPosX - float(Posc[p].x);
 				float x0 = 0.1f;
 				float m0 = SizeDivision_M * MassFluid * (1.0f + a * pow(x - x0, 2.0f));

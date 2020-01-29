@@ -5377,11 +5377,12 @@ void JSphSolidCpu::GrowthCell_M(double dt) {
 				Velrhopc[p].w = float(Velrhopc[p].w + dt * adens);
 				break;
 			}
-			case 1: {// #Sigmoid growth 0.5 from PosXmax
+			case 1: {// #Sigmoid growth 0.6 from PosXmax
 				const double volu = double(MassPrec_M[p]) / double(Velrhopc[p].w);
-				float x0 = maxPosX - 0.5f;
-				float k = 15.0f;
-				const double Gamma = LambdaMass / (1.0f + exp(-k * (float(Posc[p].x) - x0)));
+				float x = maxPosX - float(Posc[p].x);
+				float xg = 0.6f;
+				float k = 50.0f;
+				const double Gamma = LambdaMass - LambdaMass / (1.0f + exp(-k * (x - xg)));
 				Velrhopc[p].w = Velrhopc[p].w + float(dt * Gamma);
 				Massc_M[p] = Velrhopc[p].w * float(volu);
 				break;
@@ -5478,14 +5479,14 @@ float JSphSolidCpu::GrowthRateSpace(float pos) {
 	}
 }
 
-// #Growth function - Normalised
+// Growth function - Normalised
 float JSphSolidCpu::GrowthRateSpaceNormalised(float pos) {
 	//float distance = 0.25f *abs(pos - maxPosX); // Beemster
 	float distance = 20.0f * abs(pos - maxPosX); // Rescale to Bassel_2014 meristem data
 	return exp(1.0f) * distance * exp(-distance);
 }
 
-// #Growth function - Gaussian
+// Growth function - Gaussian
 float JSphSolidCpu::GrowthRateGaussian(float pos) {
 	switch (typeGrowth) {
 		case 6: {
@@ -5501,7 +5502,7 @@ float JSphSolidCpu::GrowthRateGaussian(float pos) {
 	}
 }
 
-// #Growth function - Normalised Double precision
+// Growth function - Normalised Double precision
 double JSphSolidCpu::GrowthRateSpaceNormalised(double pos) {
 	//float distance = 0.25f *abs(pos - maxPosX); // Beemster
 	//double distance = 20.0f * abs(pos - (double) maxPosX); // Rescale to Bassel_2014 meristem data
@@ -5509,7 +5510,7 @@ double JSphSolidCpu::GrowthRateSpaceNormalised(double pos) {
 	return distance * exp(1.0 -distance);
 }
 
-// #Growth function - Normalised Double precision
+// Growth function - Normalised Double precision
 double JSphSolidCpu::GrowthRate2(double pos, double tip) {
 	//float distance = 0.25f *abs(pos - maxPosX); // Beemster
 	//double distance = 20.0f * abs(pos - (double) maxPosX); // Rescale to Bassel_2014 meristem data
