@@ -224,6 +224,14 @@ protected:
 	inline void GetKernelCubic(float rr2, float drx, float dry, float drz, float &frx, float &fry, float &frz)const;
 	inline float GetKernelCubicTensil(float rr2, float rhopp1, float pressp1, float rhopp2, float pressp2)const;
 	inline void GetKernelDirectWend_M(float rr2, float& f)const;
+	// V33
+	inline void GetHdrH(float hbar, float drx, float dry, float drz, tsymatrix3f qf, float& h, tfloat3& drh)const;
+	inline void GetDrwWendland(float b, float rr2, float ah, float drx, float dry, float drz
+		, float& frx, float& fry, float& frz)const;
+	inline void GetDhwWendland(float b, float rr2, float ah, float& fh)const;
+	inline void GetDrh(float hbar, float d, float g, tfloat3 drd, tfloat3 drg, tfloat3& dah)const;
+	inline void GetHconstants(tsymatrix3f qf, float drx, float dry, float drz, float& d, float& g, tfloat3& drd, tfloat3& drg)const;
+	inline void GetBetaW(float h, bool sim2D, float& beta)const;
 
 	inline void GetInteractionCells(unsigned rcell
 		, int hdiv, const tint4 &nc, const tint3 &cellzero
@@ -257,6 +265,16 @@ protected:
 		, const float* mass, tmatrix3f* L)const;
 
 	template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph tdelta, bool shift> void InteractionForces_V11b_M
+	(unsigned n, unsigned pinit, tint4 nc, int hdiv, unsigned cellinitial, float visco
+		, const unsigned* beginendcell, tint3 cellzero, const unsigned* dcell
+		, const tsymatrix3f* tau, tsymatrix3f* gradvel, tsymatrix3f* omega
+		, const tdouble3* pos, const tfloat3* pspos, const tfloat4* velrhop, const typecode* code, const unsigned* idp
+		, const float* press, const float* pore, const float* mass
+		, tmatrix3f* L
+		, float& viscdt, float* ar, tfloat3* ace, float* delta
+		, TpShifting tshifting, tfloat3* shiftpos, float* shiftdetect)const;
+
+	template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph tdelta, bool shift> void InteractionForces_V21_M
 	(unsigned n, unsigned pinit, tint4 nc, int hdiv, unsigned cellinitial, float visco
 		, const unsigned* beginendcell, tint3 cellzero, const unsigned* dcell
 		, const tsymatrix3f* tau, tsymatrix3f* gradvel, tsymatrix3f* omega

@@ -786,7 +786,7 @@ void JSphCpuSingle::RunSizeDivision12_M(double stepdt){
 				float a = 10.0f;
 				float x = maxPosX - float(Posc[p].x);
 				float x0 = 0.1f;
-				float m0 = SizeDivision_M * MassFluid * (1.0f + a * pow(x - x0, 2.0f));
+				float m0 = float(SizeDivision_M) * MassFluid * (1.0f + a * pow(x - x0, 2.0f));
 				if (Massc_M[p] > m0) {
 					Divisionc_M[p] = true;
 					count++;
@@ -800,7 +800,7 @@ void JSphCpuSingle::RunSizeDivision12_M(double stepdt){
 				float a = 22.0f;
 				float x = maxPosX - float(Posc[p].x);
 				float x0 = 0.1f;
-				float m0 = SizeDivision_M * MassFluid * (1.0f + a * pow(x - x0, 2.0f));
+				float m0 = float(SizeDivision_M) * MassFluid * (1.0f + a * pow(x - x0, 2.0f));
 				if (Massc_M[p] > m0) {
 					Divisionc_M[p] = true;
 					count++;
@@ -1320,8 +1320,6 @@ void JSphCpuSingle::MarkedDivisionSymp11_M(unsigned countMax, unsigned np, unsig
 
 	for (unsigned p = pini; p < np; p++) {
 		if (divisionp[p]) {
-			// #Disparition #Division
-
 			const unsigned pnew = np + count;
 
 			// Eigen resolution of qf[p], defintion of V, D
@@ -1448,6 +1446,7 @@ void JSphCpuSingle::GetInteractionCells(unsigned rcell
 //==============================================================================
 /// Interaction to calculate forces..
 /// Interaccion para el calculo de fuerzas.
+/// #Inter
 //==============================================================================
 void JSphCpuSingle::Interaction_Forces(TpInter tinter){
 
@@ -1883,6 +1882,9 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
 		  SaveData_M1(); // Addition of float3 deformation
 		  break;
 	  }
+	  case 99: {
+		  break;
+	  }
   }
   // SaveData_M();
   
@@ -1929,6 +1931,9 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
 	  switch (typeSave) {
 	  default: {
 		  SaveData_M1(); // Addition of float3 deformation
+		  break;
+	  }
+	  case 99: {
 		  break;
 	  }
 	  }

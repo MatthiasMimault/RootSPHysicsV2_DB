@@ -23,3 +23,4 @@ bin/windows/DualSPHysics*
 ## Ignores additional library Eigen (installed by hand)
 src/lib/EigenLibs/*
 /debug/*
+/debug_v33/1-2DA
