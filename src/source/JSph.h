@@ -216,7 +216,7 @@ protected:
   bool SvDomainVtk;          ///<Stores VTK file with the domain of particles of each PART file. | Graba fichero vtk con el dominio de las particulas en cada Part. 
 
   //-Constants for computation.
-  float H,CteB,Gamma,CFLnumber,RhopZero;
+  float H,Hmin,Hmax,CteB,Gamma,CFLnumber,RhopZero;
   double Dp;
   double Cs0;
   float Delta2H;             ///<Constant for DeltaSPH. Delta2H=DeltaSph*H*2

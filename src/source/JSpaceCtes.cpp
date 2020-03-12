@@ -251,6 +251,9 @@ void JSpaceCtes::ReadAddXmlRun_M(JXml *sxml, TiXmlElement* node) {
 	SetLocalDivision(sxml->ReadElementDouble3(node, "localdivision"));
 	SetSpreadDivision(sxml->ReadElementFloat(node, "spreaddivision", "value"));
 	SetVelocityDivisionCoef(sxml->ReadElementFloat(node, "velocitydivisioncoef", "value"));
+
+	// V33 ASPH
+	SetCoefH(sxml->ReadElementDouble(node, "coefh", "value"));
 	
 	// Simulation choices
 	SetCase(sxml->ReadElementInt(node, "typeCase", "value"));

@@ -1462,9 +1462,21 @@ void JSphCpuSingle::Interaction_Forces(TpInter tinter){
   //else JSphSolidCpu::Interaction_Forces(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, Posc, Velrhopc, Idpc, Codec, Pressc, viscdt, Arc, Acec, Deltac, SpsTauc, SpsGradvelc, ShiftPosc, ShiftDetectc);
 
   // Matthias - No quadform, but press 1D
-  if (Psingle)JSphSolidCpu::InteractionSimple_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, PsPosc, Velrhopc, Idpc, Codec, Pressc, Porec_M, Massc_M, L_M, viscdt, Arc, Acec, Deltac, Tauc_M, StrainDotc_M, TauDotc_M, Spinc_M, ShiftPosc, ShiftDetectc);
-               else JSphSolidCpu::Interaction_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc,   Posc, Velrhopc, Idpc, Codec, Pressc, Porec_M, Massc_M, L_M, viscdt, Arc, Acec, Deltac, Tauc_M, StrainDotc_M, TauDotc_M, Spinc_M, ShiftPosc, ShiftDetectc);
+  bool dev_asph2 = true;
+  if (dev_asph2) {
+	  if (Psingle)JSphSolidCpu::InteractionSimple_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, PsPosc, Velrhopc, Idpc, Codec, Pressc, Porec_M, Massc_M, L_M, QuadFormc_M, viscdt, Arc, Acec, Deltac, Tauc_M, StrainDotc_M, TauDotc_M, Spinc_M, ShiftPosc, ShiftDetectc);
+	  else JSphSolidCpu::Interaction_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, Posc, Velrhopc, Idpc, Codec, Pressc, Porec_M, Massc_M, L_M, QuadFormc_M, viscdt, Arc, Acec, Deltac, Tauc_M, StrainDotc_M, TauDotc_M, Spinc_M, ShiftPosc, ShiftDetectc);
+  }
+  else {
+	  if (Psingle)JSphSolidCpu::InteractionSimple_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, PsPosc, Velrhopc, Idpc, Codec, Pressc, Porec_M, Massc_M, L_M, viscdt, Arc, Acec, Deltac, Tauc_M, StrainDotc_M, TauDotc_M, Spinc_M, ShiftPosc, ShiftDetectc);
+	  else JSphSolidCpu::Interaction_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc,   Posc, Velrhopc, Idpc, Codec, Pressc, Porec_M, Massc_M, L_M, viscdt, Arc, Acec, Deltac, Tauc_M, StrainDotc_M, TauDotc_M, Spinc_M, ShiftPosc, ShiftDetectc); 
   
+  }
+  /*for (int p = 0; p < Np; p++) {
+	  printf("Id %u X %.8f Ax %.8f\n", Idpc[p], Posc[p].x, Acec[p].x);
+  }*/
+  
+
 //-For 2-D simulations zero the 2nd component. | Para simulaciones 2D anula siempre la 2º componente.
   if(Simulate2D){
     const int ini=int(Npb),fin=int(Np),npf=int(Np-Npb);
@@ -1607,7 +1619,8 @@ double JSphCpuSingle::ComputeStep_Eul_M() {
 /// Realiza interaccion y actualizacion de particulas segun las fuerzas
 /// calculadas en la interaccion usando Symplectic.
 
-// Modified with #Symplectic_M #Update #compute
+// Modified with #Symplectic_M #Update #compute #asph
+// V33
 //=============================================================================
 double JSphCpuSingle::ComputeStep_Sym(){
   const double dt=DtPre;
@@ -1618,7 +1631,7 @@ double JSphCpuSingle::ComputeStep_Sym(){
   //-----------
   DemDtForce=dt*0.5f;                     //(DEM)
   Interaction_Forces(INTER_Forces);       //-Interaction.
-    const double ddt_p=DtVariable(false);   //-Calculate dt of predictor step.
+    const double ddt_p=DtVariable_M(false);   //-Calculate dt of predictor step.
   if(TShifting)RunShifting(dt*.5);        //-Shifting. 
 
   //-Apply Symplectic-Predictor to particles - case compression or no
@@ -1632,7 +1645,7 @@ double JSphCpuSingle::ComputeStep_Sym(){
   DemDtForce=dt;                          //(DEM)
   RunCellDivide(true);
   Interaction_Forces(INTER_ForcesCorr);   //Interaction.
-  const double ddt_c=DtVariable(true);    //-Calculate dt of corrector step.
+  const double ddt_c=DtVariable_M(true);    //-Calculate dt of corrector step.
   if(TShifting)RunShifting(dt);           //-Shifting.
 
   //-Apply Symplectic-Corrector to particles - case compression or no

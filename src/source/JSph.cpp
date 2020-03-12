@@ -146,7 +146,7 @@ void JSph::InitVars(){
   SvTimers=false;
   SvDomainVtk=false;
 
-  H=CteB=Gamma=RhopZero=CFLnumber=0;
+  H=Hmin=Hmax=CteB=Gamma=RhopZero=CFLnumber=0;
   // Matthias
   typeCase = typeCompression = typeGrowth = typeDivision = typeYoung = 0;
   Dp=0;
@@ -905,6 +905,7 @@ void JSph::LoadCaseConfig(){
   //-Predefined constantes.
   if(ctes.GetEps()!=0)Log->PrintWarning("Eps value is not used (this correction is deprecated).");
   H=(float)ctes.GetH();
+  //Hmax=(float)ctes.GetHmax();
   //CteB=(float)ctes.GetB();
   Gamma=(float)ctes.GetGamma();
   RhopZero=(float)ctes.GetRhop0();
@@ -997,6 +998,10 @@ void JSph::LoadCaseConfig(){
   // Anisotropy
   AnisotropyK_M = ToTFloat3(ctes.GetAnisotropyK());
   AnisotropyG_M = ctes.GetAnisotropyG();
+
+  float Ch = ctes.GetCoefH();
+  float C2h = ctes.GetCoefHdp();
+  Hmin = 0.5f * (float)SizeDivision_M * (float)ctes.GetH() / (float)ctes.GetCoefH() * 3.0f;
 
   //-Particle data.
   CaseNp=parts.Count();
@@ -1259,6 +1264,8 @@ void JSph::LoadCaseConfig_T() {
 	//-Predefined constantes.
 	if (ctes.GetEps() != 0)Log->PrintWarning("Eps value is not used (this correction is deprecated).");
 	H = (float)ctes.GetH();
+	Hmin = (float)0.5 * SizeDivision_M * ctes.GetH();
+	//Hmax=(float)ctes.GetHmax();
 	//CteB = (float)ctes.GetB();
 	Gamma = (float)ctes.GetGamma();
 	RhopZero = (float)ctes.GetRhop0();
