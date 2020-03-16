@@ -115,6 +115,7 @@ private:
   // Matthias
   // Simulation choices
   int typeCase, typeCompression, typeGrowth, typeDivision, typeYoung;
+  double Hmin, Hmax;
 
   // Bord mirroir
   double PlanMirror;
@@ -177,6 +178,8 @@ public:
   bool GetSpeedSoundAuto()const{ return(SpeedSoundAuto); }
   double GetSpeedSound()const{ return(SpeedSound); }
   double GetCoefH()const{ return(CoefH); }
+  double GetHmin()const{ return(Hmin); }
+  double GetHmax()const{ return(Hmax); }
   double GetCoefHdp()const{ return(CoefHdp); }
   double GetCoefficient()const{ return(GetCoefH()); }
   double GetGamma()const{ return(Gamma); }
@@ -232,6 +235,8 @@ public:
   void SetSpeedSound(double v){ SpeedSound=v; }
   void SetCoefH(double v){ CoefH=v; CoefHdp=0; }
   void SetCoefHdp(double v){ if(v){ CoefHdp=v; CoefH=0; } }
+  void SetHmin(double v){ if(v){ Hmin=v; } }
+  void SetHmax(double v){ if(v){ Hmax=v; } }
   void SetCoefficient(double v){ SetCoefH(v); }
   void SetGamma(double v){ Gamma=v; }
   void SetRhop0(double v){ Rhop0=v; }

@@ -2207,8 +2207,8 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 						tfloat3 dh1, dh2;
 							// Compute W constant, GetH, GetDrh
 							//GetHdrH(hbar, drx, dry, drz, qf, ah, dah);
-						GetHdrH(hbar, drx, dry, drz, qf[p1], h1, dh1);
-						GetHdrH(hbar, drx, dry, drz, qf[p2], h2, dh2);
+						GetHdrH(Hmin, drx, dry, drz, qf[p1], h1, dh1);
+						GetHdrH(Hmin, drx, dry, drz, qf[p2], h2, dh2);
 						
 
 //							printf("Id %u H1 %.8f h2 %.8f R2 %.8f\n", Idpc[p2], h1, h2, rr2);
@@ -6650,9 +6650,9 @@ double JSphSolidCpu::DtVariable(bool final) {
 double JSphSolidCpu::DtVariable_M(bool final) {
 	//-dt1 depends on force per unit mass.
 	//printf("Acemax: %.8f\n", AceMax);
-	const double dt1 = (AceMax ? (sqrt(double(Hmin) / AceMax)) : DBL_MAX);
+	const double dt1 = (AceMax ? (sqrt(double(hmin) / AceMax)) : DBL_MAX);
 	//-dt2 combines the Courant and the viscous time-step controls.
-	const double dt2 = double(Hmin) / (max(Cs0, VelMax * 10.) + double(Hmin) * ViscDtMax);
+	const double dt2 = double(hmin) / (max(Cs0, VelMax * 10.) + double(hmin) * ViscDtMax);
 	//-dt new value of time step.
 	double dt = double(CFLnumber) * min(dt1, dt2);
 	if (DtFixed)dt = DtFixed->GetDt(float(TimeStep), float(dt));

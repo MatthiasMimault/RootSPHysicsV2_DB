@@ -64,7 +64,7 @@ void JSpaceCtes::Reset(){
   SpeedSystemAuto=true; SpeedSystem=0;
   CoefSound=0; 
   SpeedSoundAuto=true; SpeedSound=0;
-  CoefH=CoefHdp=0; Gamma=0; Rhop0=0;
+  CoefH=CoefHdp=Hmin=Hmax=0; Gamma=0; Rhop0=0;
   Eps=0; EpsDefined=false;
   HAuto=BAuto=MassBoundAuto=MassFluidAuto=true;
   H=B=MassBound=MassFluid=0;
@@ -254,6 +254,8 @@ void JSpaceCtes::ReadAddXmlRun_M(JXml *sxml, TiXmlElement* node) {
 
 	// V33 ASPH
 	SetCoefH(sxml->ReadElementDouble(node, "coefh", "value"));
+	SetHmin(sxml->ReadElementDouble(node, "coefh", "hmin"));
+	SetHmax(sxml->ReadElementDouble(node, "coefh", "hmax"));
 	
 	// Simulation choices
 	SetCase(sxml->ReadElementInt(node, "typeCase", "value"));

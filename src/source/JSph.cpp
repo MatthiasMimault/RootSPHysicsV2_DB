@@ -146,7 +146,7 @@ void JSph::InitVars(){
   SvTimers=false;
   SvDomainVtk=false;
 
-  H=Hmin=Hmax=CteB=Gamma=RhopZero=CFLnumber=0;
+  H=Hmin=Hmax=hmin=hmax=CteB=Gamma=RhopZero=CFLnumber=0;
   // Matthias
   typeCase = typeCompression = typeGrowth = typeDivision = typeYoung = 0;
   Dp=0;
@@ -905,8 +905,6 @@ void JSph::LoadCaseConfig(){
   //-Predefined constantes.
   if(ctes.GetEps()!=0)Log->PrintWarning("Eps value is not used (this correction is deprecated).");
   H=(float)ctes.GetH();
-  //Hmax=(float)ctes.GetHmax();
-  //CteB=(float)ctes.GetB();
   Gamma=(float)ctes.GetGamma();
   RhopZero=(float)ctes.GetRhop0();
   CFLnumber=(float)ctes.GetCFLnumber();
@@ -935,57 +933,6 @@ void JSph::LoadCaseConfig(){
   Gf = (float)ctes.GetShear();
 
   //#Constants
-  /*if (Simulate2D) {
-	  printf("Choix 2D\n");
-	  C1 = Delta * (1.0f - nuyz) / nf;
-	  C2 = 0.0f;
-	  C3 = Delta * (1.0f - nf * nuxy*nuxy) / (1.0f + nuyz);
-	  C12 = 0.0f;
-	  C13 = Delta * nuxy;
-	  C23 = 0.0f;
-
-	  C4 = Ey / (2.0f + 2.0f*nuxy); C5 = 0.0f; C6 = Gf;
-
-	  //K = (C1 + C3) / 2.0f;
-
-	  S1 = 1 / Ex;		S12 = 0.0f; S13 = -nuxy / Ex;
-	  S21 = 0.0f;		S2 = 0.0f;	S23 = 0.0f;
-	  S31 = -nuxy / Ex; S32 = 0.0f; S3 = 1 / Ey;
-	  Kani = 1 / (S1 + S12 + S13 + S21 + S2 + S23 + S31 + S32 + S3);
-
-  }
-  else {
-	  printf("Choix 3D\n");
-	  C1 = Delta * (1.0f - nuyz) / nf;
-	  C2 = C3 = Delta * (1.0f - nf * nuxy*nuxy) / (1.0f + nuyz);
-	  C12 = C13 = Delta * nuxy;
-	  C23 = Delta * (nuyz + nf * nuxy*nuxy) / (1.0f + nuyz);
-
-	  C4 = Ey / (2.0f + 2.0f*nuxy); C5 = Gf; C6 = Gf;
-  
-	  //K = (C1 + C2 + C3) / 3.0f;
-  
-	  S1 = 1 / Ex; S12 = -nuxy / Ex; S13 = -nuxy / Ex;
-	  S21 = -nuxy / Ex; S2 = 1 / Ey; S23 = -nuyz / Ey;
-	  S31 = -nuxy / Ex; S32 = -nuyz / Ey; S3 = 1 / Ey;
-	  Kani = 1 / (S1 + S12 + S13 + S21 + S2 + S23 + S31 + S32 + S3);
-	  //K_M = TFloat3(Kani, Kani, Kani);
-  }
-  
-
-  printf("///\n");
-  printf("C1 = %.3f, C12 = %.3f, C13 = %.3f\n", C1, C12, C13);
-  printf("C12 = %.3f, C2 = %.3f, C23 = %.3f\n", C12, C2, C23);
-  printf("C13 = %.3f, C23 = %.3f, C3 = %.3f\n", C13, C23, C3);
-  //printf("K_M = (%.3f,%.3f,%.3f)\n", K_M.x, K_M.y, K_M.z);
-  printf("S1 = %.8f, S12 = %.8f, S13 = %.8f\n", S1, S12, S13);
-  printf("S12 = %.8f, S2 = %.8f, S23 = %.8f\n", S12, S2, S23);
-  printf("S13 = %.8f, S23 = %.8f, S3 = %.8f\n", S13, S23, S3);
-
-  // New B for anisotropy
-  CteB = Kani / ( Gamma ) ;*/
-  //CteB_M = TFloat3(K_M.x / Gamma, K_M.y / Gamma, K_M.z / Gamma);
- 
   // Pore
   PoreZero = (float)ctes.GetPoreZero();
   // Mass
@@ -999,9 +946,8 @@ void JSph::LoadCaseConfig(){
   AnisotropyK_M = ToTFloat3(ctes.GetAnisotropyK());
   AnisotropyG_M = ctes.GetAnisotropyG();
 
-  float Ch = ctes.GetCoefH();
-  float C2h = ctes.GetCoefHdp();
-  Hmin = 0.5f * (float)SizeDivision_M * (float)ctes.GetH() / (float)ctes.GetCoefH() * 3.0f;
+  Hmin = (float)ctes.GetHmin();
+  Hmax = (float)ctes.GetHmax();
 
   //-Particle data.
   CaseNp=parts.Count();
@@ -1264,7 +1210,7 @@ void JSph::LoadCaseConfig_T() {
 	//-Predefined constantes.
 	if (ctes.GetEps() != 0)Log->PrintWarning("Eps value is not used (this correction is deprecated).");
 	H = (float)ctes.GetH();
-	Hmin = (float)0.5 * SizeDivision_M * ctes.GetH();
+	//Hmin = (float)0.5 * SizeDivision_M * ctes.GetH();
 	//Hmax=(float)ctes.GetHmax();
 	//CteB = (float)ctes.GetB();
 	Gamma = (float)ctes.GetGamma();
@@ -1644,10 +1590,11 @@ void JSph::ConfigConstants(bool simulate2d){
   printf("Kani = %.8f\n", Kani);
 
   // New B for anisotropy
-  //CteB = Kani / (Gamma); 
+  hmin = Hmin * (float)Dp * (simulate2d ? sqrt(2.0f) : sqrt(3.0f));
+  hmax = Hmax * (float)Dp * (simulate2d ? sqrt(2.0f) : sqrt(3.0f));
 
   //-Computation of constants.
-  const double h=H;
+  const double h=hmax;
   Delta2H=float(h*2*DeltaSph);
 
   // Cs0 version originale
@@ -1655,8 +1602,8 @@ void JSph::ConfigConstants(bool simulate2d){
 
   // Old anisotropic versions of Cs0 (vec3) removed - Matthias
 
-  if(!DtIni)DtIni=h/Cs0;
-  if(!DtMin)DtMin=(h/Cs0)*CoefDtMin;
+  if(!DtIni)DtIni=hmin/Cs0;
+  if(!DtMin)DtMin=(hmin/Cs0)*CoefDtMin;
   Dosh=float(h*2);
   H2=float(h*h);
   Fourh2=float(h*h*4);
