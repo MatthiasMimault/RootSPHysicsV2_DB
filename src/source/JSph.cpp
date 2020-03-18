@@ -148,6 +148,8 @@ void JSph::InitVars(){
 
   H=Hmin=Hmax=hmin=hmax=CteB=Gamma=RhopZero=CFLnumber=0;
   // Matthias
+  // # dev
+  dev_asph = true;
   typeCase = typeCompression = typeGrowth = typeDivision = typeYoung = 0;
   Dp=0;
   Cs0=0;

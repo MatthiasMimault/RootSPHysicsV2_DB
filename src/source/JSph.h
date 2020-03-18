@@ -226,6 +226,9 @@ protected:
   float SpsSmag;             ///<Smagorinsky constant used in SPS turbulence model.
   float SpsBlin;             ///<Blin constant used in the SPS turbulence model.
   // Matthias
+  // Dev
+  bool dev_asph;
+
   // Simulation #choice markers
   int typeCase, typeGrowth, typeCompression, typeDivision, typeYoung;
   // Plan mirroir
