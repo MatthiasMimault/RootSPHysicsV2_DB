@@ -2348,15 +2348,15 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 
 //							printf("Id %u H1 %.8f h2 %.8f R2 %.8f\n", Idpc[p2], h1, h2, rr2);
 						if (rr2 <= pow(h1 + h2, 2.0f)) {	
-								// frx drW contribution
+							// frx drW contribution
 							GetBetaW(0.5f * (h1 + h2), Simulate2D, b);
 							GetDrwWendland(b, rr2, 0.5f * (h1 + h2), drx, dry, drz, frx, fry, frz);
-								// fh dhW contribution
-								/*GetDhwWendland(b, rr2, h1, fh1);
-								GetDhwWendland(b, rr2, h2, fh2);
-								frx += 0.5f * (dh1.x * fh1 + dh2.x * fh2);
-								fry += 0.5f * (dh1.y * fh1 + dh2.y * fh2);
-								frz += 0.5f * (dh1.z * fh1 + dh2.z * fh2);*/
+							// fh dhW contribution
+							GetDhwWendland(b, rr2, h1, fh1);
+							GetDhwWendland(b, rr2, h2, fh2);
+							frx += 0.5f * (dh1.x * fh1 + dh2.x * fh2);
+							fry += 0.5f * (dh1.y * fh1 + dh2.y * fh2);
+							frz += 0.5f * (dh1.z * fh1 + dh2.z * fh2);
 								//if (abs(drx)>ALMOSTZERO && abs(drz)< ALMOSTZERO) printf("R %.8f H %.8f Frx %.8f\n", sqrt(rr2), 0.5f * (h1 + h2), frx);
 						}
 						else frx = fry = frz = 0.0f;
