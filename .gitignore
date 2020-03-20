@@ -24,3 +24,8 @@ bin/windows/DualSPHysics*
 src/lib/EigenLibs/*
 /debug/*
 /debug_v33/1-2DA
+/doc/DualSPHysics
+/doc/Period 0101 - 0319/Dev log - 200305 - ASPH Cpp.rtf
+/doc/Period 0320 - 0402
+/doc/Year 2019/Period 1118 - 1208
+/doc/Back log - RSPH 33.rtf
