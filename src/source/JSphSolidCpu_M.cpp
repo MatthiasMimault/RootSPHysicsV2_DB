@@ -1142,8 +1142,8 @@ void JSphSolidCpu::GetHdrH(float hbar, float drx, float dry, float drz, tsymatri
 	// Obtain d, g, drd, drg
 	float d, g;
 	tfloat3 drd, drg;
-	if (abs(drx) < ALMOSTZERO) {
-		if (abs(dry < ALMOSTZERO)) {
+	if (abs(drx) < Dp*0.001f) {
+		if (abs(dry < Dp * 0.001f)) {
 			const float r = drx / drz; const float s = dry / drz;
 			d = qf.zz; g = 1.0f;
 			drd = TFloat3(2.0f * qf.yz / drz, 2.0f * qf.xz, 0.0f);
@@ -1163,12 +1163,12 @@ void JSphSolidCpu::GetHdrH(float hbar, float drx, float dry, float drz, tsymatri
 		const float k = dry / drx; const float m = drz / drx;
 		g = 1 + k * k + m * m;
 		d = qf.xx + qf.yy * k * k + qf.zz * m * m + 2.0f * qf.xy * k + 2.0f * qf.xz * m + 2.0f * qf.yz * k * m;
-		drd = TFloat3((dry * dry + drz * drz) / drx / drx, dry / drx / drx, drz / drx / drx) * -2.0f;
-		drg = TFloat3(-4.0f * (qf.xy * dry + qf.xz * drz) / drx / drx
+		drd = TFloat3(-4.0f * (qf.xy * dry + qf.xz * drz) / drx / drx
 			- 2.0f * (qf.yy * dry * dry + qf.zz * drz * drz + 2.0f * qf.yz * dry * drz) / drx / drx / drx
 			, 2.0f * qf.xy / drx + 2.0f * (qf.yy * dry + qf.yz * drz) / drx / drx
-			, 2.0f * qf.xz / drx + 2.0f * (qf.zz * drz + qf.yz * dry) / drx / drx
-		);
+			, 2.0f * qf.xz / drx + 2.0f * (qf.zz * drz + qf.yz * dry) / drx / drx);
+		drg = TFloat3(-1.0f * (dry * dry + drz * drz) / pow(drx, 3.0f), dry / drx / drx, drz / drx / drx) * 2.0f;
+		
 	}
 	// h = / drh = 
 	// Warning: the ellipsoid radius is only half of the particle spacing
