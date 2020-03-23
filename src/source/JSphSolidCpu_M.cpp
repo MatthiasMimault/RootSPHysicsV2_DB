@@ -1983,6 +1983,7 @@ template<bool psingle, TpKernel tker> void JSphSolidCpu::ComputeNsphCorrection15
 						GetHdrH(Hmin, drx, dry, drz, qf[p1], h1, dh1);
 						GetHdrH(Hmin, drx, dry, drz, qf[p2], h2, dh2);
 
+
 						if (rr2 <= pow(h1 + h2, 2.0f)) {
 							// frx drW contribution
 							GetBetaW(0.5f * (h1 + h2), Simulate2D, b);
