@@ -270,6 +270,13 @@ protected:
 		, const tdouble3* pos, const tfloat3* pspos, const tfloat4* velrhop
 		, const float* mass, const tsymatrix3f* qf, tmatrix3f* L)const;
 
+	template<bool psingle, TpKernel tker> void ComputeNsphCorrection16
+	(unsigned n, unsigned pinit, tint4 nc, int hdiv, unsigned cellinitial
+		, const unsigned* beginendcell, tint3 cellzero, const unsigned* dcell
+		, const tdouble3* pos, const tfloat3* pspos, const tfloat4* velrhop
+		, const float* mass, const tsymatrix3f* qf, tmatrix3f* L)const;
+
+	// Original NSPH formulation
 	template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph tdelta, bool shift> void InteractionForces_V11b_M
 	(unsigned n, unsigned pinit, tint4 nc, int hdiv, unsigned cellinitial, float visco
 		, const unsigned* beginendcell, tint3 cellzero, const unsigned* dcell
@@ -280,7 +287,19 @@ protected:
 		, float& viscdt, float* ar, tfloat3* ace, float* delta
 		, TpShifting tshifting, tfloat3* shiftpos, float* shiftdetect)const;
 
+	// ASPH Symmetric kernel formulation HH2
 	template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph tdelta, bool shift> void InteractionForces_V21_M
+	(unsigned n, unsigned pinit, tint4 nc, int hdiv, unsigned cellinitial, float visco
+		, const unsigned* beginendcell, tint3 cellzero, const unsigned* dcell
+		, const tsymatrix3f* tau, tsymatrix3f* gradvel, tsymatrix3f* omega
+		, const tdouble3* pos, const tfloat3* pspos, const tfloat4* velrhop, const typecode* code, const unsigned* idp
+		, const float* press, const float* pore, const float* mass, const tsymatrix3f* qf
+		, tmatrix3f* L
+		, float& viscdt, float* ar, tfloat3* ace, float* delta
+		, TpShifting tshifting, tfloat3* shiftpos, float* shiftdetect)const;
+
+	// ASPH Symmetric kernel formulation WW2
+	template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph tdelta, bool shift> void InteractionForces_V22_M
 	(unsigned n, unsigned pinit, tint4 nc, int hdiv, unsigned cellinitial, float visco
 		, const unsigned* beginendcell, tint3 cellzero, const unsigned* dcell
 		, const tsymatrix3f* tau, tsymatrix3f* gradvel, tsymatrix3f* omega
