@@ -2077,58 +2077,9 @@ template<bool psingle, TpKernel tker> void JSphSolidCpu::ComputeNsphCorrection16
 
 					if (rr2 <= Fourh2 && rr2 >= ALMOSTZERO) {
 						//-Cubic Spline, Wendland or Gaussian kernel.
-						float frx, fry, frz;
-						float h1, h2, fh1, fh2, b;
-						tfloat3 dh1, dh2;
-						// Compute W constant, GetH, GetDrh
-						GetHdrH(Hmin, drx, dry, drz, qf[p1], h1, dh1);
-						GetHdrH(Hmin, drx, dry, drz, qf[p2], h2, dh2);
-
-						if (rr2 <= pow(h1 + h2, 2.0f)) {
-							// frx drW contribution
-							GetBetaW(0.5f * (h1 + h2), Simulate2D, b);
-							GetDrwWendland(b, rr2, 0.5f * (h1 + h2), drx, dry, drz, frx, fry, frz);
-							GetDhwWendland(b, rr2, h1, fh1);
-							GetDhwWendland(b, rr2, h2, fh2);
-							frx += 0.5f * (dh1.x * fh1 + dh2.x * fh2);
-							fry += 0.5f * (dh1.y * fh1 + dh2.y * fh2);
-							frz += 0.5f * (dh1.z * fh1 + dh2.z * fh2);
-
-							float massp2 = mass[p2]; //-Contiene masa de particula segun sea bound o fluid.							
-							const float volp2 = -massp2 / velrhop[p2].w;
-							Mp1.a11 += volp2 * drx * frx;
-							Mp1.a12 += volp2 * drx * fry;
-							Mp1.a13 += volp2 * drx * frz;
-							Mp1.a21 += volp2 * dry * frx;
-							Mp1.a22 += volp2 * dry * fry;
-							Mp1.a23 += volp2 * dry * frz;
-							Mp1.a31 += volp2 * drz * frx;
-							Mp1.a32 += volp2 * drz * fry;
-							Mp1.a33 += volp2 * drz * frz;
-						}
-					}
-				}
-			}
-		}
-
-		//-Search for neighbours in adjacent cells. Fluid
-		for (int z = zini; z < zfin; z++) {
-			const int zmod = (nc.w) * z + cellinitial; //-Sum from start of fluid or boundary cells. | Le suma donde empiezan las celdas de fluido o bound.
-			for (int y = yini; y < yfin; y++) {
-				int ymod = zmod + nc.x * y;
-				const unsigned pini = beginendcell[cxini + ymod];
-				const unsigned pfin = beginendcell[cxfin + ymod];
-
-				// Computation of Lp1
-				for (unsigned p2 = pini; p2 < pfin; p2++) {
-					const float drx = (psingle ? psposp1.x - pspos[p2].x : float(posp1.x - pos[p2].x));
-					const float dry = (psingle ? psposp1.y - pspos[p2].y : float(posp1.y - pos[p2].y));
-					const float drz = (psingle ? psposp1.z - pspos[p2].z : float(posp1.z - pos[p2].z));
-					const float rr2 = drx * drx + dry * dry + drz * drz;
-
-					if (rr2 <= Fourh2 && rr2 >= ALMOSTZERO) {
-						//-Cubic Spline, Wendland or Gaussian kernel.
-						float frx, fry, frz;
+						float frx = 0;
+						float fry = 0;
+						float frz = 0;
 						float h1, h2, fh1, fh2, b;
 						tfloat3 dh1, dh2;
 						float massp2 = mass[p2]; //-Contiene masa de particula segun sea bound o fluid.							
@@ -2156,6 +2107,80 @@ template<bool psingle, TpKernel tker> void JSphSolidCpu::ComputeNsphCorrection16
 							Mp1.a31 += volp2 * drz * 0.5f * frx;
 							Mp1.a32 += volp2 * drz * 0.5f * fry;
 							Mp1.a33 += volp2 * drz * 0.5f * frz;
+						}
+
+						frx = fry = frz = 0;
+						if (rr2 <= 4.0f * h2 * h2) {
+							// frx drW contribution
+							GetBetaW(h2, Simulate2D, b);
+							GetDrwWendland(b, rr2, h2, drx, dry, drz, frx, fry, frz);
+							GetDhwWendland(b, rr2, h2, fh2);
+							frx += dh2.x * fh2;
+							fry += dh2.y * fh2;
+							frz += dh2.z * fh2;
+
+							Mp1.a11 += volp2 * drx * 0.5f * frx;
+							Mp1.a12 += volp2 * drx * 0.5f * fry;
+							Mp1.a13 += volp2 * drx * 0.5f * frz;
+							Mp1.a21 += volp2 * dry * 0.5f * frx;
+							Mp1.a22 += volp2 * dry * 0.5f * fry;
+							Mp1.a23 += volp2 * dry * 0.5f * frz;
+							Mp1.a31 += volp2 * drz * 0.5f * frx;
+							Mp1.a32 += volp2 * drz * 0.5f * fry;
+							Mp1.a33 += volp2 * drz * 0.5f * frz;
+						}
+					}
+				}
+			}
+		}
+
+		//-Search for neighbours in adjacent cells. Fluid
+		for (int z = zini; z < zfin; z++) {
+			const int zmod = (nc.w) * z + cellinitial; //-Sum from start of fluid or boundary cells. | Le suma donde empiezan las celdas de fluido o bound.
+			for (int y = yini; y < yfin; y++) {
+				int ymod = zmod + nc.x * y;
+				const unsigned pini = beginendcell[cxini + ymod];
+				const unsigned pfin = beginendcell[cxfin + ymod];
+
+				// Computation of Lp1
+				for (unsigned p2 = pini; p2 < pfin; p2++) {
+					const float drx = (psingle ? psposp1.x - pspos[p2].x : float(posp1.x - pos[p2].x));
+					const float dry = (psingle ? psposp1.y - pspos[p2].y : float(posp1.y - pos[p2].y));
+					const float drz = (psingle ? psposp1.z - pspos[p2].z : float(posp1.z - pos[p2].z));
+					const float rr2 = drx * drx + dry * dry + drz * drz;
+
+					if (rr2 <= Fourh2 && rr2 >= ALMOSTZERO) {
+						//-Cubic Spline, Wendland or Gaussian kernel.
+						float frx, fry, frz;
+						frx = fry = frz = 0;
+						float h1, h2, fh1, fh2, b;
+						tfloat3 dh1, dh2;
+						float massp2 = mass[p2]; //-Contiene masa de particula segun sea bound o fluid.							
+						const float volp2 = -massp2 / velrhop[p2].w;
+
+						// Compute W constant, GetH, GetDrh
+						GetHdrH(Hmin, drx, dry, drz, qf[p1], h1, dh1);
+						GetHdrH(Hmin, drx, dry, drz, qf[p2], h2, dh2);
+
+						if (rr2 <= 4.0f * h1 * h1) {
+							// frx drW contribution
+							GetBetaW(h1, Simulate2D, b);
+							GetDrwWendland(b, rr2, h1, drx, dry, drz, frx, fry, frz);
+							GetDhwWendland(b, rr2, h1, fh1);
+							frx += dh1.x * fh1;
+							fry += dh1.y * fh1;
+							frz += dh1.z * fh1;
+
+							Mp1.a11 += volp2 * drx * 0.5f * frx;
+							Mp1.a12 += volp2 * drx * 0.5f * fry;
+							Mp1.a13 += volp2 * drx * 0.5f * frz;
+							Mp1.a21 += volp2 * dry * 0.5f * frx;
+							Mp1.a22 += volp2 * dry * 0.5f * fry;
+							Mp1.a23 += volp2 * dry * 0.5f * frz;
+							Mp1.a31 += volp2 * drz * 0.5f * frx;
+							Mp1.a32 += volp2 * drz * 0.5f * fry;
+							Mp1.a33 += volp2 * drz * 0.5f * frz;
+							frx = fry = frz = 0;
 						}
 
 						if (rr2 <= 4.0f * h2 * h2) {
