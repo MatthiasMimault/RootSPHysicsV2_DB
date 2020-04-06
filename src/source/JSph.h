@@ -228,6 +228,7 @@ protected:
   // Matthias
   // Simulation #choice markers
   int typeCase, typeGrowth, typeCompression, typeDivision, typeYoung;
+  bool typeDev;
   // Plan mirroir
   float PlanMirror;
   // Extension Domain

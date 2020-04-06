@@ -920,6 +920,7 @@ void JSph::LoadCaseConfig(){
   typeDivision = ctes.GetDiv();
   typeGrowth = ctes.GetGrow();
   typeYoung = ctes.GetYoung();
+  typeDev = ctes.GetDev();
 
   // Activation des conditions de bord
   PlanMirror = (float)ctes.GetPlanMirror();

@@ -25,3 +25,9 @@ src/lib/EigenLibs/*
 /debug/*
 /debug_v33/1-2DA
 /doc/Period 0101 - 0331
+/debug_v34/1-2DA
+/doc/DualSPHysics/help
+/doc/DualSPHysics
+/doc/Period 0101 - 0319/Dev log - 200305 - ASPH Cpp.rtf
+*.rtf
+*.png
