@@ -933,6 +933,7 @@ void JSph::LoadCaseConfig(){
   nuxy = (float)ctes.GetPoissonXY();
   nuyz = (float)ctes.GetPoissonYZ();
   Gf = (float)ctes.GetShear();
+  dampCoef = (float)ctes.GetDamp();
 
   //#Constants
   /*if (Simulate2D) {

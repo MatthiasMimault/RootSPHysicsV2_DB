@@ -4683,9 +4683,9 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticPreT31_M(double dt) {
 					dz += double(ShiftPosc[p].z);
 				}
 				// With damping (#34a)
-				Velrhopc[p].x = float(double(VelrhopPrec[p].x) + double(Acec[p].x - 10.0f * VelrhopPrec[p].x) * dt05);
-				Velrhopc[p].y = float(double(VelrhopPrec[p].y) + double(Acec[p].y - 10.0f * VelrhopPrec[p].y) * dt05);
-				Velrhopc[p].z = float(double(VelrhopPrec[p].z) + double(Acec[p].z - 10.0f * VelrhopPrec[p].z) * dt05);
+				Velrhopc[p].x = float(double(VelrhopPrec[p].x) + double(Acec[p].x - dampCoef * VelrhopPrec[p].x) * dt05);
+				Velrhopc[p].y = float(double(VelrhopPrec[p].y) + double(Acec[p].y - dampCoef * VelrhopPrec[p].y) * dt05);
+				Velrhopc[p].z = float(double(VelrhopPrec[p].z) + double(Acec[p].z - dampCoef * VelrhopPrec[p].z) * dt05);
 
 
 				bool outrhop = (rhopnew<RhopOutMin || rhopnew>RhopOutMax);
@@ -5507,9 +5507,9 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT31_M(double dt) {
 
 		if (!WithFloating || CODE_IsFluid(Codec[p])) {//-Fluid Particles.
 													  //-Update velocity & density. | Actualiza velocidad y densidad.
-			Velrhopc[p].x = float(double(VelrhopPrec[p].x) + double(Acec[p].x - 10.0f * VelrhopPrec[p].x) * dt);
-			Velrhopc[p].y = float(double(VelrhopPrec[p].y) + double(Acec[p].y - 10.0f * VelrhopPrec[p].y) * dt);
-			Velrhopc[p].z = float(double(VelrhopPrec[p].z) + double(Acec[p].z - 10.0f * VelrhopPrec[p].z) * dt);
+			Velrhopc[p].x = float(double(VelrhopPrec[p].x) + double(Acec[p].x - dampCoef * VelrhopPrec[p].x) * dt);
+			Velrhopc[p].y = float(double(VelrhopPrec[p].y) + double(Acec[p].y - dampCoef * VelrhopPrec[p].y) * dt);
+			Velrhopc[p].z = float(double(VelrhopPrec[p].z) + double(Acec[p].z - dampCoef * VelrhopPrec[p].z) * dt);
 
 			//-Calculate displacement and update position. | Calcula desplazamiento y actualiza posicion.
 			double dx = (double(VelrhopPrec[p].x) + double(Velrhopc[p].x)) * dt05;

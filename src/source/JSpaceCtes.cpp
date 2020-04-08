@@ -76,7 +76,7 @@ void JSpaceCtes::Reset(){
   BordDomain = 0;
   // Solid
   //K = 0; Mu = 0;
-  Ef = Et = Gf = nuxy = nuyz = 0;
+  Ef = Et = Gf = nuxy = nuyz = dampCoef = 0;
   // Pore
   PoreZero = 0;
   // Mass
@@ -260,6 +260,7 @@ void JSpaceCtes::ReadAddXmlRun_M(JXml *sxml, TiXmlElement* node) {
 	SetGrow(sxml->ReadElementInt(node, "typeGrowth", "value"));
 	SetYoung(sxml->ReadElementInt(node, "typeYoung", "value"));
 	SetDev(sxml->ReadElementBool(node, "typeDev", "value"));
+	SetDamp(sxml->ReadElementFloat(node, "damping", "value"));
 
 	//SetAnisotropyK(sxml->ReadElementDouble3(node, "anisotropyk"));
 	//SetAnisotropyG(sxml->ReadElementTsymatrix3f(node, "anisotropyg", "value"));

@@ -122,7 +122,7 @@ private:
   // Extension domain
   double BordDomain;
   // Solid - anisotropic
-  double Ef, Et, Gf, nuxy, nuyz;
+  double Ef, Et, Gf, nuxy, nuyz, dampCoef;
   //double K;
   //double Mu;
   // Pore
@@ -202,6 +202,7 @@ public:
   double GetShear()const { return(Gf); }
   double GetPoissonXY()const { return nuxy; }
   double GetPoissonYZ()const { return nuyz; }
+  double GetDamp()const { return dampCoef; }
   //double GetShear()const { return(Mu); }
 
   // Pore Pressure
@@ -259,6 +260,7 @@ public:
   void SetShear(double v) { Gf = v; };
   void SetPoissonXY(double v) { nuxy = v; };
   void SetPoissonYZ(double v) { nuyz = v; };
+  void SetDamp(double v) { dampCoef = v; };
 
   // Pore Pressure
   void SetPoreZero(double v) { PoreZero = v; };
