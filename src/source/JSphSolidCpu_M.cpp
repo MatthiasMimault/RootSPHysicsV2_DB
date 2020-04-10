@@ -5535,9 +5535,11 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticPreT31_M(double dt) {
 					dz += double(ShiftPosc[p].z);
 				}
 				// With damping (#34a)
+				if (Co_M[p] > 0.1f) {
 				Velrhopc[p].x = float(double(VelrhopPrec[p].x) + double(Acec[p].x - dampCoef * Co_M[p] * VelrhopPrec[p].x) * dt05);
 				Velrhopc[p].y = float(double(VelrhopPrec[p].y) + double(Acec[p].y - dampCoef * Co_M[p] * VelrhopPrec[p].y) * dt05);
 				Velrhopc[p].z = float(double(VelrhopPrec[p].z) + double(Acec[p].z - dampCoef * Co_M[p] * VelrhopPrec[p].z) * dt05);
+				}
 				/*if (abs(Posc[p].z) > DampBoundZ) {
 					Velrhopc[p].x -= float(dampCoef * double(VelrhopPrec[p].x) * dt05);
 					Velrhopc[p].y -= float(dampCoef * double(VelrhopPrec[p].y) * dt05);
@@ -6365,9 +6367,11 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT31_M(double dt) {
 
 		if (!WithFloating || CODE_IsFluid(Codec[p])) {//-Fluid Particles.
 													  //-Update velocity & density. | Actualiza velocidad y densidad.
-			Velrhopc[p].x = float(double(VelrhopPrec[p].x) + double(Acec[p].x - dampCoef * Co_M[p] * VelrhopPrec[p].x) * dt);
-			Velrhopc[p].y = float(double(VelrhopPrec[p].y) + double(Acec[p].y - dampCoef * Co_M[p] * VelrhopPrec[p].y) * dt);
-			Velrhopc[p].z = float(double(VelrhopPrec[p].z) + double(Acec[p].z - dampCoef * Co_M[p] * VelrhopPrec[p].z) * dt);
+			if (Co_M[p] > 0.1f) {
+				Velrhopc[p].x = float(double(VelrhopPrec[p].x) + double(Acec[p].x - dampCoef * Co_M[p] * VelrhopPrec[p].x) * dt);
+				Velrhopc[p].y = float(double(VelrhopPrec[p].y) + double(Acec[p].y - dampCoef * Co_M[p] * VelrhopPrec[p].y) * dt);
+				Velrhopc[p].z = float(double(VelrhopPrec[p].z) + double(Acec[p].z - dampCoef * Co_M[p] * VelrhopPrec[p].z) * dt);
+			}
 
 			/* if (abs(Posc[p].z) > DampBoundZ) {
 				//Velrhopc[p].x -= float(dampCoef * double(VelrhopPrec[p].x) * dt);
