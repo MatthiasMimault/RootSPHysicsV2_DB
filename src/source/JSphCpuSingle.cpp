@@ -786,7 +786,7 @@ void JSphCpuSingle::RunSizeDivision12_M(double stepdt){
 				float a = 10.0f;
 				float x = maxPosX - float(Posc[p].x);
 				float x0 = 0.1f;
-				float m0 = SizeDivision_M * MassFluid * (1.0f + a * pow(x - x0, 2.0f));
+				float m0 = float(SizeDivision_M) * MassFluid * (1.0f + a * pow(x - x0, 2.0f));
 				if (Massc_M[p] > m0) {
 					Divisionc_M[p] = true;
 					count++;
@@ -800,7 +800,7 @@ void JSphCpuSingle::RunSizeDivision12_M(double stepdt){
 				float a = 22.0f;
 				float x = maxPosX - float(Posc[p].x);
 				float x0 = 0.1f;
-				float m0 = SizeDivision_M * MassFluid * (1.0f + a * pow(x - x0, 2.0f));
+				float m0 = float(SizeDivision_M) * MassFluid * (1.0f + a * pow(x - x0, 2.0f));
 				if (Massc_M[p] > m0) {
 					Divisionc_M[p] = true;
 					count++;
@@ -1461,11 +1461,16 @@ void JSphCpuSingle::Interaction_Forces(TpInter tinter){
 
   //if (Psingle)JSphSolidCpu::InteractionSimple_Forces(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, PsPosc, Velrhopc, Idpc, Codec, Pressc, viscdt, Arc, Acec, Deltac, SpsTauc, SpsGradvelc, ShiftPosc, ShiftDetectc);
   //else JSphSolidCpu::Interaction_Forces(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, Posc, Velrhopc, Idpc, Codec, Pressc, viscdt, Arc, Acec, Deltac, SpsTauc, SpsGradvelc, ShiftPosc, ShiftDetectc);
-
-  // Matthias - No quadform, but press 1D
-  if (Psingle)JSphSolidCpu::InteractionSimple_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, PsPosc, Velrhopc, Idpc, Codec, Pressc, Porec_M, Massc_M, L_M, viscdt, Arc, Acec, Deltac, Tauc_M, StrainDotc_M, TauDotc_M, Spinc_M, ShiftPosc, ShiftDetectc);
-               else JSphSolidCpu::Interaction_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc,   Posc, Velrhopc, Idpc, Codec, Pressc, Porec_M, Massc_M, L_M, viscdt, Arc, Acec, Deltac, Tauc_M, StrainDotc_M, TauDotc_M, Spinc_M, ShiftPosc, ShiftDetectc);
   
+  // Matthias
+  if (typeDev) {
+  if (Psingle)JSphSolidCpu::InteractionSimple_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, PsPosc, Velrhopc, Idpc, Codec, Pressc, Porec_M, Massc_M, L_M, Co_M, viscdt, Arc, Acec, Deltac, Tauc_M, StrainDotc_M, TauDotc_M, Spinc_M, ShiftPosc, ShiftDetectc);
+               else JSphSolidCpu::Interaction_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc,   Posc, Velrhopc, Idpc, Codec, Pressc, Porec_M, Massc_M, L_M, Co_M, viscdt, Arc, Acec, Deltac, Tauc_M, StrainDotc_M, TauDotc_M, Spinc_M, ShiftPosc, ShiftDetectc);
+  }
+  else {
+	  if (Psingle)JSphSolidCpu::InteractionSimple_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, PsPosc, Velrhopc, Idpc, Codec, Pressc, Porec_M, Massc_M, L_M, viscdt, Arc, Acec, Deltac, Tauc_M, StrainDotc_M, TauDotc_M, Spinc_M, ShiftPosc, ShiftDetectc);
+	  else JSphSolidCpu::Interaction_Forces_M(Np, Npb, NpbOk, CellDivSingle->GetNcells(), CellDivSingle->GetBeginCell(), CellDivSingle->GetCellDomainMin(), Dcellc, Posc, Velrhopc, Idpc, Codec, Pressc, Porec_M, Massc_M, L_M, viscdt, Arc, Acec, Deltac, Tauc_M, StrainDotc_M, TauDotc_M, Spinc_M, ShiftPosc, ShiftDetectc);
+  }
 //-For 2-D simulations zero the 2nd component. | Para simulaciones 2D anula siempre la 2º componente.
   if(Simulate2D){
     const int ini=int(Npb),fin=int(Np),npf=int(Np-Npb);
@@ -1614,7 +1619,7 @@ double JSphCpuSingle::ComputeStep_Sym(){
   const double dt=DtPre;
 
   maxPosX = MaxPosition().x;
-
+  
   //-Predictor
   //-----------
   DemDtForce=dt*0.5f;                     //(DEM)
@@ -1878,13 +1883,13 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
   // Save step #Save
   int typeSave = 0;
   
-  switch (typeSave) {
+  /*switch (typeSave) {
 	  default: {
 		  SaveData_M1(); // Addition of float3 deformation
 		  break;
 	  }
-  }
-  // SaveData_M();
+  }*/
+  SaveData_M1(); // Addition of float3 deformation
   
   PrintAllocMemory(GetAllocMemoryCpu());
   TmcResetValues(Timers);
@@ -1926,12 +1931,14 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
         TimeMax=TimeStep;
       }
 	  // #save step
-	  switch (typeSave) {
+
+  /*switch (typeSave) {
 	  default: {
 		  SaveData_M1(); // Addition of float3 deformation
 		  break;
 	  }
-	  }
+  }*/
+	  SaveData_M1(); // Addition of float3 deformation
 	  Part++;
       PartNstep=Nstep;
       TimeStepM1=TimeStep;
