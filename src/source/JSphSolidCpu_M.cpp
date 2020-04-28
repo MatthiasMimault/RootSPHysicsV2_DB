@@ -6476,8 +6476,8 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT31_M(double dt) {
 	for (int p = 0; p < npb; p++) {
 		const double epsilon_rdot = (-double(Arc[p]) / double(Velrhopc[p].w)) * dt;
 		const float rhopnew = float(double(VelrhopPrec[p].w) * (2. - epsilon_rdot) / (2. + epsilon_rdot));
-		//Velrhopc[p] = TFloat4(0, 0, 0, (rhopnew < RhopZero ? RhopZero : rhopnew));
-		Velrhopc[p] = TFloat4(0, 0, 0, rhopnew);
+		Velrhopc[p] = TFloat4(0, 0, 0, (rhopnew < RhopZero ? RhopZero : rhopnew));
+		//Velrhopc[p] = TFloat4(0, 0, 0, rhopnew);
 
 		// Update Shear stress
 		Tauc_M[p].xx = float(double(TauPrec_M[p].xx) + double(TauDotc_M[p].xx) * dt);
