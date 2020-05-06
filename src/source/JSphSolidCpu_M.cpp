@@ -5579,8 +5579,8 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT(double dt) {
 /// /////////////////////////////////////////////
 // Symplectic code, Matthias version
 // With NSPH, solid dynamics and Cell geometry
-// #Symplectic_M #Version
-// V32-Da
+// #Symplectic_M #Version #damping
+// V34c
 /// /////////////////////////////////////////////
 void JSphSolidCpu::ComputeSymplecticPre_M(double dt) {
 	switch (typeCompression) {
@@ -5676,7 +5676,7 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticPreT31_M(double dt) {
 				Velrhopc[p].z = float(double(VelrhopPrec[p].z) + double(Acec[p].z) * dt05);
 				
 
-				if (true) {
+				if (Posc[p].x>0.3) {
 					Velrhopc[p].x -= float(dampCoef * Co_M[p] * VelrhopPrec[p].x * dt05);
 					Velrhopc[p].y -= float(dampCoef * Co_M[p] * VelrhopPrec[p].y * dt05);
 					Velrhopc[p].z -= float(dampCoef * Co_M[p] * VelrhopPrec[p].z * dt05);
