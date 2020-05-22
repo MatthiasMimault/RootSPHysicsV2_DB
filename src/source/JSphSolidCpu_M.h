@@ -119,10 +119,11 @@ protected:
 	float *Massc_M; // Mass, Delta mass
 
 	// Augustin
-	float* VonMises3D;
+	float* VonMises;
 	float* GradVelSave;
 	unsigned* CellOffSpring;
 	tfloat3* StrainDotSave;
+	tfloat3* AceSave;
 
 	// Matthias - Root geometry data
 	float maxPosX;
@@ -199,6 +200,9 @@ protected:
 	unsigned GetParticlesData11_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
 		, unsigned* idp, tdouble3* pos, tfloat3* vel, float* rhop, float* pore, float* press, float* mass, tsymatrix3f* qf
 		, float* vonMises, float* grVelSav, unsigned* cellOSpr, tfloat3* gradvel, typecode* code);
+	unsigned GetParticlesData12_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
+		, unsigned* idp, tdouble3* pos, tfloat3* vel, float* rhop, float* pore, float* press, float* mass, tsymatrix3f* qf
+		, float* vonMises, float* grVelSav, unsigned* cellOSpr, tfloat3* gradvel, tfloat3* ace, typecode* code);
 
 	void ConfigOmp(const JCfgRun *cfg);
 
@@ -288,6 +292,16 @@ protected:
 		, float& viscdt, float* ar, tfloat3* ace, float* delta
 		, TpShifting tshifting, tfloat3* shiftpos, float* shiftdetect)const;
 
+	template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph tdelta, bool shift> void InteractionForces_V32_M
+	(unsigned n, unsigned pinit, tint4 nc, int hdiv, unsigned cellinitial, float visco
+		, const unsigned* beginendcell, tint3 cellzero, const unsigned* dcell
+		, const tsymatrix3f* tau, tsymatrix3f* gradvel, tsymatrix3f* omega
+		, const tdouble3* pos, const tfloat3* pspos, const tfloat4* velrhop, const typecode* code, const unsigned* idp
+		, const float* press, const float* pore, const float* mass
+		, tmatrix3f* L
+		, float& viscdt, float* ar, tfloat3* ace, tfloat3* acesave, float* delta
+		, TpShifting tshifting, tfloat3* shiftpos, float* shiftdetect)const;
+
 	template<bool psingle> void InteractionForcesDEM
 	(unsigned nfloat, tint4 nc, int hdiv, unsigned cellfluid
 		, const unsigned *beginendcell, tint3 cellzero, const unsigned *dcell
@@ -322,6 +336,17 @@ protected:
 		, const tdouble3* pos, const tfloat3* pspos, const tfloat4* velrhop, const typecode* code, const unsigned* idp
 		, const float* press, const float* pore, const float* mass
 		, float& viscdt, float* ar, tfloat3* ace, float* delta
+		, tsymatrix3f* jautau, tsymatrix3f* jaugradvel, tsymatrix3f* jautaudot, tsymatrix3f* jauomega
+		, tmatrix3f* L, float* co
+		, TpShifting tshifting, tfloat3* shiftpos, float* shiftdetect)const;
+
+	//#v34d
+	template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph tdelta, bool shift> void Interaction_ForcesT
+	(unsigned np, unsigned npb, unsigned npbok
+		, tuint3 ncells, const unsigned* begincell, tuint3 cellmin, const unsigned* dcell
+		, const tdouble3* pos, const tfloat3* pspos, const tfloat4* velrhop, const typecode* code, const unsigned* idp
+		, const float* press, const float* pore, const float* mass
+		, float& viscdt, float* ar, tfloat3* ace, tfloat3* acesave, float* delta
 		, tsymatrix3f* jautau, tsymatrix3f* jaugradvel, tsymatrix3f* jautaudot, tsymatrix3f* jauomega
 		, tmatrix3f* L, float* co
 		, TpShifting tshifting, tfloat3* shiftpos, float* shiftdetect)const;
@@ -378,6 +403,24 @@ protected:
 		, const float* press, const float* pore, const float* mass
 		, tmatrix3f* L, float* Co_M
 		, float& viscdt, float* ar, tfloat3* ace, float* delta
+		, tsymatrix3f* jautau, tsymatrix3f* jaugradvel, tsymatrix3f* jautaudot, tsymatrix3f* jauomega
+		, tfloat3* shiftpos, float* shiftdetect)const;
+
+	void Interaction_ForcesSimpSmall_M(unsigned np, unsigned npb, unsigned npbok
+		, tuint3 ncells, const unsigned* begincell, tuint3 cellmin, const unsigned* dcell
+		, const tfloat3* pspos, const tfloat4* velrhop, const unsigned* idp, const typecode* code
+		, const float* press, const float* pore, const float* mass
+		, tmatrix3f* L, float* Co_M
+		, float& viscdt, float* ar, tfloat3* ace, tfloat3* acesave, float* delta
+		, tsymatrix3f* jautau, tsymatrix3f* jaugradvel, tsymatrix3f* jautaudot, tsymatrix3f* jauomega
+		, tfloat3* shiftpos, float* shiftdetect)const;
+
+	void Interaction_ForcesSmall_M(unsigned np, unsigned npb, unsigned npbok
+		, tuint3 ncells, const unsigned* begincell, tuint3 cellmin, const unsigned* dcell
+		, const tdouble3* pos, const tfloat4* velrhop, const unsigned* idp, const typecode* code
+		, const float* press, const float* pore, const float* mass
+		, tmatrix3f* L, float* Co_M
+		, float& viscdt, float* ar, tfloat3* ace, tfloat3* acesave, float* delta
 		, tsymatrix3f* jautau, tsymatrix3f* jaugradvel, tsymatrix3f* jautaudot, tsymatrix3f* jauomega
 		, tfloat3* shiftpos, float* shiftdetect)const;
 
