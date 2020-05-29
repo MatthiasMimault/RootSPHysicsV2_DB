@@ -3183,34 +3183,18 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 	const int hdiv = (CellMode == CELLMODE_H ? 2 : 1);
 
 	if (npf) {
-		if (typeDev){
-			ComputeNsphCorrection14 < psingle, tker>(np, 0, nc, hdiv, cellfluid, begincell, cellzero, dcell, pos, pspos, velrhop, mass, L);
+		ComputeNsphCorrection14 < psingle, tker>(np, 0, nc, hdiv, cellfluid, begincell, cellzero, dcell, pos, pspos, velrhop, mass, L);
 
-			//-Interaction Fluid-Fluid.
-			InteractionForces_V31_M<psingle, tker, ftmode, lamsps, tdelta, shift>
-				(npf, npb, nc, hdiv, cellfluid, Visco, begincell, cellzero, dcell
-					, jautau, jaugradvel, jauomega, pos, pspos, velrhop, code, idp, press, pore, mass, L, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);
+		//-Interaction Fluid-Fluid.
+		InteractionForces_V31_M<psingle, tker, ftmode, lamsps, tdelta, shift>
+			(npf, npb, nc, hdiv, cellfluid, Visco, begincell, cellzero, dcell
+				, jautau, jaugradvel, jauomega, pos, pspos, velrhop, code, idp, press, pore, mass, L, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);
 
-			//-Interaction Fluid-Bound.
-			InteractionForces_V31_M<psingle, tker, ftmode, lamsps, tdelta, shift>
-				(npf, npb, nc, hdiv, 0, Visco * ViscoBoundFactor, begincell, cellzero, dcell
-					, jautau, jaugradvel, jauomega, pos, pspos, velrhop, code, idp, press, pore, mass, L, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);
+		//-Interaction Fluid-Bound.
+		InteractionForces_V31_M<psingle, tker, ftmode, lamsps, tdelta, shift>
+			(npf, npb, nc, hdiv, 0, Visco * ViscoBoundFactor, begincell, cellzero, dcell
+				, jautau, jaugradvel, jauomega, pos, pspos, velrhop, code, idp, press, pore, mass, L, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);
 
-		}
-		else {
-			ComputeNsphCorrection14 < psingle, tker>(np, 0, nc, hdiv, cellfluid, begincell, cellzero, dcell, pos, pspos, velrhop, mass, L);
-
-			//-Interaction Fluid-Fluid.
-			InteractionForces_V11b_M<psingle, tker, ftmode, lamsps, tdelta, shift>
-				(npf, npb, nc, hdiv, cellfluid, Visco, begincell, cellzero, dcell
-					, jautau, jaugradvel, jauomega, pos, pspos, velrhop, code, idp, press, pore, mass, L, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);
-
-			//-Interaction Fluid-Bound.
-			InteractionForces_V11b_M<psingle, tker, ftmode, lamsps, tdelta, shift>
-				(npf, npb, nc, hdiv, 0, Visco * ViscoBoundFactor, begincell, cellzero, dcell
-					, jautau, jaugradvel, jauomega, pos, pspos, velrhop, code, idp, press, pore, mass, L, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);
-
-		}
 		
 		//-Interaction of DEM Floating-Bound & Floating-Floating. //(DEM)
 		if (USE_DEM)InteractionForcesDEM<psingle>(CaseNfloat, nc, hdiv, cellfluid, begincell, cellzero, dcell, FtRidp, DemData, pos, pspos, velrhop, code, idp, viscdt, ace);
@@ -3259,34 +3243,18 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 	const int hdiv = (CellMode == CELLMODE_H ? 2 : 1);
 
 	if (npf) {
-		if (typeDev) {
-			ComputeNsphCorrection31<psingle,tker>(np, 0, nc, hdiv, cellfluid, begincell, cellzero, dcell, pos, pspos, velrhop, mass, L, co);
+		ComputeNsphCorrection31<psingle, tker>(np, 0, nc, hdiv, cellfluid, begincell, cellzero, dcell, pos, pspos, velrhop, mass, L, co);
 
-			//-Interaction Fluid-Fluid.
-			InteractionForces_V31_M<psingle, tker, ftmode, lamsps, tdelta, shift>
-				(npf, npb, nc, hdiv, cellfluid, Visco, begincell, cellzero, dcell
-					, jautau, jaugradvel, jauomega, pos, pspos, velrhop, code, idp, press, pore, mass, L, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);
+		//-Interaction Fluid-Fluid.
+		InteractionForces_V31_M<psingle, tker, ftmode, lamsps, tdelta, shift>
+			(npf, npb, nc, hdiv, cellfluid, Visco, begincell, cellzero, dcell
+				, jautau, jaugradvel, jauomega, pos, pspos, velrhop, code, idp, press, pore, mass, L, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);
 
-			//-Interaction Fluid-Bound.
-			InteractionForces_V31_M<psingle, tker, ftmode, lamsps, tdelta, shift>
-				(npf, npb, nc, hdiv, 0, Visco * ViscoBoundFactor, begincell, cellzero, dcell
-					, jautau, jaugradvel, jauomega, pos, pspos, velrhop, code, idp, press, pore, mass, L, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);
+		//-Interaction Fluid-Bound.
+		InteractionForces_V31_M<psingle, tker, ftmode, lamsps, tdelta, shift>
+			(npf, npb, nc, hdiv, 0, Visco * ViscoBoundFactor, begincell, cellzero, dcell
+				, jautau, jaugradvel, jauomega, pos, pspos, velrhop, code, idp, press, pore, mass, L, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);
 
-		}
-		else {
-			ComputeNsphCorrection14 < psingle, tker>(np, 0, nc, hdiv, cellfluid, begincell, cellzero, dcell, pos, pspos, velrhop, mass, L);
-
-			//-Interaction Fluid-Fluid.
-			InteractionForces_V11b_M<psingle, tker, ftmode, lamsps, tdelta, shift>
-				(npf, npb, nc, hdiv, cellfluid, Visco, begincell, cellzero, dcell
-					, jautau, jaugradvel, jauomega, pos, pspos, velrhop, code, idp, press, pore, mass, L, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);
-
-			//-Interaction Fluid-Bound.
-			InteractionForces_V11b_M<psingle, tker, ftmode, lamsps, tdelta, shift>
-				(npf, npb, nc, hdiv, 0, Visco * ViscoBoundFactor, begincell, cellzero, dcell
-					, jautau, jaugradvel, jauomega, pos, pspos, velrhop, code, idp, press, pore, mass, L, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);
-
-		}
 
 		//-Interaction of DEM Floating-Bound & Floating-Floating. //(DEM)
 		if (USE_DEM)InteractionForcesDEM<psingle>(CaseNfloat, nc, hdiv, cellfluid, begincell, cellzero, dcell, FtRidp, DemData, pos, pspos, velrhop, code, idp, viscdt, ace);
@@ -3294,14 +3262,8 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 	}
 	if (npbok) {
 		//-Interaction Bound-Fluid.
-		if (typeDev) {
-			InteractionForcesBound31_M<psingle, tker, ftmode>(npbok, 0, nc, hdiv, cellfluid, begincell, cellzero, dcell, pos, pspos, velrhop, code, idp, viscdt
-				, ar, mass, jaugradvel, jauomega, L);
-		}
-		else {
-			InteractionForcesBound12_M<psingle, tker, ftmode>(npbok, 0, nc, hdiv, cellfluid, begincell, cellzero, dcell, pos, pspos, velrhop, code, idp, viscdt
-				, ar, jaugradvel, jauomega, L);
-		}
+		InteractionForcesBound31_M<psingle, tker, ftmode>(npbok, 0, nc, hdiv, cellfluid, begincell, cellzero, dcell, pos, pspos, velrhop, code, idp, viscdt
+			, ar, mass, jaugradvel, jauomega, L);
 	}
 
 	// Overall computation of taudot
@@ -3339,35 +3301,18 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 	const int hdiv = (CellMode == CELLMODE_H ? 2 : 1);
 
 	if (npf) {
-		if (typeDev) {
-			ComputeNsphCorrection31<psingle, tker>(np, 0, nc, hdiv, cellfluid, begincell, cellzero, dcell, pos, pspos, velrhop, mass, L, co);
+		ComputeNsphCorrection31<psingle, tker>(np, 0, nc, hdiv, cellfluid, begincell, cellzero, dcell, pos, pspos, velrhop, mass, L, co);
 
-			//-Interaction Fluid-Fluid.
-			InteractionForces_V31_M<psingle, tker, ftmode, lamsps, tdelta, shift>
-				(npf, npb, nc, hdiv, cellfluid, Visco, begincell, cellzero, dcell
-					, jautau, jaugradvel, jauomega, pos, pspos, velrhop, code, idp, press, pore, mass, L, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);
-			for (unsigned p = npb; p<np; p++) acesave[p] = ace[p];
+		//-Interaction Fluid-Fluid.
+		InteractionForces_V31_M<psingle, tker, ftmode, lamsps, tdelta, shift>
+			(npf, npb, nc, hdiv, cellfluid, Visco, begincell, cellzero, dcell
+				, jautau, jaugradvel, jauomega, pos, pspos, velrhop, code, idp, press, pore, mass, L, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);
+		for (unsigned p = npb; p < np; p++) acesave[p] = ace[p];
 
-			//-Interaction Fluid-Bound.
-			InteractionForces_V31_M<psingle, tker, ftmode, lamsps, tdelta, shift>
-				(npf, npb, nc, hdiv, 0, Visco * ViscoBoundFactor, begincell, cellzero, dcell
-					, jautau, jaugradvel, jauomega, pos, pspos, velrhop, code, idp, press, pore, mass, L, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);
-
-		}
-		else {
-			ComputeNsphCorrection14 < psingle, tker>(np, 0, nc, hdiv, cellfluid, begincell, cellzero, dcell, pos, pspos, velrhop, mass, L);
-
-			//-Interaction Fluid-Fluid.
-			InteractionForces_V11b_M<psingle, tker, ftmode, lamsps, tdelta, shift>
-				(npf, npb, nc, hdiv, cellfluid, Visco, begincell, cellzero, dcell
-					, jautau, jaugradvel, jauomega, pos, pspos, velrhop, code, idp, press, pore, mass, L, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);
-
-			//-Interaction Fluid-Bound.
-			InteractionForces_V11b_M<psingle, tker, ftmode, lamsps, tdelta, shift>
-				(npf, npb, nc, hdiv, 0, Visco * ViscoBoundFactor, begincell, cellzero, dcell
-					, jautau, jaugradvel, jauomega, pos, pspos, velrhop, code, idp, press, pore, mass, L, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);
-
-		}
+		//-Interaction Fluid-Bound.
+		InteractionForces_V31_M<psingle, tker, ftmode, lamsps, tdelta, shift>
+			(npf, npb, nc, hdiv, 0, Visco * ViscoBoundFactor, begincell, cellzero, dcell
+				, jautau, jaugradvel, jauomega, pos, pspos, velrhop, code, idp, press, pore, mass, L, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);
 
 		//-Interaction of DEM Floating-Bound & Floating-Floating. //(DEM)
 		if (USE_DEM)InteractionForcesDEM<psingle>(CaseNfloat, nc, hdiv, cellfluid, begincell, cellzero, dcell, FtRidp, DemData, pos, pspos, velrhop, code, idp, viscdt, ace);
@@ -3375,14 +3320,8 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 	}
 	if (npbok) {
 		//-Interaction Bound-Fluid.
-		if (typeDev) {
-			InteractionForcesBound31_M<psingle, tker, ftmode>(npbok, 0, nc, hdiv, cellfluid, begincell, cellzero, dcell, pos, pspos, velrhop, code, idp, viscdt
-				, ar, mass, jaugradvel, jauomega, L);
-		}
-		else {
-			InteractionForcesBound12_M<psingle, tker, ftmode>(npbok, 0, nc, hdiv, cellfluid, begincell, cellzero, dcell, pos, pspos, velrhop, code, idp, viscdt
-				, ar, jaugradvel, jauomega, L);
-		}
+		InteractionForcesBound31_M<psingle, tker, ftmode>(npbok, 0, nc, hdiv, cellfluid, begincell, cellzero, dcell, pos, pspos, velrhop, code, idp, viscdt
+			, ar, mass, jaugradvel, jauomega, L);
 	}
 
 	// Overall computation of taudot
@@ -6039,14 +5978,8 @@ void JSphSolidCpu::ComputeSymplecticPre_M(double dt) {
 	switch (typeCompression) {
 	case 0: {
 		// No compression
-		if (typeDev) {
-			if (TShifting)ComputeSymplecticPreT31_M<false>(dt); //-We strongly recommend running the shifting correction only for the corrector. 
-			else         ComputeSymplecticPreT31_M<false>(dt); // If you want to re-enable shifting in the predictor, change the value here to "true".	
-		}
-		else {
-			if (TShifting)ComputeSymplecticPreT2_M<false>(dt); //-We strongly recommend running the shifting correction only for the corrector. 
-			else         ComputeSymplecticPreT2_M<false>(dt); // If you want to re-enable shifting in the predictor, change the value here to "true".	
-		}
+		if (TShifting)ComputeSymplecticPreT31_M<false>(dt); //-We strongly recommend running the shifting correction only for the corrector. 
+		else         ComputeSymplecticPreT31_M<false>(dt); // If you want to re-enable shifting in the predictor, change the value here to "true".	
 		break;
 	}
 	case 1: {

@@ -7,7 +7,6 @@
     <CudaCompile Include="..\source\JGauge_ker.cu" />
     <CudaCompile Include="..\source\JReduSum_ker.cu" />
     <CudaCompile Include="..\source\JSphGpu_ker.cu" />
-    <CudaCompile Include="..\source\JSphSolidGpu_ker_L.cu" />
     <CudaCompile Include="..\source\JWaveOrder2_ker.cu" />
   </ItemGroup>
   <ItemGroup>
@@ -126,7 +125,6 @@
     <ClInclude Include="..\source\JSphMk.h" />
     <ClInclude Include="..\source\JSphMotion.h" />
     <ClInclude Include="..\source\JSphSolidCpu_M.h" />
-    <ClInclude Include="..\source\JSphSolidGpu_ker_L.h" />
     <ClInclude Include="..\source\JSphVisco.h" />
     <ClInclude Include="..\source\JPartsOut.h" />
     <ClInclude Include="..\source\JSphCpuSingle.h" />

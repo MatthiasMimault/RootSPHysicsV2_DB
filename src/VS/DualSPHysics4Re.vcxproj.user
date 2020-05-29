@@ -4,8 +4,13 @@
     <ShowAllFiles>true</ShowAllFiles>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerWorkingDirectory>..\..\debug_v34\4-FOP</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerWorkingDirectory>..\..\debug_v34\5-REL</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerCommandArguments>-cpu DBG_out\DBG DBG_out -dirdataout data -svres</LocalDebuggerCommandArguments>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugCPU|x64'">
+    <LocalDebuggerCommandArguments>-cpu DBG_out\DBG DBG_out -dirdataout data -svres</LocalDebuggerCommandArguments>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerWorkingDirectory>..\..\debug_v34\5-REL</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
 </Project>
