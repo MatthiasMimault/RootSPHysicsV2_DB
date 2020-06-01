@@ -1,6 +1,9 @@
 {
   "ExpandedNodes": [
-    ""
+    "",
+    "\\src",
+    "\\src\\VS"
   ],
+  "SelectedNode": "\\src\\VS\\DualSPHysics4Re_vs2015.sln",
   "PreviewInSolutionExplorer": false
 }
