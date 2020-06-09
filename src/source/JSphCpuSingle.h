@@ -24,7 +24,6 @@
 #include "Types.h"
 #include "JSphCpu.h"
 #include "JSphSolidCpu_M.h"
-#include "GenCaseBis_T.h"
 #include <string>
 
 class JCellDivCpuSingle;
@@ -118,11 +117,8 @@ protected:
   void FtCalcForces(StFtoForces *ftoforces)const;
   void FtCalcForcesRes(double dt,const StFtoForces *ftoforces,StFtoForcesRes *ftoforcesres)const;
   void RunFloating(double dt,bool predictor);
-  void RunGaugeSystem(double timestep);
 
   void SaveData();
-  void SaveData_M1();
-  void SaveData11_M();
   void SaveData12_M();
   void FinishRun(bool stop);
 

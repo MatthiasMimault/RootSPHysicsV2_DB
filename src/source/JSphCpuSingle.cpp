@@ -28,11 +28,9 @@
 #include "JSphMotion.h"
 #include "JPartsLoad4.h"
 #include "JSphVisco.h"
-#include "JWaveGen.h"
-#include "JDamping.h"
 #include "JTimeOut.h"
 #include "JTimeControl.h"
-#include "JGaugeSystem.h"
+//#include "JGaugeSystem.h"
 #include <climits>
 #include "JSphSolidCpu_M.h"
 #include <Eigen/Dense>
@@ -796,12 +794,25 @@ void JSphCpuSingle::RunSizeDivision12_M(double stepdt){
 			}
 			break;
 		}
-		case 4: { // Mass cubic distribution x2
+		case 4: { // Mass cubic distribution a22
 			for (unsigned p = Npb; p < Np; p++) {
 				float a = 22.0f;
 				float x = maxPosX - float(Posc[p].x);
 				float x0 = 0.1f;
 				float m0 = float(SizeDivision_M) * MassFluid * (1.0f + a * pow(x - x0, 2.0f));
+				if (Massc_M[p] > m0) {
+					Divisionc_M[p] = true;
+					count++;
+					run = true;
+				}
+			}
+			break;
+		}
+		case 5: { // Mass cubic distribution variable
+			for (unsigned p = Npb; p < Np; p++) {
+				float x = maxPosX - float(Posc[p].x);
+				float x0 = 0.1f;
+				float m0 = float(SizeDivision_M) * MassFluid * (1.0f + aM0 * pow(x - x0, 2.0f));
 				if (Massc_M[p] > m0) {
 					Divisionc_M[p] = true;
 					count++;
@@ -1684,7 +1695,6 @@ double JSphCpuSingle::ComputeStep_Ver() {
 	ComputeVerlet(dt);                   //-Update particles using Verlet.
 	if (CaseNfloat)RunFloating(dt, false); //-Control of floating bodies.
 	PosInteraction_Forces();             //-Free memory used for interaction.
-	if (Damping)RunDamping(dt, Np, Npb, Posc, Codec, Velrhopc); //-Applies Damping.
 	return(dt);
 }
 
@@ -1700,7 +1710,6 @@ double JSphCpuSingle::ComputeStep_Eul_M() {
 	ComputeEuler_M(dt);                   //-Update particles using Verlet.
 	if (CaseNfloat)RunFloating(dt, false); //-Control of floating bodies.
 	PosInteraction_Forces();             //-Free memory used for interaction.
-	if (Damping)RunDamping(dt, Np, Npb, Posc, Codec, Velrhopc); //-Applies Damping.
 	return(dt);
 }
 
@@ -1744,7 +1753,6 @@ double JSphCpuSingle::ComputeStep_Sym(){
 
   if(CaseNfloat)RunFloating(dt,false);    //-Control of floating bodies.
   PosInteraction_Forces();                //-Free memory used for interaction.
-  if(Damping)RunDamping(dt,Np,Npb,Posc,Codec,Velrhopc); //-Applies Damping.
   
   DtPre=min(ddt_p,ddt_c);
 
@@ -1940,15 +1948,6 @@ void JSphCpuSingle::RunFloating(double dt,bool predictor){
 }
 
 //==============================================================================
-/// Runs calculations in configured gauges.
-/// Ejecuta calculos en las posiciones de medida configuradas.
-//==============================================================================
-void JSphCpuSingle::RunGaugeSystem(double timestep){
-  const bool svpart=(TimeStep>=TimePartNext);
-  GaugeSystem->CalculeCpu(timestep,svpart,CellDivSingle->GetNcells(),CellDivSingle->GetCellDomainMin(),CellDivSingle->GetBeginCell(),Posc,Codec,Velrhopc);
-}
-
-//==============================================================================
 /// Initialises execution of simulation.
 /// Inicia ejecucion de simulacion.
 //==============================================================================
@@ -1975,7 +1974,6 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
 
   //-Free memory of PartsLoaded. | Libera memoria de PartsLoaded.
   delete PartsLoaded; PartsLoaded = NULL;
-  RunGaugeSystem(TimeStep);
   UpdateMaxValues();
 
   // Save step #Save
@@ -1983,11 +1981,11 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
   
   switch (typeSave) {
   case 1: {
-	  SaveData12_M(); // Addition of Ace
+	  SaveData12_M(); // 
 	  break;
   }
   default: {
-	  SaveData_M1(); // original v34c
+	  SaveData12_M(); // original v35
 	  break;
   }
   }
@@ -2014,12 +2012,10 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
 	// Control of step - Matthias
 	//#stepdt
     double stepdt=ComputeStep();
-	RunGaugeSystem(TimeStep+stepdt);
     if(PartDtMin>stepdt)PartDtMin=stepdt; if(PartDtMax<stepdt)PartDtMax=stepdt;
     if(CaseNmoving)RunMotion(stepdt);
 	
 	// Matthias - Cell division
-	//RunSizeDivision_M();
 	if (true) RunSizeDivision12_M(stepdt);
 	else RunSizeDivision_M2(stepdt);
 	RunCellDivide(true);
@@ -2034,11 +2030,11 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
 	  // #save step
 	  switch (typeSave) {
 	  case 1: {
-		  SaveData12_M(); // Addition of Ace
+		  SaveData12_M(); // 
 		  break;
 	  }
 	  default: {
-		  SaveData_M1(); // original v34c
+		  SaveData12_M(); // original v35
 		  break;
 	  }
 	  }
@@ -2107,173 +2103,6 @@ void JSphCpuSingle::SaveData() {
 	ArraysCpu->Free(pos);
 	ArraysCpu->Free(vel);
 	ArraysCpu->Free(rhop);
-	TmcStop(Timers, TMC_SuSavePart);
-}
-
-//==============================================================================
-/// Generates files with output data, update 17/12/2019: addition float3 deformation
-// V31-Dd
-//==============================================================================
-void JSphCpuSingle::SaveData_M1() {
-	const bool save = (SvData != SDAT_None && SvData != SDAT_Info);
-	const unsigned npsave = Np - NpbPer - NpfPer; //-Subtracts the periodic particles if they exist. | Resta las periodicas si las hubiera.
-	TmcStart(Timers, TMC_SuSavePart);
-	//-Collect particle values in original order. | Recupera datos de particulas en orden original.
-	unsigned* idp = NULL;
-	tdouble3* pos = NULL;
-	tfloat3* vel = NULL;
-	float* rhop = NULL;
-	float* press = NULL;
-	// Special fields
-	float* pore = NULL;
-	float* mass = NULL;
-	float* volu = NULL;
-	tsymatrix3f* qf = NULL;
-	float* nablavx = NULL;
-	float* vonMises = NULL;
-	float* grVelSav = NULL;
-	unsigned* cellOSpr = NULL;
-	tfloat3* gradvel = NULL;
-
-	if (save) {
-		//-Assign memory and collect particle values. | Asigna memoria y recupera datos de las particulas.
-		idp = ArraysCpu->ReserveUint();
-		pos = ArraysCpu->ReserveDouble3();
-		vel = ArraysCpu->ReserveFloat3();
-		rhop = ArraysCpu->ReserveFloat();
-		pore = ArraysCpu->ReserveFloat();
-		mass = ArraysCpu->ReserveFloat();
-		volu = ArraysCpu->ReserveFloat();
-		press = ArraysCpu->ReserveFloat();
-		qf = ArraysCpu->ReserveSymatrix3f();
-		nablavx = ArraysCpu->ReserveFloat();
-		vonMises = ArraysCpu->ReserveFloat();
-		grVelSav = ArraysCpu->ReserveFloat();
-		cellOSpr = ArraysCpu->ReserveUint();
-		gradvel = ArraysCpu->ReserveFloat3();
-
-		unsigned npnormal = GetParticlesData_M1(Np, 0, true, PeriActive != 0, idp, pos, vel, rhop
-			, pore, press, mass, qf, nablavx, vonMises, grVelSav, cellOSpr, gradvel, NULL);
-		if (npnormal != npsave)RunException("SaveData", "The number of particles is invalid.");
-	}
-	//-Gather additional information. | Reune informacion adicional..
-	StInfoPartPlus infoplus;
-	memset(&infoplus, 0, sizeof(StInfoPartPlus));
-	if (SvData & SDAT_Info) {
-		infoplus.nct = CellDivSingle->GetNct();
-		infoplus.npbin = NpbOk;
-		infoplus.npbout = Npb - NpbOk;
-		infoplus.npf = Np - Npb;
-		infoplus.npbper = NpbPer;
-		infoplus.npfper = NpfPer;
-		infoplus.memorycpualloc = this->GetAllocMemoryCpu();
-		infoplus.gpudata = false;
-		TimerSim.Stop();
-		infoplus.timesim = TimerSim.GetElapsedTimeD() / 1000.;
-	}
-
-	//-Stores particle data. | Graba datos de particulas.
-	const tdouble3 vdom[2] = { OrderDecode(CellDivSingle->GetDomainLimits(true)),OrderDecode(CellDivSingle->GetDomainLimits(false)) };
-
-	JSph::SaveData_M1(npsave, idp, pos, vel, rhop
-		, pore, press, mass, qf, nablavx, vonMises, grVelSav, cellOSpr, gradvel, 1, vdom, &infoplus);
-	//-Free auxiliary memory for particle data. | Libera memoria auxiliar para datos de particulas.
-	ArraysCpu->Free(idp);
-	ArraysCpu->Free(pos);
-	ArraysCpu->Free(vel);
-	ArraysCpu->Free(rhop);
-	ArraysCpu->Free(pore);
-	ArraysCpu->Free(mass);
-	ArraysCpu->Free(volu);
-	ArraysCpu->Free(press);
-	ArraysCpu->Free(qf);
-	ArraysCpu->Free(nablavx);
-	ArraysCpu->Free(vonMises);
-	ArraysCpu->Free(grVelSav);
-	ArraysCpu->Free(cellOSpr);
-	ArraysCpu->Free(gradvel);
-	TmcStop(Timers, TMC_SuSavePart);
-}
-
-//==============================================================================
-/// Generates files with output data, update 17/12/2019: addition float3 deformation, remove NabVx
-// V32-Da
-//==============================================================================
-void JSphCpuSingle::SaveData11_M() {
-	const bool save = (SvData != SDAT_None && SvData != SDAT_Info);
-	const unsigned npsave = Np - NpbPer - NpfPer; //-Subtracts the periodic particles if they exist. | Resta las periodicas si las hubiera.
-	TmcStart(Timers, TMC_SuSavePart);
-	//-Collect particle values in original order. | Recupera datos de particulas en orden original.
-	unsigned* idp = NULL;
-	tdouble3* pos = NULL;
-	tfloat3* vel = NULL;
-	float* rhop = NULL;
-	float* press = NULL;
-	// Special fields
-	float* pore = NULL;
-	float* mass = NULL;
-	float* volu = NULL;
-	tsymatrix3f* qf = NULL;
-	float* vonMises = NULL;
-	float* grVelSav = NULL;
-	unsigned* cellOSpr = NULL;
-	tfloat3* gradvel = NULL;
-
-	if (save) {
-		//-Assign memory and collect particle values. | Asigna memoria y recupera datos de las particulas.
-		idp = ArraysCpu->ReserveUint();
-		pos = ArraysCpu->ReserveDouble3();
-		vel = ArraysCpu->ReserveFloat3();
-		rhop = ArraysCpu->ReserveFloat();
-		pore = ArraysCpu->ReserveFloat();
-		mass = ArraysCpu->ReserveFloat();
-		volu = ArraysCpu->ReserveFloat();
-		press = ArraysCpu->ReserveFloat();
-		qf = ArraysCpu->ReserveSymatrix3f();
-		vonMises = ArraysCpu->ReserveFloat();
-		grVelSav = ArraysCpu->ReserveFloat();
-		cellOSpr = ArraysCpu->ReserveUint();
-		gradvel = ArraysCpu->ReserveFloat3();
-
-		unsigned npnormal = GetParticlesData11_M(Np, 0, true, PeriActive != 0, idp, pos, vel, rhop
-			, pore, press, mass, qf, vonMises, grVelSav, cellOSpr, gradvel, NULL);
-		if (npnormal != npsave)RunException("SaveData", "The number of particles is invalid.");
-	}
-	//-Gather additional information. | Reune informacion adicional..
-	StInfoPartPlus infoplus;
-	memset(&infoplus, 0, sizeof(StInfoPartPlus));
-	if (SvData & SDAT_Info) {
-		infoplus.nct = CellDivSingle->GetNct();
-		infoplus.npbin = NpbOk;
-		infoplus.npbout = Npb - NpbOk;
-		infoplus.npf = Np - Npb;
-		infoplus.npbper = NpbPer;
-		infoplus.npfper = NpfPer;
-		infoplus.memorycpualloc = this->GetAllocMemoryCpu();
-		infoplus.gpudata = false;
-		TimerSim.Stop();
-		infoplus.timesim = TimerSim.GetElapsedTimeD() / 1000.;
-	}
-
-	//-Stores particle data. | Graba datos de particulas.
-	const tdouble3 vdom[2] = { OrderDecode(CellDivSingle->GetDomainLimits(true)),OrderDecode(CellDivSingle->GetDomainLimits(false)) };
-
-	JSph::SaveData11_M(npsave, idp, pos, vel, rhop
-		, pore, press, mass, qf, vonMises, grVelSav, cellOSpr, gradvel, 1, vdom, &infoplus);
-	//-Free auxiliary memory for particle data. | Libera memoria auxiliar para datos de particulas.
-	ArraysCpu->Free(idp);
-	ArraysCpu->Free(pos);
-	ArraysCpu->Free(vel);
-	ArraysCpu->Free(rhop);
-	ArraysCpu->Free(pore);
-	ArraysCpu->Free(mass);
-	ArraysCpu->Free(volu);
-	ArraysCpu->Free(press);
-	ArraysCpu->Free(qf);
-	ArraysCpu->Free(vonMises);
-	ArraysCpu->Free(grVelSav);
-	ArraysCpu->Free(cellOSpr);
-	ArraysCpu->Free(gradvel);
 	TmcStop(Timers, TMC_SuSavePart);
 }
 

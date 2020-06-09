@@ -4,16 +4,13 @@
     <CudaCompile Include="..\source\FunctionsMath_ker.cu" />
     <CudaCompile Include="..\source\JCellDivGpu_ker.cu" />
     <CudaCompile Include="..\source\JCellDivGpuSingle_ker.cu" />
-    <CudaCompile Include="..\source\JGauge_ker.cu" />
     <CudaCompile Include="..\source\JReduSum_ker.cu" />
     <CudaCompile Include="..\source\JSphGpu_ker.cu" />
-    <CudaCompile Include="..\source\JWaveOrder2_ker.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\source\Functions.cpp" />
     <ClCompile Include="..\source\FunctionsCuda.cpp" />
     <ClCompile Include="..\source\FunctionsMath.cpp" />
-    <ClCompile Include="..\source\GenCaseBis_T.cpp" />
     <ClCompile Include="..\source\JArraysCpu.cpp" />
     <ClCompile Include="..\source\JBinaryData.cpp" />
     <ClCompile Include="..\source\JBlockSizeAuto.cpp" />
@@ -21,12 +18,9 @@
     <ClCompile Include="..\source\JCellDivCpuSingle.cpp" />
     <ClCompile Include="..\source\JCellDivGpu.cpp" />
     <ClCompile Include="..\source\JCellDivGpuSingle.cpp" />
-    <ClCompile Include="..\source\JDamping.cpp" />
     <ClCompile Include="..\source\JArraysGpu.cpp" />
     <ClCompile Include="..\source\JDsphConfig.cpp" />
     <ClCompile Include="..\source\JException.cpp" />
-    <ClCompile Include="..\source\JGaugeItem.cpp" />
-    <ClCompile Include="..\source\JGaugeSystem.cpp" />
     <ClCompile Include="..\source\JLog2.cpp" />
     <ClCompile Include="..\source\JMeanValues.cpp" />
     <ClCompile Include="..\source\JMotion.cpp" />
@@ -64,7 +58,6 @@
     <ClCompile Include="..\source\JSpaceEParms.cpp" />
     <ClCompile Include="..\source\JSph.cpp" />
     <ClCompile Include="..\source\JSphGpu.cpp" />
-    <ClCompile Include="..\source\JWaveSpectrumGpu.cpp" />
     <ClCompile Include="..\source\JXml.cpp" />
     <ClCompile Include="..\source\main.cpp" />
     <ClCompile Include="..\source\randomc.cpp" />
@@ -77,7 +70,6 @@
     <ClInclude Include="..\source\Functions.h" />
     <ClInclude Include="..\source\FunctionsCuda.h" />
     <ClInclude Include="..\source\FunctionsMath.h" />
-    <ClInclude Include="..\source\GenCaseBis_T.h" />
     <ClInclude Include="..\source\JArraysCpu.h" />
     <ClInclude Include="..\source\JBinaryData.h" />
     <ClInclude Include="..\source\JBlockSizeAuto.h" />
@@ -87,14 +79,10 @@
     <ClInclude Include="..\source\JCellDivGpuSingle.h" />
     <ClInclude Include="..\source\JCellDivGpuSingle_ker.h" />
     <ClInclude Include="..\source\JCellDivGpu_ker.h" />
-    <ClInclude Include="..\source\JDamping.h" />
     <ClInclude Include="..\source\JDsphConfig.h" />
     <ClInclude Include="..\source\JException.h" />
     <ClInclude Include="..\source\JFormatFiles2.h" />
     <ClInclude Include="..\source\JArraysGpu.h" />
-    <ClInclude Include="..\source\JGaugeItem.h" />
-    <ClInclude Include="..\source\JGaugeSystem.h" />
-    <ClInclude Include="..\source\JGauge_ker.h" />
     <ClInclude Include="..\source\JLog2.h" />
     <ClInclude Include="..\source\JMatrix4.h" />
     <ClInclude Include="..\source\JMeanValues.h" />
@@ -132,9 +120,6 @@
     <ClInclude Include="..\source\JTimeOut.h" />
     <ClInclude Include="..\source\JTimer.h" />
     <ClInclude Include="..\source\JTimerCuda.h" />
-    <ClInclude Include="..\source\JWaveGen.h" />
-    <ClInclude Include="..\source\JWaveOrder2_ker.h" />
-    <ClInclude Include="..\source\JWaveSpectrumGpu.h" />
     <ClInclude Include="..\source\JXml.h" />
     <ClInclude Include="..\source\OmpDefs.h" />
     <ClInclude Include="..\source\randomc.h" />

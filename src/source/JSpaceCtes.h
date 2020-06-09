@@ -115,7 +115,9 @@ private:
   // Matthias
   // Simulation choices
   int typeCase, typeCompression, typeGrowth, typeDivision, typeYoung;
+  float curvAM0;
   bool typeDev;
+
 
   // Bord mirroir
   double PlanMirror;
@@ -188,6 +190,7 @@ public:
   int GetCase()const { return typeCase; }
   int GetComp()const { return typeCompression; }
   int GetDiv()const { return typeDivision; }
+  float getAM0()const { return curvAM0; }
   int GetGrow()const { return typeGrowth; }
   int GetYoung()const { return typeYoung; }
   bool GetDev()const { return typeDev; }
@@ -244,6 +247,7 @@ public:
   void SetCase(int v) { typeCase = v; }
   void SetComp(int v) { typeCompression = v; }
   void SetDiv(int v) { typeDivision = v; }
+  void SetAM0(float v) { curvAM0 = v; }
   void SetGrow(int v) { typeGrowth = v; }
   void SetYoung(int v) { typeYoung = v; }
   void SetDev(bool v) { typeDev = v; }

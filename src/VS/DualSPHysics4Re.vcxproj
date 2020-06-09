@@ -104,10 +104,10 @@
     <CodeAnalysisRules Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" />
     <CodeAnalysisRuleAssemblies Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
     <CodeAnalysisRuleAssemblies Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" />
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">RootSPH_v34</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">RootSPH_v35</TargetName>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">RootSPH_v34_debug</TargetName>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='ReleaseCPU|x64'">RootSPH_v34</TargetName>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='DebugCPU|x64'">RootSPH_v34_debug</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='DebugCPU|x64'">RootSPH_v35a_debug</TargetName>
     <PreBuildEventUseInBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</PreBuildEventUseInBuild>
     <PreBuildEventUseInBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</PreBuildEventUseInBuild>
     <PreLinkEventUseInBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</PreLinkEventUseInBuild>
@@ -416,10 +416,6 @@ rem ***Sentencia de compilacion
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugCPU|x64'">true</ExcludedFromBuild>
       <FileType>Document</FileType>
     </CudaCompile>
-    <CudaCompile Include="..\source\JGauge_ker.cu">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseCPU|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugCPU|x64'">true</ExcludedFromBuild>
-    </CudaCompile>
     <CudaCompile Include="..\source\JReduSum_ker.cu">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseCPU|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugCPU|x64'">true</ExcludedFromBuild>
@@ -471,10 +467,6 @@ rem %CudaNvcc% -ccbin "$(VCInstallDir)bin" %gpuhw% -use_fast_math -c %ptxinfo% -
       </AdditionalInputs>
       <FileType>Document</FileType>
     </CudaCompile>
-    <CudaCompile Include="..\source\JWaveOrder2_ker.cu">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseCPU|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugCPU|x64'">true</ExcludedFromBuild>
-    </CudaCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\source\Functions.h" />
@@ -483,7 +475,6 @@ rem %CudaNvcc% -ccbin "$(VCInstallDir)bin" %gpuhw% -use_fast_math -c %ptxinfo% -
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugCPU|x64'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="..\source\FunctionsMath.h" />
-    <ClInclude Include="..\source\GenCaseBis_T.h" />
     <ClInclude Include="..\source\JArraysCpu.h" />
     <ClInclude Include="..\source\JBinaryData.h" />
     <ClInclude Include="..\source\JBlockSizeAuto.h">
@@ -508,17 +499,10 @@ rem %CudaNvcc% -ccbin "$(VCInstallDir)bin" %gpuhw% -use_fast_math -c %ptxinfo% -
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseCPU|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugCPU|x64'">true</ExcludedFromBuild>
     </ClInclude>
-    <ClInclude Include="..\source\JDamping.h" />
     <ClInclude Include="..\source\JDsphConfig.h" />
     <ClInclude Include="..\source\JException.h" />
     <ClInclude Include="..\source\JFormatFiles2.h" />
     <ClInclude Include="..\source\JArraysGpu.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseCPU|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugCPU|x64'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\source\JGaugeItem.h" />
-    <ClInclude Include="..\source\JGaugeSystem.h" />
-    <ClInclude Include="..\source\JGauge_ker.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseCPU|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugCPU|x64'">true</ExcludedFromBuild>
     </ClInclude>
@@ -573,12 +557,6 @@ rem %CudaNvcc% -ccbin "$(VCInstallDir)bin" %gpuhw% -use_fast_math -c %ptxinfo% -
     <ClInclude Include="..\source\JTimerCuda.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseCPU|x64'">true</ExcludedFromBuild>
     </ClInclude>
-    <ClInclude Include="..\source\JWaveGen.h" />
-    <ClInclude Include="..\source\JWaveOrder2_ker.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseCPU|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugCPU|x64'">true</ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\source\JWaveSpectrumGpu.h" />
     <ClInclude Include="..\source\JXml.h" />
     <ClInclude Include="..\source\OmpDefs.h" />
     <ClInclude Include="..\source\randomc.h" />
@@ -622,7 +600,6 @@ rem %CudaNvcc% -ccbin "$(VCInstallDir)bin" %gpuhw% -use_fast_math -c %ptxinfo% -
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugCPU|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\source\FunctionsMath.cpp" />
-    <ClCompile Include="..\source\GenCaseBis_T.cpp" />
     <ClCompile Include="..\source\JArraysCpu.cpp" />
     <ClCompile Include="..\source\JBinaryData.cpp" />
     <ClCompile Include="..\source\JBlockSizeAuto.cpp">
@@ -639,15 +616,12 @@ rem %CudaNvcc% -ccbin "$(VCInstallDir)bin" %gpuhw% -use_fast_math -c %ptxinfo% -
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseCPU|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugCPU|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\source\JDamping.cpp" />
     <ClCompile Include="..\source\JArraysGpu.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseCPU|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugCPU|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\source\JDsphConfig.cpp" />
     <ClCompile Include="..\source\JException.cpp" />
-    <ClCompile Include="..\source\JGaugeItem.cpp" />
-    <ClCompile Include="..\source\JGaugeSystem.cpp" />
     <ClCompile Include="..\source\JLog2.cpp" />
     <ClCompile Include="..\source\JMeanValues.cpp" />
     <ClCompile Include="..\source\JMotion.cpp" />
@@ -694,7 +668,6 @@ rem %CudaNvcc% -ccbin "$(VCInstallDir)bin" %gpuhw% -use_fast_math -c %ptxinfo% -
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseCPU|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugCPU|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\source\JWaveSpectrumGpu.cpp" />
     <ClCompile Include="..\source\JXml.cpp" />
     <ClCompile Include="..\source\main.cpp" />
     <ClCompile Include="..\source\randomc.cpp" />

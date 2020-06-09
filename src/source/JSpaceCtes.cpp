@@ -71,6 +71,7 @@ void JSpaceCtes::Reset(){
   Dp=0;
   //Matthias
   typeCase = typeCompression = typeDivision = typeGrowth = typeYoung = 0;
+  curvAM0 = 0.0f;
   typeDev = false;
   // Extension Domain
   BordDomain = 0;
@@ -257,13 +258,12 @@ void JSpaceCtes::ReadAddXmlRun_M(JXml *sxml, TiXmlElement* node) {
 	SetCase(sxml->ReadElementInt(node, "typeCase", "value"));
 	SetComp(sxml->ReadElementInt(node, "typeCompression", "value"));
 	SetDiv(sxml->ReadElementInt(node, "typeDivision", "value"));
+	SetAM0(sxml->ReadElementFloat(node, "typeDivision", "aM0"));
 	SetGrow(sxml->ReadElementInt(node, "typeGrowth", "value"));
 	SetYoung(sxml->ReadElementInt(node, "typeYoung", "value"));
 	SetDev(sxml->ReadElementBool(node, "typeDev", "value"));
 	SetDamp(sxml->ReadElementFloat(node, "damping", "value"));
 
-	//SetAnisotropyK(sxml->ReadElementDouble3(node, "anisotropyk"));
-	//SetAnisotropyG(sxml->ReadElementTsymatrix3f(node, "anisotropyg", "value"));
 
 }
 

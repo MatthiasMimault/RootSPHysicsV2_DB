@@ -25,13 +25,10 @@ You should have received a copy of the GNU Lesser General Public License along w
 #include "JSphMotion.h"
 #include "JArraysCpu.h"
 #include "JSphDtFixed.h"
-#include "JWaveGen.h"
-#include "JDamping.h"
 #include "JXml.h"
 #include "JSaveDt.h"
 #include "JTimeOut.h"
 #include "JSphAccInput.h"
-#include "JGaugeSystem.h"
 #include "TypesDef.h"
 
 #include <climits>
@@ -471,152 +468,6 @@ unsigned JSphSolidCpu::GetParticlesData(unsigned n, unsigned pini, bool cellorde
 	return(num);
 }
 
-
-//////////////////////////////////////
-// Collect data from a range of particles, update 1: add float3 deformation
-// V31-Dd
-//////////////////////////////////////
-unsigned JSphSolidCpu::GetParticlesData_M1(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
-	, unsigned* idp, tdouble3* pos, tfloat3* vel, float* rhop, float* pore, float* press, float* mass
-	, tsymatrix3f* qf, float* nabvx, float* vonMises, float* grVelSav, unsigned* cellOSpr, tfloat3* gradvel, typecode* code)
-{
-	const char met[] = "GetParticlesData";
-	unsigned num = n;
-	//-Copy selected values.
-	if (code)memcpy(code, Codec + pini, sizeof(typecode) * n);
-	if (idp)memcpy(idp, Idpc + pini, sizeof(unsigned) * n);
-	if (pos)memcpy(pos, Posc + pini, sizeof(tdouble3) * n);
-	if (vel && rhop) {
-		for (unsigned p = 0; p < n; p++) {
-			tfloat4 vr = Velrhopc[p + pini];
-			vel[p] = TFloat3(vr.x, vr.y, vr.z);
-			rhop[p] = vr.w;
-		}
-	}
-	else {
-		if (vel) for (unsigned p = 0; p < n; p++) { tfloat4 vr = Velrhopc[p + pini]; vel[p] = TFloat3(vr.x, vr.y, vr.z); }
-		if (rhop)for (unsigned p = 0; p < n; p++)rhop[p] = Velrhopc[p + pini].w;
-	}
-
-	// Matthias
-	if (pore)memcpy(pore, Porec_M + pini, sizeof(float) * n);
-	if (press) {
-		for (unsigned p = 0; p < n; p++) {
-			press[p] = CalcK(abs(MaxPosition().x - Posc[p].x)) / Gamma * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f);
-			//press[p] = -0.5f*RhopZero*float(Posc[p].x*Posc[p].x);
-		}
-	}
-	if (mass)memcpy(mass, Massc_M + pini, sizeof(float) * n);
-	if (qf)memcpy(qf, QuadFormc_M + pini, sizeof(tsymatrix3f) * n);
-	if (vonMises) memcpy(vonMises, VonMises + pini, sizeof(float) * n);
-	if (grVelSav) memcpy(grVelSav, GradVelSave + pini, sizeof(float) * n);
-	if (cellOSpr) memcpy(cellOSpr, CellOffSpring + pini, sizeof(unsigned) * n);
-	if (gradvel) memcpy(gradvel, StrainDotSave + pini, sizeof(tfloat3) * n);
-	
-
-	//-Eliminate non-normal particles (periodic & others). | Elimina particulas no normales (periodicas y otras).
-	if (onlynormal) {
-		printf("NonNormalPart_SavePart\n");
-		if (!idp || !pos || !vel || !rhop)RunException(met, "Pointers without data.");
-		typecode* code2 = code;
-		if (!code2) {
-			code2 = ArraysCpu->ReserveTypeCode();
-			memcpy(code2, Codec + pini, sizeof(typecode) * n);
-		}
-		unsigned ndel = 0;
-		for (unsigned p = 0; p < n; p++) {
-			bool normal = CODE_IsNormal(code2[p]);
-			if (ndel && normal) {
-				const unsigned pdel = p - ndel;
-				idp[pdel] = idp[p];
-				pos[pdel] = pos[p];
-				vel[pdel] = vel[p];
-				rhop[pdel] = rhop[p];
-				code2[pdel] = code2[p];
-			}
-			if (!normal)ndel++;
-		}
-		num -= ndel;
-		if (!code)ArraysCpu->Free(code2);
-	}
-	//-Reorder components in their original order. | Reordena componentes en su orden original.
-	if (cellorderdecode)DecodeCellOrder(n, pos, vel);
-	return(num);
-}
-
-
-//////////////////////////////////////
-// Collect data from a range of particles, update 1: add float3 deformation, remove NabVx
-// V32-Da
-//////////////////////////////////////
-unsigned JSphSolidCpu::GetParticlesData11_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
-	, unsigned* idp, tdouble3* pos, tfloat3* vel, float* rhop, float* pore, float* press, float* mass
-	, tsymatrix3f* qf, float* vonMises, float* grVelSav, unsigned* cellOSpr, tfloat3* gradvel, typecode* code)
-{
-	const char met[] = "GetParticlesData";
-	unsigned num = n;
-	//-Copy selected values.
-	if (code)memcpy(code, Codec + pini, sizeof(typecode) * n);
-	if (idp)memcpy(idp, Idpc + pini, sizeof(unsigned) * n);
-	if (pos)memcpy(pos, Posc + pini, sizeof(tdouble3) * n);
-	if (vel && rhop) {
-		for (unsigned p = 0; p < n; p++) {
-			tfloat4 vr = Velrhopc[p + pini];
-			vel[p] = TFloat3(vr.x, vr.y, vr.z);
-			rhop[p] = vr.w;
-		}
-	}
-	else {
-		if (vel) for (unsigned p = 0; p < n; p++) { tfloat4 vr = Velrhopc[p + pini]; vel[p] = TFloat3(vr.x, vr.y, vr.z); }
-		if (rhop)for (unsigned p = 0; p < n; p++)rhop[p] = Velrhopc[p + pini].w;
-	}
-
-	// Matthias
-	if (pore)memcpy(pore, Porec_M + pini, sizeof(float) * n);
-	if (press) {
-		for (unsigned p = 0; p < n; p++) {
-			press[p] = CalcK(abs(MaxPosition().x - Posc[p].x)) / Gamma * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f);
-			//press[p] = -0.5f*RhopZero*float(Posc[p].x*Posc[p].x);
-		}
-	}
-	if (mass)memcpy(mass, Massc_M + pini, sizeof(float) * n);
-	if (qf)memcpy(qf, QuadFormc_M + pini, sizeof(tsymatrix3f) * n);
-	if (vonMises) memcpy(vonMises, VonMises + pini, sizeof(float) * n);
-	if (grVelSav) memcpy(grVelSav, GradVelSave + pini, sizeof(float) * n);
-	if (cellOSpr) memcpy(cellOSpr, CellOffSpring + pini, sizeof(unsigned) * n);
-	if (gradvel) memcpy(gradvel, StrainDotSave + pini, sizeof(tfloat3) * n);
-
-
-	//-Eliminate non-normal particles (periodic & others). | Elimina particulas no normales (periodicas y otras).
-	if (onlynormal) {
-		printf("NonNormalPart_SavePart\n");
-		if (!idp || !pos || !vel || !rhop)RunException(met, "Pointers without data.");
-		typecode* code2 = code;
-		if (!code2) {
-			code2 = ArraysCpu->ReserveTypeCode();
-			memcpy(code2, Codec + pini, sizeof(typecode) * n);
-		}
-		unsigned ndel = 0;
-		for (unsigned p = 0; p < n; p++) {
-			bool normal = CODE_IsNormal(code2[p]);
-			if (ndel && normal) {
-				const unsigned pdel = p - ndel;
-				idp[pdel] = idp[p];
-				pos[pdel] = pos[p];
-				vel[pdel] = vel[p];
-				rhop[pdel] = rhop[p];
-				code2[pdel] = code2[p];
-			}
-			if (!normal)ndel++;
-		}
-		num -= ndel;
-		if (!code)ArraysCpu->Free(code2);
-	}
-	//-Reorder components in their original order. | Reordena componentes en su orden original.
-	if (cellorderdecode)DecodeCellOrder(n, pos, vel);
-	return(num);
-}
-
 //////////////////////////////////////
 // Collect data from a range of particles, update 1: add float3 deformation, remove NabVx
 // V34c
@@ -795,24 +646,7 @@ void JSphSolidCpu::InitRun() {
 
 	//-Process Special configurations in XML.
 	JXml xml; xml.LoadFile(FileXml);
-
-	//-Configuration of GaugeSystem.
-	GaugeSystem->Config(Simulate2D, Simulate2DPosY, TimeMax, TimePart, Dp, DomPosMin, DomPosMax, Scell, Hdiv, H, MassFluid);
-	if (xml.GetNode("case.execution.special.gauges", false))GaugeSystem->LoadXml(&xml, "case.execution.special.gauges");
-
-	//-Prepares WaveGen configuration.
-	if (WaveGen) {
-		Log->Print("Wave paddles configuration:");
-		WaveGen->Init(GaugeSystem, MkInfo, TimeMax, Gravity);
-		WaveGen->VisuConfig("", " ");
-	}
-
-	//-Prepares Damping configuration.
-	if (Damping) {
-		Damping->Config(CellOrder);
-		Damping->VisuConfig("Damping configuration:", " ");
-	}
-
+	
 	//-Prepares AccInput configuration.
 	if (AccInput) {
 		Log->Print("AccInput configuration:");
@@ -826,9 +660,6 @@ void JSphSolidCpu::InitRun() {
 		SaveDt->Config(&xml, "case.execution.special.savedt", TimeMax, TimePart);
 		SaveDt->VisuConfig("SaveDt configuration:", " ");
 	}
-
-	//-Shows configuration of JGaugeSystem.
-	if (GaugeSystem->GetCount())GaugeSystem->VisuConfig("GaugeSystem configuration:", " ");
 
 	//-Shows configuration of JTimeOut.
 	if (TimeOut->UseSpecialConfig())TimeOut->VisuConfig(Log, "TimeOut configuration:", " ");
@@ -897,24 +728,7 @@ void JSphSolidCpu::InitRun_Uni_M() {
 
 	//-Process Special configurations in XML.
 	JXml xml; xml.LoadFile(FileXml);
-
-	//-Configuration of GaugeSystem.
-	GaugeSystem->Config(Simulate2D, Simulate2DPosY, TimeMax, TimePart, Dp, DomPosMin, DomPosMax, Scell, Hdiv, H, MassFluid);
-	if (xml.GetNode("case.execution.special.gauges", false))GaugeSystem->LoadXml(&xml, "case.execution.special.gauges");
-
-	//-Prepares WaveGen configuration.
-	if (WaveGen) {
-		Log->Print("Wave paddles configuration:");
-		WaveGen->Init(GaugeSystem, MkInfo, TimeMax, Gravity);
-		WaveGen->VisuConfig("", " ");
-	}
-
-	//-Prepares Damping configuration.
-	if (Damping) {
-		Damping->Config(CellOrder);
-		Damping->VisuConfig("Damping configuration:", " ");
-	}
-
+	
 	//-Prepares AccInput configuration.
 	if (AccInput) {
 		Log->Print("AccInput configuration:");
@@ -928,9 +742,6 @@ void JSphSolidCpu::InitRun_Uni_M() {
 		SaveDt->Config(&xml, "case.execution.special.savedt", TimeMax, TimePart);
 		SaveDt->VisuConfig("SaveDt configuration:", " ");
 	}
-
-	//-Shows configuration of JGaugeSystem.
-	if (GaugeSystem->GetCount())GaugeSystem->VisuConfig("GaugeSystem configuration:", " ");
 
 	//-Shows configuration of JTimeOut.
 	if (TimeOut->UseSpecialConfig())TimeOut->VisuConfig(Log, "TimeOut configuration:", " ");
@@ -7579,7 +7390,7 @@ void JSphSolidCpu::RunMotion(double stepdt) {
 		}
 	}
 	//-Process other modes of motion. | Procesa otros modos de motion.
-	if (WaveGen) {
+	/*if (WaveGen) {
 		if (!BoundChanged)CalcRidp(PeriActive != 0, Npb, 0, CaseNfixed, CaseNfixed + CaseNmoving, Codec, Idpc, RidpMove);
 		BoundChanged = true;
 		//-Control of wave generation (WaveGen). | Gestion de WaveGen.
@@ -7604,17 +7415,9 @@ void JSphSolidCpu::RunMotion(double stepdt) {
 				//else    MoveMatBoundAce(np,pini,matmov,matmov2,stepdt,RidpMove,Posc,Dcellc,Velrhopc,Acec,Codec);
 			}
 		}
-	}
-	TmcStop(Timers, TMC_SuMotion);
-}
+	}*/
 
-//==============================================================================
-/// Applies Damping to selected particles.
-/// Aplica Damping a las particulas indicadas.
-//==============================================================================
-void JSphSolidCpu::RunDamping(double dt, unsigned np, unsigned npb, const tdouble3 *pos, const typecode *code, tfloat4 *velrhop)const {
-	if (CaseNfloat || PeriActive)Damping->ComputeDamping(TimeStep, dt, np - npb, npb, pos, code, velrhop);
-	else Damping->ComputeDamping(TimeStep, dt, np - npb, npb, pos, NULL, velrhop);
+	TmcStop(Timers, TMC_SuMotion);
 }
 
 //============================================================================== 

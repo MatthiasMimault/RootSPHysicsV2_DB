@@ -50,17 +50,14 @@ class JPartPData;
 class JSphDtFixed;
 class JSaveDt;
 class JSphVisco;
-class JWaveGen;
 class JSphAccInput;
 class JSpaceParts;
 class JPartDataBi4;
 class JPartOutBi4Save;
 class JPartFloatBi4Save;
 class JPartsOut;
-class JDamping;
 class JXml;
 class JTimeOut;
-class JGaugeSystem;
 
 //##############################################################################
 //# XML format of execution parameters in _FmtXML__Parameters.xml.
@@ -229,7 +226,7 @@ protected:
   // Simulation #choice markers
   int typeCase, typeGrowth, typeCompression, typeDivision, typeYoung;
   bool typeDev;
-  float dampCoef;
+  float dampCoef, aM0;
   // Plan mirroir
   float PlanMirror;
   // Extension Domain
@@ -306,12 +303,6 @@ protected:
 
   std::vector<std::string> InitializeInfo; ///<Stores information about initialize configuration applied.
 
-  JGaugeSystem *GaugeSystem;    ///<Object for automatic gauge system.
-
-  JWaveGen *WaveGen;            ///<Object for wave generation.
-
-  JDamping* Damping;            ///<Object for damping zones.
-
   JSphAccInput *AccInput;  ///<Object for variable acceleration functionality.
 
   TpCellOrder CellOrder;   ///<Defines axes' ordination of particles in cells. | Orden de ejes en ordenacion de particulas en celdas.
@@ -385,12 +376,8 @@ protected:
   llong GetAllocMemoryCpu()const;
 
   void LoadConfig(const JCfgRun *cfg);
-  void LoadConfig_T(const JCfgRun *cfg);
-  void LoadConfig_Mixed_M(const JCfgRun* cfg);
   void LoadConfig_Uni_M(const JCfgRun* cfg);
-  void UpdateXml_M(const JCfgRun* cfg);
   void LoadCaseConfig();
-  void LoadCaseConfig_T();
   void UpdateCaseConfig_Mixed_M();
 
   void VisuDemCoefficients()const;
@@ -446,15 +433,6 @@ protected:
 		  , const float* grVelSave, const unsigned* cellOSpr, tfloat3* gradvel, unsigned ndom, const tdouble3* vdom, const StInfoPartPlus* infoplus);
 	  
   void SaveData(unsigned npok,const unsigned *idp,const tdouble3 *pos,const tfloat3 *vel,const float *rhop,unsigned ndom,const tdouble3 *vdom,const StInfoPartPlus *infoplus);
-  void SaveData_M1(unsigned npok, const unsigned* idp, const tdouble3* pos, const tfloat3* vel, const float* rhop
-	  , const float* pore, const float* press, const float* mass, const tsymatrix3f* qf, const float* nabvx
-	  , const float* vonMises, const float* gradVelSav, unsigned* cellOSpr, tfloat3* gradvel, unsigned ndom, const tdouble3* vdom, const StInfoPartPlus* infoplus);
-  void SaveData11_M(unsigned npok, const unsigned* idp, const tdouble3* pos, const tfloat3* vel, const float* rhop
-	  , const float* pore, const float* press, const float* mass, const tsymatrix3f* qf
-	  , const float* vonMises, const float* gradVelSav, unsigned* cellOSpr, tfloat3* gradvel, unsigned ndom, const tdouble3* vdom, const StInfoPartPlus* infoplus);
-  void SavePartData11_M(unsigned npok, unsigned nout, const unsigned* idp, const tdouble3* pos, const tfloat3* vel, const float* rhop
-	  , const float* pore, const float* press, const float* massp, const tsymatrix3f* qfp, const float* vonMises
-	  , const float* grVelSave, const unsigned* cellOSpr, tfloat3* gradvel, unsigned ndom, const tdouble3* vdom, const StInfoPartPlus* infoplus);
   void SaveData12_M(unsigned npok, const unsigned* idp, const tdouble3* pos, const tfloat3* vel, const float* rhop
 	  , const float* pore, const float* press, const float* mass, const tsymatrix3f* qf
 	  , const float* vonMises, const float* gradVelSav, unsigned* cellOSpr, const tfloat3* gradvel, const tfloat3* ace, unsigned ndom, const tdouble3* vdom, const StInfoPartPlus* infoplus);

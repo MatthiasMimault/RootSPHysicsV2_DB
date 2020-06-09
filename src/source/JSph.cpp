@@ -26,21 +26,18 @@
 #include "JSpaceCtes.h"
 #include "JSpaceEParms.h"
 #include "JSpaceParts.h"
-#include "JFormatFiles2.h"
+//#include "JFormatFiles2.h"
 #include "JCellDivCpu.h"
 #include "JFormatFiles2.h"
 #include "JSphDtFixed.h"
 #include "JSaveDt.h"
 #include "JTimeOut.h"
 #include "JSphVisco.h"
-#include "JGaugeSystem.h"
-#include "JWaveGen.h"
 #include "JSphAccInput.h"
 #include "JPartDataBi4.h"
 #include "JPartOutBi4Save.h"
 #include "JPartFloatBi4.h"
 #include "JPartsOut.h"
-#include "JDamping.h"
 #include "JSphInitialize.h"
 #include <climits>
 #include <string>
@@ -72,9 +69,6 @@ JSph::JSph(bool cpu,bool withmpi):Cpu(cpu),WithMpi(withmpi){
   MotionObjBegin=NULL;
   FtObjs=NULL;
   DemData=NULL;
-  GaugeSystem=NULL;
-  WaveGen=NULL;
-  Damping=NULL;
   AccInput=NULL;
   InitVars();
 }
@@ -97,9 +91,6 @@ JSph::~JSph(){
   delete[] MotionObjBegin; MotionObjBegin=NULL;
   AllocMemoryFloating(0);
   delete[] DemData; DemData=NULL;
-  delete GaugeSystem;
-  delete WaveGen;
-  delete Damping;
   delete AccInput;
 }
 
@@ -149,6 +140,7 @@ void JSph::InitVars(){
   H=CteB=Gamma=RhopZero=CFLnumber=0;
   // Matthias
   typeCase = typeCompression = typeGrowth = typeDivision = typeYoung = 0;
+  aM0 = 0.0f;
   Dp=0;
   Cs0=0;
   Delta2H=0;
@@ -446,118 +438,6 @@ void JSph::LoadConfig(const JCfgRun *cfg){
 }
 
 //==============================================================================
-/// Loads the configuration of the execution and modify the xml.
-//==============================================================================
-void JSph::LoadConfig_Mixed_M(const JCfgRun* cfg) {
-	const char* met = "LoadConfig";
-	TimerTot.Start();
-	Stable = cfg->Stable;
-	Psingle = true; SvDouble = false; //-Options by default.
-	RunCommand = cfg->RunCommand;
-	RunPath = cfg->RunPath;
-	DirOut = fun::GetDirWithSlash(cfg->DirOut);
-	DirDataOut = (!cfg->DirDataOut.empty() ? fun::GetDirWithSlash(DirOut + cfg->DirDataOut) : DirOut);
-	CaseName = cfg->CaseName;
-	DirCase = fun::GetDirWithSlash(fun::GetDirParent(CaseName));
-	CaseName = CaseName.substr(DirCase.length());
-	if (!CaseName.length())RunException(met, "Name of the case for execution was not indicated.");
-	RunName = (cfg->RunName.length() ? cfg->RunName : CaseName);
-	FileXml = DirCase + CaseName + ".xml";
-	//Log->Printf("FileXml=\"%s\"", fun::GetPathLevels(fun::GetCanonicalPath(RunPath, FileXml), 3).c_str());
-	//Log->Printf("DirAddXml_M=\"%s\"", fun::GetPathLevels(fun::GetCanonicalPath(RunPath, DirAddXml_M), 3).c_str());
-	//Log->Printf("AddFileXml_M=\"%s\"", fun::GetPathLevels(fun::GetCanonicalPath(RunPath, AddFileXml_M), 3).c_str());
-	PartBeginDir = cfg->PartBeginDir; PartBegin = cfg->PartBegin; PartBeginFirst = cfg->PartBeginFirst;
-
-	//-Output options:
-	CsvSepComa = cfg->CsvSepComa;
-	SvData = byte(SDAT_None);
-	if (cfg->Sv_Csv && !WithMpi)SvData |= byte(SDAT_Csv);
-	if (cfg->Sv_Binx)SvData |= byte(SDAT_Binx);
-	if (cfg->Sv_Info)SvData |= byte(SDAT_Info);
-	if (cfg->Sv_Vtk)SvData |= byte(SDAT_Vtk);
-
-	SvRes = cfg->SvRes;
-	SvTimers = cfg->SvTimers;
-	SvDomainVtk = cfg->SvDomainVtk;
-
-	printf("\n");
-	RunTimeDate = fun::GetDateTime();
-	Log->Printf("[Initialising %s  %s]", ClassName.c_str(), RunTimeDate.c_str());
-
-	Log->Printf("ProgramFile=\"%s\"", fun::GetPathLevels(fun::GetCanonicalPath(RunPath, RunCommand), 3).c_str());
-	Log->Printf("ExecutionDir=\"%s\"", fun::GetPathLevels(RunPath, 3).c_str());
-	Log->Printf("XmlFile=\"%s\"", fun::GetPathLevels(fun::GetCanonicalPath(RunPath, FileXml), 3).c_str());
-	//Log->Printf("AddXmlFile_M=\"%s\"", fun::GetPathLevels(fun::GetCanonicalPath(RunPath, AddFileXml_M), 3).c_str());
-	Log->Printf("OutputDir=\"%s\"", fun::GetPathLevels(fun::GetCanonicalPath(RunPath, DirOut), 3).c_str());
-	Log->Printf("OutputDataDir=\"%s\"", fun::GetPathLevels(fun::GetCanonicalPath(RunPath, DirDataOut), 3).c_str());
-
-	if (PartBegin) {
-		Log->Print(fun::VarStr("PartBegin", PartBegin));
-		Log->Print(fun::VarStr("PartBeginDir", PartBeginDir));
-		Log->Print(fun::VarStr("PartBeginFirst", PartBeginFirst));
-	}
-
-	// Load and update case
-	// #XMLUpdate
-	UpdateCaseConfig_Mixed_M();
-	LoadCaseConfig();
-	
-
-	//-Aplies configuration using command line.
-	if (cfg->PosDouble == 0) { Psingle = true;  SvDouble = false; }
-	else if (cfg->PosDouble == 1) { Psingle = false; SvDouble = false; }
-	else if (cfg->PosDouble == 2) { Psingle = false; SvDouble = true; }
-	if (cfg->TStep)TStep = cfg->TStep;
-	if (cfg->VerletSteps >= 0)VerletSteps = cfg->VerletSteps;
-	if (cfg->TKernel)TKernel = cfg->TKernel;
-	if (cfg->TVisco) { TVisco = cfg->TVisco; Visco = cfg->Visco; }
-	if (cfg->ViscoBoundFactor >= 0)ViscoBoundFactor = cfg->ViscoBoundFactor;
-	if (cfg->DeltaSph >= 0) {
-		DeltaSph = cfg->DeltaSph;
-		TDeltaSph = (DeltaSph ? DELTA_Dynamic : DELTA_None);
-	}
-	if (TDeltaSph == DELTA_Dynamic && Cpu)TDeltaSph = DELTA_DynamicExt; //-It is necessary because the interaction is divided in two steps: fluid-fluid/float and fluid-bound.
-
-	// #Shift
-	if (cfg->Shifting >= 0) {
-		switch (cfg->Shifting) {
-		case 0:  TShifting = SHIFT_None;     break;
-		case 1:  TShifting = SHIFT_NoBound;  break;
-		case 2:  TShifting = SHIFT_NoFixed;  break;
-		case 3:  TShifting = SHIFT_Full;     break;
-		default: RunException(met, "Shifting mode is not valid.");
-		}
-		if (TShifting != SHIFT_None) {
-			ShiftCoef = -2; ShiftTFS = 0;
-		}
-		else ShiftCoef = ShiftTFS = 0;
-	}
-
-	if (cfg->FtPause >= 0)FtPause = cfg->FtPause;
-	if (cfg->TimeMax > 0)TimeMax = cfg->TimeMax;
-	//-Configuration of JTimeOut with TimePart.
-	TimeOut = new JTimeOut();
-	if (cfg->TimePart >= 0) {
-		TimePart = cfg->TimePart;
-		TimeOut->Config(TimePart);
-	}
-	else TimeOut->Config(FileXml, "case.execution.special.timeout", TimePart);
-
-	CellOrder = cfg->CellOrder;
-	CellMode = cfg->CellMode;
-	if (cfg->DomainMode == 1) {
-		ConfigDomainParticles(cfg->DomainParticlesMin, cfg->DomainParticlesMax);
-		ConfigDomainParticlesPrc(cfg->DomainParticlesPrcMin, cfg->DomainParticlesPrcMax);
-	}
-	else if (cfg->DomainMode == 2)ConfigDomainFixed(cfg->DomainFixedMin, cfg->DomainFixedMax);
-	if (cfg->RhopOutModif) {
-		RhopOutMin = cfg->RhopOutMin; RhopOutMax = cfg->RhopOutMax;
-	}
-	RhopOut = (RhopOutMin < RhopOutMax);
-	if (!RhopOut) { RhopOutMin = -FLT_MAX; RhopOutMax = FLT_MAX; }
-}
-
-//==============================================================================
 /// Loads the configuration of the execution and modify the xml - Unified version
 //==============================================================================
 void JSph::LoadConfig_Uni_M(const JCfgRun* cfg) {
@@ -667,113 +547,6 @@ void JSph::LoadConfig_Uni_M(const JCfgRun* cfg) {
 		RhopOutMin = cfg->RhopOutMin; RhopOutMax = cfg->RhopOutMax;
 	}
 	RhopOut = (RhopOutMin < RhopOutMax);
-	if (!RhopOut) { RhopOutMin = -FLT_MAX; RhopOutMax = FLT_MAX; }
-}
-
-//==============================================================================
-/// Loads the configuration of the execution.
-//==============================================================================
-void JSph::LoadConfig_T(const JCfgRun *cfg) {
-	const char* met = "LoadConfig";
-	TimerTot.Start();
-	Stable = cfg->Stable;
-	Psingle = true; SvDouble = false; //-Options by default.
-	RunCommand = cfg->RunCommand;
-	RunPath = cfg->RunPath;
-	DirOut = fun::GetDirWithSlash(cfg->DirOut);
-	DirDataOut = (!cfg->DirDataOut.empty() ? fun::GetDirWithSlash(DirOut + cfg->DirDataOut) : DirOut);
-	CaseName = cfg->CaseName;
-	DirCase = fun::GetDirWithSlash(fun::GetDirParent(CaseName));
-	CaseName = CaseName.substr(DirCase.length());
-	if (!CaseName.length())RunException(met, "Name of the case for execution was not indicated.");
-	RunName = (cfg->RunName.length() ? cfg->RunName : CaseName);
-	FileXml = DirCase + CaseName + ".xml";
-	//Log->Printf("FileXml=\"%s\"", fun::GetPathLevels(fun::GetCanonicalPath(RunPath, FileXml), 3).c_str());
-	//Log->Printf("DirAddXml_M=\"%s\"", fun::GetPathLevels(fun::GetCanonicalPath(RunPath, DirAddXml_M), 3).c_str());
-	//Log->Printf("AddFileXml_M=\"%s\"", fun::GetPathLevels(fun::GetCanonicalPath(RunPath, AddFileXml_M), 3).c_str());
-	PartBeginDir = cfg->PartBeginDir; PartBegin = cfg->PartBegin; PartBeginFirst = cfg->PartBeginFirst;
-
-	//-Output options:
-	CsvSepComa = cfg->CsvSepComa;
-	SvData = byte(SDAT_None);
-	if (cfg->Sv_Csv && !WithMpi)SvData |= byte(SDAT_Csv);
-	if (cfg->Sv_Binx)SvData |= byte(SDAT_Binx);
-	if (cfg->Sv_Info)SvData |= byte(SDAT_Info);
-	if (cfg->Sv_Vtk)SvData |= byte(SDAT_Vtk);
-
-	SvRes = cfg->SvRes;
-	SvTimers = cfg->SvTimers;
-	SvDomainVtk = cfg->SvDomainVtk;
-
-	printf("\n");
-	RunTimeDate = fun::GetDateTime();
-	Log->Printf("[Initialising %s  %s]", ClassName.c_str(), RunTimeDate.c_str());
-
-	Log->Printf("ProgramFile=\"%s\"", fun::GetPathLevels(fun::GetCanonicalPath(RunPath, RunCommand), 3).c_str());
-	Log->Printf("ExecutionDir=\"%s\"", fun::GetPathLevels(RunPath, 3).c_str());
-	Log->Printf("XmlFile=\"%s\"", fun::GetPathLevels(fun::GetCanonicalPath(RunPath, FileXml), 3).c_str());
-	//Log->Printf("AddXmlFile_M=\"%s\"", fun::GetPathLevels(fun::GetCanonicalPath(RunPath, AddFileXml_M), 3).c_str());
-	Log->Printf("OutputDir=\"%s\"", fun::GetPathLevels(fun::GetCanonicalPath(RunPath, DirOut), 3).c_str());
-	Log->Printf("OutputDataDir=\"%s\"", fun::GetPathLevels(fun::GetCanonicalPath(RunPath, DirDataOut), 3).c_str());
-
-	if (PartBegin) {
-		Log->Print(fun::VarStr("PartBegin", PartBegin));
-		Log->Print(fun::VarStr("PartBeginDir", PartBeginDir));
-		Log->Print(fun::VarStr("PartBeginFirst", PartBeginFirst));
-	}
-
-	LoadCaseConfig_T();
-
-	//-Aplies configuration using command line.
-	if (cfg->PosDouble == 0) { Psingle = true;  SvDouble = false; }
-	else if (cfg->PosDouble == 1) { Psingle = false; SvDouble = false; }
-	else if (cfg->PosDouble == 2) { Psingle = false; SvDouble = true; }
-	if (cfg->TStep)TStep = cfg->TStep;
-	if (cfg->VerletSteps >= 0)VerletSteps = cfg->VerletSteps;
-	if (cfg->TKernel)TKernel = cfg->TKernel;
-	if (cfg->TVisco) { TVisco = cfg->TVisco; Visco = cfg->Visco; }
-	if (cfg->ViscoBoundFactor >= 0)ViscoBoundFactor = cfg->ViscoBoundFactor;
-	if (cfg->DeltaSph >= 0) {
-		DeltaSph = cfg->DeltaSph;
-		TDeltaSph = (DeltaSph ? DELTA_Dynamic : DELTA_None);
-	}
-	if (TDeltaSph == DELTA_Dynamic && Cpu)TDeltaSph = DELTA_DynamicExt; //-It is necessary because the interaction is divided in two steps: fluid-fluid/float and fluid-bound.
-
-	if (cfg->Shifting >= 0) {
-		switch (cfg->Shifting) {
-		case 0:  TShifting = SHIFT_None;     break;
-		case 1:  TShifting = SHIFT_NoBound;  break;
-		case 2:  TShifting = SHIFT_NoFixed;  break;
-		case 3:  TShifting = SHIFT_Full;     break;
-		default: RunException(met, "Shifting mode is not valid.");
-		}
-		if (TShifting != SHIFT_None) {
-			ShiftCoef = -2; ShiftTFS = 0;
-		}
-		else ShiftCoef = ShiftTFS = 0;
-	}
-
-	if (cfg->FtPause >= 0)FtPause = cfg->FtPause;
-	if (cfg->TimeMax>0)TimeMax = cfg->TimeMax;
-	//-Configuration of JTimeOut with TimePart.
-	TimeOut = new JTimeOut();
-	if (cfg->TimePart >= 0) {
-		TimePart = cfg->TimePart;
-		TimeOut->Config(TimePart);
-	}
-	else TimeOut->Config(FileXml, "case.execution.special.timeout", TimePart);
-
-	CellOrder = cfg->CellOrder;
-	CellMode = cfg->CellMode;
-	if (cfg->DomainMode == 1) {
-		ConfigDomainParticles(cfg->DomainParticlesMin, cfg->DomainParticlesMax);
-		ConfigDomainParticlesPrc(cfg->DomainParticlesPrcMin, cfg->DomainParticlesPrcMax);
-	}
-	else if (cfg->DomainMode == 2)ConfigDomainFixed(cfg->DomainFixedMin, cfg->DomainFixedMax);
-	if (cfg->RhopOutModif) {
-		RhopOutMin = cfg->RhopOutMin; RhopOutMax = cfg->RhopOutMax;
-	}
-	RhopOut = (RhopOutMin<RhopOutMax);
 	if (!RhopOut) { RhopOutMin = -FLT_MAX; RhopOutMax = FLT_MAX; }
 }
 
@@ -918,6 +691,7 @@ void JSph::LoadCaseConfig(){
   //typeCase = ctes.GetCase();
   typeCompression = ctes.GetComp();
   typeDivision = ctes.GetDiv();
+  aM0 = ctes.getAM0();
   typeGrowth = ctes.GetGrow();
   typeYoung = ctes.GetYoung();
   typeDev = ctes.GetDev();
@@ -935,58 +709,7 @@ void JSph::LoadCaseConfig(){
   Gf = (float)ctes.GetShear();
   dampCoef = (float)ctes.GetDamp();
 
-  //#Constants
-  /*if (Simulate2D) {
-	  printf("Choix 2D\n");
-	  C1 = Delta * (1.0f - nuyz) / nf;
-	  C2 = 0.0f;
-	  C3 = Delta * (1.0f - nf * nuxy*nuxy) / (1.0f + nuyz);
-	  C12 = 0.0f;
-	  C13 = Delta * nuxy;
-	  C23 = 0.0f;
-
-	  C4 = Ey / (2.0f + 2.0f*nuxy); C5 = 0.0f; C6 = Gf;
-
-	  //K = (C1 + C3) / 2.0f;
-
-	  S1 = 1 / Ex;		S12 = 0.0f; S13 = -nuxy / Ex;
-	  S21 = 0.0f;		S2 = 0.0f;	S23 = 0.0f;
-	  S31 = -nuxy / Ex; S32 = 0.0f; S3 = 1 / Ey;
-	  Kani = 1 / (S1 + S12 + S13 + S21 + S2 + S23 + S31 + S32 + S3);
-
-  }
-  else {
-	  printf("Choix 3D\n");
-	  C1 = Delta * (1.0f - nuyz) / nf;
-	  C2 = C3 = Delta * (1.0f - nf * nuxy*nuxy) / (1.0f + nuyz);
-	  C12 = C13 = Delta * nuxy;
-	  C23 = Delta * (nuyz + nf * nuxy*nuxy) / (1.0f + nuyz);
-
-	  C4 = Ey / (2.0f + 2.0f*nuxy); C5 = Gf; C6 = Gf;
-  
-	  //K = (C1 + C2 + C3) / 3.0f;
-  
-	  S1 = 1 / Ex; S12 = -nuxy / Ex; S13 = -nuxy / Ex;
-	  S21 = -nuxy / Ex; S2 = 1 / Ey; S23 = -nuyz / Ey;
-	  S31 = -nuxy / Ex; S32 = -nuyz / Ey; S3 = 1 / Ey;
-	  Kani = 1 / (S1 + S12 + S13 + S21 + S2 + S23 + S31 + S32 + S3);
-	  //K_M = TFloat3(Kani, Kani, Kani);
-  }
-  
-
-  printf("///\n");
-  printf("C1 = %.3f, C12 = %.3f, C13 = %.3f\n", C1, C12, C13);
-  printf("C12 = %.3f, C2 = %.3f, C23 = %.3f\n", C12, C2, C23);
-  printf("C13 = %.3f, C23 = %.3f, C3 = %.3f\n", C13, C23, C3);
-  //printf("K_M = (%.3f,%.3f,%.3f)\n", K_M.x, K_M.y, K_M.z);
-  printf("S1 = %.8f, S12 = %.8f, S13 = %.8f\n", S1, S12, S13);
-  printf("S12 = %.8f, S2 = %.8f, S23 = %.8f\n", S12, S2, S23);
-  printf("S13 = %.8f, S23 = %.8f, S3 = %.8f\n", S13, S23, S3);
-
-  // New B for anisotropy
-  CteB = Kani / ( Gamma ) ;*/
-  //CteB_M = TFloat3(K_M.x / Gamma, K_M.y / Gamma, K_M.z / Gamma);
- 
+  //#Constants 
   // Pore
   PoreZero = (float)ctes.GetPoreZero();
   // Mass
@@ -1016,21 +739,6 @@ void JSph::LoadCaseConfig(){
   MkInfo=new JSphMk();
   MkInfo->Config(&parts);
 
-  //-Configuration of GaugeSystem.
-  GaugeSystem=new JGaugeSystem(Cpu,Log);
-
-  //-Configuration of WaveGen.
-  if(xml.GetNode("case.execution.special.wavepaddles",false)){
-    bool useomp=false,usegpu=false;
-    #ifdef OMP_USE_WAVEGEN
-      useomp=(omp_get_max_threads()>1);
-    #endif
-    #ifdef _WITHGPU
-      usegpu=!Cpu;
-    #endif
-    WaveGen=new JWaveGen(useomp,usegpu,Log,DirCase,&xml,"case.execution.special.wavepaddles");
-  }
-
   //-Configuration of AccInput.
   if(xml.GetNode("case.execution.special.accinputs",false)){
     AccInput=new JSphAccInput(Log,DirCase,&xml,"case.execution.special.accinputs");
@@ -1052,7 +760,7 @@ void JSph::LoadCaseConfig(){
         //:printf("block[%2d]=%d -> %d\n",c,block.GetBegin(),block.GetCount());
         MotionObjBegin[cmot]=block.GetBegin();
         MotionObjBegin[cmot+1]=MotionObjBegin[cmot]+block.GetCount();
-        if(WaveGen)WaveGen->ConfigPaddle(block.GetMkType(),cmot,block.GetBegin(),block.GetCount());
+        //if(WaveGen)WaveGen->ConfigPaddle(block.GetMkType(),cmot,block.GetBegin(),block.GetCount());
         cmot++;
       }
     }
@@ -1062,12 +770,6 @@ void JSph::LoadCaseConfig(){
   if(MotionObjCount){
     Motion=new JSphMotion();
     if(int(MotionObjCount)<Motion->Init(&xml,"case.execution.motion",DirCase))RunException(met,"The number of mobile objects is lower than expected.");
-  }
-
-  //-Configuration of damping zones.
-  if(xml.GetNode("case.execution.special.damping",false)){
-    Damping=new JDamping(Log);
-    Damping->LoadXml(&xml,"case.execution.special.damping");
   }
 
   //-Loads floating objects.
@@ -1131,298 +833,6 @@ void JSph::LoadCaseConfig(){
 
   NpMinimum=CaseNp-unsigned(PartsOutMax*CaseNfluid);
   Log->Print("**Basic case configuration is loaded");
-}
-
-//==============================================================================
-/// Loads the case configuration to be executed.
-//==============================================================================
-void JSph::LoadCaseConfig_T() {
-	const char* met = "LoadCaseConfig";
-	if (!fun::FileExists(FileXml))RunException(met, "Case configuration was not found.", FileXml);
-	JXml xml; xml.LoadFile(FileXml);
-	JSpaceCtes ctes;     ctes.LoadXmlRun_T(&xml, "case.execution.constants");
-	//ctes.LoadAddXmlRun_M(&addXml, "case.constantsdef");
-	ctes.LoadAddXmlRun_M(&xml, "case.casedef.constantsdef");
-	JSpaceEParms eparms; eparms.LoadXml(&xml, "case.execution.parameters");
-	JSpaceParts parts;   parts.LoadXml(&xml, "case.execution.particles");
-
-	//-Execution parameters.
-	switch (eparms.GetValueInt("PosDouble", true, 0)) {
-	case 0:  Psingle = true;  SvDouble = false;  break;
-	case 1:  Psingle = false; SvDouble = false;  break;
-	case 2:  Psingle = false; SvDouble = true;   break;
-	default: RunException(met, "PosDouble value is not valid.");
-	}
-	switch (eparms.GetValueInt("RigidAlgorithm", true, 1)) { //(DEM)
-	case 1:  UseDEM = false;  break;
-	case 2:  UseDEM = true;   break;
-	default: RunException(met, "Rigid algorithm is not valid.");
-	}
-	switch (eparms.GetValueInt("StepAlgorithm", true, 1)) {
-	case 1:  TStep = STEP_Verlet;      break;
-	case 2:  TStep = STEP_Symplectic;  break;
-	case 3:  TStep = STEP_Euler;  break;
-	default: RunException(met, "Step algorithm is not valid.");
-	}
-	VerletSteps = eparms.GetValueInt("VerletSteps", true, 40);
-	switch (eparms.GetValueInt("Kernel", true, 2)) {
-	case 1:  TKernel = KERNEL_Cubic;     break;
-	case 2:  TKernel = KERNEL_Wendland;  break;
-	case 3:  TKernel = KERNEL_Gaussian;  break;
-	default: RunException(met, "Kernel choice is not valid.");
-	}
-	switch (eparms.GetValueInt("ViscoTreatment", true, 1)) {
-	case 1:  TVisco = VISCO_Artificial;  break;
-	case 2:  TVisco = VISCO_LaminarSPS;  break;
-	default: RunException(met, "Viscosity treatment is not valid.");
-	}
-	Visco = eparms.GetValueFloat("Visco");
-	ViscoBoundFactor = eparms.GetValueFloat("ViscoBoundFactor", true, 1.f);
-	string filevisco = eparms.GetValueStr("ViscoTime", true);
-	if (!filevisco.empty()) {
-		ViscoTime = new JSphVisco();
-		ViscoTime->LoadFile(DirCase + filevisco);
-	}
-	DeltaSph = eparms.GetValueFloat("DeltaSPH", true, 0);
-	TDeltaSph = (DeltaSph ? DELTA_Dynamic : DELTA_None);
-
-	switch (eparms.GetValueInt("Shifting", true, 0)) {
-	case 0:  TShifting = SHIFT_None;     break;
-	case 1:  TShifting = SHIFT_NoBound;  break;
-	case 2:  TShifting = SHIFT_NoFixed;  break;
-	case 3:  TShifting = SHIFT_Full;     break;
-	default: RunException(met, "Shifting mode is not valid.");
-	}
-	if (TShifting != SHIFT_None) {
-		ShiftCoef = eparms.GetValueFloat("ShiftCoef", true, -2);
-		if (ShiftCoef == 0)TShifting = SHIFT_None;
-		else ShiftTFS = eparms.GetValueFloat("ShiftTFS", true, 0);
-	}
-
-	FtPause = eparms.GetValueFloat("FtPause", true, 0);
-	TimeMax = eparms.GetValueDouble("TimeMax");
-	TimePart = eparms.GetValueDouble("TimeOut");
-
-	DtIni = eparms.GetValueDouble("DtIni", true, 0);
-	DtMin = eparms.GetValueDouble("DtMin", true, 0);
-	CoefDtMin = eparms.GetValueFloat("CoefDtMin", true, 0.05f);
-	DtAllParticles = (eparms.GetValueInt("DtAllParticles", true, 0) == 1);
-
-	string filedtfixed = eparms.GetValueStr("DtFixed", true);
-	if (!filedtfixed.empty()) {
-		DtFixed = new JSphDtFixed();
-		DtFixed->LoadFile(DirCase + filedtfixed);
-	}
-	if (eparms.Exists("RhopOutMin"))RhopOutMin = eparms.GetValueFloat("RhopOutMin");
-	if (eparms.Exists("RhopOutMax"))RhopOutMax = eparms.GetValueFloat("RhopOutMax");
-	PartsOutMax = eparms.GetValueFloat("PartsOutMax", true, 1);
-
-	//-Configuration of periodic boundaries.
-	if (eparms.Exists("XPeriodicIncY")) { PeriXinc.y = eparms.GetValueDouble("XPeriodicIncY"); PeriX = true; }
-	if (eparms.Exists("XPeriodicIncZ")) { PeriXinc.z = eparms.GetValueDouble("XPeriodicIncZ"); PeriX = true; }
-	if (eparms.Exists("YPeriodicIncX")) { PeriYinc.x = eparms.GetValueDouble("YPeriodicIncX"); PeriY = true; }
-	if (eparms.Exists("YPeriodicIncZ")) { PeriYinc.z = eparms.GetValueDouble("YPeriodicIncZ"); PeriY = true; }
-	if (eparms.Exists("ZPeriodicIncX")) { PeriZinc.x = eparms.GetValueDouble("ZPeriodicIncX"); PeriZ = true; }
-	if (eparms.Exists("ZPeriodicIncY")) { PeriZinc.y = eparms.GetValueDouble("ZPeriodicIncY"); PeriZ = true; }
-	if (eparms.Exists("XYPeriodic")) { PeriXY = PeriX = PeriY = true; PeriXZ = PeriYZ = false; PeriXinc = PeriYinc = TDouble3(0); }
-	if (eparms.Exists("XZPeriodic")) { PeriXZ = PeriX = PeriZ = true; PeriXY = PeriYZ = false; PeriXinc = PeriZinc = TDouble3(0); }
-	if (eparms.Exists("YZPeriodic")) { PeriYZ = PeriY = PeriZ = true; PeriXY = PeriXZ = false; PeriYinc = PeriZinc = TDouble3(0); }
-	PeriActive = (PeriX ? 1 : 0) + (PeriY ? 2 : 0) + (PeriZ ? 4 : 0);
-
-	//-Configuration of domain size.
-	float incz = eparms.GetValueFloat("IncZ", true, 0.f);
-	if (incz) {
-		ClearCfgDomain();
-		CfgDomainParticlesPrcMax.z = incz;
-	}
-	string key;
-	if (eparms.Exists(key = "DomainParticles"))ConfigDomainParticles(TDouble3(eparms.GetValueNumDouble(key, 0), eparms.GetValueNumDouble(key, 1), eparms.GetValueNumDouble(key, 2)), TDouble3(eparms.GetValueNumDouble(key, 3), eparms.GetValueNumDouble(key, 4), eparms.GetValueNumDouble(key, 5)));
-	if (eparms.Exists(key = "DomainParticlesXmin"))ConfigDomainParticlesValue(key, -eparms.GetValueDouble(key));
-	if (eparms.Exists(key = "DomainParticlesYmin"))ConfigDomainParticlesValue(key, -eparms.GetValueDouble(key));
-	if (eparms.Exists(key = "DomainParticlesZmin"))ConfigDomainParticlesValue(key, -eparms.GetValueDouble(key));
-	if (eparms.Exists(key = "DomainParticlesXmax"))ConfigDomainParticlesValue(key, eparms.GetValueDouble(key));
-	if (eparms.Exists(key = "DomainParticlesYmax"))ConfigDomainParticlesValue(key, eparms.GetValueDouble(key));
-	if (eparms.Exists(key = "DomainParticlesZmax"))ConfigDomainParticlesValue(key, eparms.GetValueDouble(key));
-	if (eparms.Exists(key = "DomainParticlesPrc"))ConfigDomainParticlesPrc(TDouble3(eparms.GetValueNumDouble(key, 0), eparms.GetValueNumDouble(key, 1), eparms.GetValueNumDouble(key, 2)), TDouble3(eparms.GetValueNumDouble(key, 3), eparms.GetValueNumDouble(key, 4), eparms.GetValueNumDouble(key, 5)));
-	if (eparms.Exists(key = "DomainParticlesPrcXmin"))ConfigDomainParticlesPrcValue(key, -eparms.GetValueDouble(key));
-	if (eparms.Exists(key = "DomainParticlesPrcYmin"))ConfigDomainParticlesPrcValue(key, -eparms.GetValueDouble(key));
-	if (eparms.Exists(key = "DomainParticlesPrcZmin"))ConfigDomainParticlesPrcValue(key, -eparms.GetValueDouble(key));
-	if (eparms.Exists(key = "DomainParticlesPrcXmax"))ConfigDomainParticlesPrcValue(key, eparms.GetValueDouble(key));
-	if (eparms.Exists(key = "DomainParticlesPrcYmax"))ConfigDomainParticlesPrcValue(key, eparms.GetValueDouble(key));
-	if (eparms.Exists(key = "DomainParticlesPrcZmax"))ConfigDomainParticlesPrcValue(key, eparms.GetValueDouble(key));
-	if (eparms.Exists(key = "DomainFixed"))ConfigDomainFixed(TDouble3(eparms.GetValueNumDouble(key, 0), eparms.GetValueNumDouble(key, 1), eparms.GetValueNumDouble(key, 2)), TDouble3(eparms.GetValueNumDouble(key, 3), eparms.GetValueNumDouble(key, 4), eparms.GetValueNumDouble(key, 5)));
-	if (eparms.Exists(key = "DomainFixedXmin"))ConfigDomainFixedValue(key, eparms.GetValueDouble(key));
-	if (eparms.Exists(key = "DomainFixedYmin"))ConfigDomainFixedValue(key, eparms.GetValueDouble(key));
-	if (eparms.Exists(key = "DomainFixedZmin"))ConfigDomainFixedValue(key, eparms.GetValueDouble(key));
-	if (eparms.Exists(key = "DomainFixedXmax"))ConfigDomainFixedValue(key, eparms.GetValueDouble(key));
-	if (eparms.Exists(key = "DomainFixedYmax"))ConfigDomainFixedValue(key, eparms.GetValueDouble(key));
-	if (eparms.Exists(key = "DomainFixedZmax"))ConfigDomainFixedValue(key, eparms.GetValueDouble(key));
-
-	//-Predefined constantes.
-	if (ctes.GetEps() != 0)Log->PrintWarning("Eps value is not used (this correction is deprecated).");
-	H = (float)ctes.GetH();
-	//CteB = (float)ctes.GetB();
-	Gamma = (float)ctes.GetGamma();
-	RhopZero = (float)ctes.GetRhop0();
-	CFLnumber = (float)ctes.GetCFLnumber();
-	Dp = ctes.GetDp();
-	Gravity = ToTFloat3(ctes.GetGravity());
-	MassFluid = (float)ctes.GetMassFluid();
-	MassBound = (float)ctes.GetMassBound();
-	//Matthias
-  // Extension domain
-	BordDomain = (float)ctes.GetBordDomain();
-	// Solid anisotropic
-	Ex = (float)ctes.GetYoungX();
-	Ey = (float)ctes.GetYoungY();
-	nuxy = (float)ctes.GetPoissonXY();
-	nuyz = (float)ctes.GetPoissonYZ();
-	Gf = (float)ctes.GetShear();
-
-	// Pore
-	PoreZero = (float)ctes.GetPoreZero();
-	// Mass
-	LambdaMass = (float)ctes.GetLambdaMass();
-	// Cell division
-	SizeDivision_M = (float)ctes.GetSizeDivision();
-	LocDiv_M = (tdouble3)ctes.GetLocalDivision();
-	VelDivCoef_M = (float)ctes.GetVelocityDivisionCoef();
-	Spread_M = (float)ctes.GetSpreadDivision();
-	// Anisotropy
-	AnisotropyK_M = ToTFloat3(ctes.GetAnisotropyK());
-	AnisotropyG_M = ctes.GetAnisotropyG();
-
-	//-Particle data.
-	CaseNp = parts.Count();
-	CaseNfixed = parts.Count(PT_Fixed);
-	CaseNmoving = parts.Count(PT_Moving);
-	CaseNfloat = parts.Count(PT_Floating);
-	CaseNfluid = parts.Count(PT_Fluid);
-	CaseNbound = CaseNp - CaseNfluid;
-	CaseNpb = CaseNbound - CaseNfloat;
-
-	NpDynamic = ReuseIds = false;
-	TotalNp = CaseNp; IdMax = CaseNp - 1;
-
-	//-Loads and configures MK of particles.
-	MkInfo = new JSphMk();
-	MkInfo->Config(&parts);
-
-	//-Configuration of GaugeSystem.
-	GaugeSystem = new JGaugeSystem(Cpu, Log);
-
-	//-Configuration of WaveGen.
-	if (xml.GetNode("case.execution.special.wavepaddles", false)) {
-		bool useomp = false, usegpu = false;
-#ifdef OMP_USE_WAVEGEN
-		useomp = (omp_get_max_threads()>1);
-#endif
-#ifdef _WITHGPU
-		usegpu = !Cpu;
-#endif
-		WaveGen = new JWaveGen(useomp, usegpu, Log, DirCase, &xml, "case.execution.special.wavepaddles");
-	}
-
-	//-Configuration of AccInput.
-	if (xml.GetNode("case.execution.special.accinputs", false)) {
-		AccInput = new JSphAccInput(Log, DirCase, &xml, "case.execution.special.accinputs");
-	}
-
-	//-Loads and configures MOTION.
-	MotionObjCount = parts.CountBlocks(PT_Moving);
-	if (MotionObjCount) {
-		if (MotionObjCount>CODE_MKRANGEMAX)RunException(met, "The number of mobile objects exceeds the maximum.");
-		//-Prepares memory.
-		MotionObjBegin = new unsigned[MotionObjCount + 1];
-		memset(MotionObjBegin, 0, sizeof(unsigned)*(MotionObjCount + 1));
-		//-Loads configuration.
-		unsigned cmot = 0;
-		for (unsigned c = 0; c<parts.CountBlocks(); c++) {
-			const JSpacePartBlock &block = parts.GetBlock(c);
-			if (block.Type == PT_Moving) {
-				if (cmot >= MotionObjCount)RunException(met, "The number of mobile objects exceeds the expected maximum.");
-				//:printf("block[%2d]=%d -> %d\n",c,block.GetBegin(),block.GetCount());
-				MotionObjBegin[cmot] = block.GetBegin();
-				MotionObjBegin[cmot + 1] = MotionObjBegin[cmot] + block.GetCount();
-				if (WaveGen)WaveGen->ConfigPaddle(block.GetMkType(), cmot, block.GetBegin(), block.GetCount());
-				cmot++;
-			}
-		}
-		if (cmot != MotionObjCount)RunException(met, "The number of mobile objects is invalid.");
-	}
-
-	if (MotionObjCount) {
-		Motion = new JSphMotion();
-		if (int(MotionObjCount)<Motion->Init(&xml, "case.execution.motion", DirCase))RunException(met, "The number of mobile objects is lower than expected.");
-	}
-
-	//-Configuration of damping zones.
-	if (xml.GetNode("case.execution.special.damping", false)) {
-		Damping = new JDamping(Log);
-		Damping->LoadXml(&xml, "case.execution.special.damping");
-	}
-
-	//-Loads floating objects.
-	FtCount = parts.CountBlocks(PT_Floating);
-	if (FtCount) {
-		if (FtCount>CODE_MKRANGEMAX)RunException(met, "The number of floating objects exceeds the maximum.");
-		AllocMemoryFloating(FtCount);
-		unsigned cobj = 0;
-		for (unsigned c = 0; c<parts.CountBlocks() && cobj<FtCount; c++) {
-			const JSpacePartBlock &block = parts.GetBlock(c);
-			if (block.Type == PT_Floating) {
-				const JSpacePartBlock_Floating &fblock = (const JSpacePartBlock_Floating &)block;
-				StFloatingData* fobj = FtObjs + cobj;
-				fobj->mkbound = fblock.GetMkType();
-				fobj->begin = fblock.GetBegin();
-				fobj->count = fblock.GetCount();
-				fobj->mass = (float)fblock.GetMassbody();
-				fobj->massp = fobj->mass / fobj->count;
-				fobj->radius = 0;
-				fobj->center = fblock.GetCenter();
-				fobj->angles = TFloat3(0);
-				fobj->fvel = ToTFloat3(fblock.GetVelini());
-				fobj->fomega = ToTFloat3(fblock.GetOmegaini());
-				fobj->inertiaini = ToTMatrix3f(fblock.GetInertia());
-				cobj++;
-			}
-		}
-	}
-	else UseDEM = false;
-
-	//-Loads DEM data for the objects. (DEM)
-	if (UseDEM) {
-		DemData = new StDemData[DemDataSize];
-		memset(DemData, 0, sizeof(StDemData)*DemDataSize);
-		for (unsigned c = 0; c<parts.CountBlocks(); c++) {
-			const JSpacePartBlock &block = parts.GetBlock(c);
-			if (block.Type != PT_Fluid) {
-				const unsigned cmk = MkInfo->GetMkBlockByMkBound(block.GetMkType());
-				if (cmk >= MkInfo->Size())RunException(met, fun::PrintStr("Error loading DEM objects. Mkbound=%u is unknown.", block.GetMkType()));
-				const unsigned tav = CODE_GetTypeAndValue(MkInfo->Mkblock(cmk)->Code);
-				//:Log->Printf("___> tav[%u]:%u",cmk,tav);
-				if (block.Type == PT_Floating) {
-					const JSpacePartBlock_Floating &fblock = (const JSpacePartBlock_Floating &)block;
-					DemData[tav].mass = (float)fblock.GetMassbody();
-					DemData[tav].massp = (float)(fblock.GetMassbody() / fblock.GetCount());
-				}
-				else DemData[tav].massp = MassBound;
-				if (!block.ExistsSubValue("Young_Modulus", "value"))RunException(met, fun::PrintStr("Object mk=%u - Value of Young_Modulus is invalid.", block.GetMk()));
-				if (!block.ExistsSubValue("PoissonRatio", "value"))RunException(met, fun::PrintStr("Object mk=%u - Value of PoissonRatio is invalid.", block.GetMk()));
-				if (!block.ExistsSubValue("Kfric", "value"))RunException(met, fun::PrintStr("Object mk=%u - Value of Kfric is invalid.", block.GetMk()));
-				if (!block.ExistsSubValue("Restitution_Coefficient", "value"))RunException(met, fun::PrintStr("Object mk=%u - Value of Restitution_Coefficient is invalid.", block.GetMk()));
-				DemData[tav].young = block.GetSubValueFloat("Young_Modulus", "value", true, 0);
-				DemData[tav].poisson = block.GetSubValueFloat("PoissonRatio", "value", true, 0);
-				DemData[tav].tau = (DemData[tav].young ? (1 - DemData[tav].poisson*DemData[tav].poisson) / DemData[tav].young : 0);
-				DemData[tav].kfric = block.GetSubValueFloat("Kfric", "value", true, 0);
-				DemData[tav].restitu = block.GetSubValueFloat("Restitution_Coefficient", "value", true, 0);
-				if (block.ExistsValue("Restitution_Coefficient_User"))DemData[tav].restitu = block.GetValueFloat("Restitution_Coefficient_User");
-			}
-		}
-	}
-
-	NpMinimum = CaseNp - unsigned(PartsOutMax*CaseNfluid);
-	Log->Print("**Basic case configuration is loaded");
 }
 
 //==============================================================================
@@ -2549,7 +1959,6 @@ void JSph::SaveData(unsigned npok,const unsigned *idp,const tdouble3 *pos,const 
 
   if(SvDomainVtk)SaveDomainVtk(ndom,vdom);
   if(SaveDt)SaveDt->SaveData();
-  if(GaugeSystem)GaugeSystem->SaveResults(Part);
 }
 
 
@@ -2721,214 +2130,6 @@ void JSph::SavePartData_M1(unsigned npok, unsigned nout, const unsigned* idp, co
 			delete[] pressp; pressp = NULL;//-Memory must to be deallocated after saving file because DataBi4 uses this memory space.
 										   //delete[] gradvelSave; gradvelSave = NULL;	
 
-		}
-		if (SvData & SDAT_Info)DataBi4->SaveFileInfo();
-		delete[] posf3;
-	}
-
-	//-Graba ficheros VKT y/o CSV.
-	//-Stores VTK nd/or CSV files.
-	if ((SvData & SDAT_Csv) || (SvData & SDAT_Vtk)) {
-		//-Genera array con posf3 y tipo de particula.
-		//-Generates array with posf3 and type of particle.
-		tfloat3* posf3 = GetPointerDataFloat3(npok, pos);
-		byte* type = new byte[npok];
-		for (unsigned p = 0; p < npok; p++) {
-			const unsigned id = idp[p];
-			type[p] = (id >= CaseNbound ? 3 : (id < CaseNfixed ? 0 : (id < CaseNpb ? 1 : 2)));
-		}
-
-		// Generate coeffs for csv thanks to symetric matrix -- Augustin
-		tfloat3* tensorAxes = NULL;
-		tfloat3* tensorDiag = NULL; // x <- xy ; y <- yz ; z <- xz
-		if (qfp) {
-			tensorAxes = new tfloat3[npok];
-			tensorDiag = new tfloat3[npok];
-			for (unsigned p = 0; p < npok; p++) {
-				tensorAxes[p].x = qfp[p].xx;
-				tensorAxes[p].y = qfp[p].yy;
-				tensorAxes[p].z = qfp[p].zz;
-
-				tensorDiag[p].x = qfp[p].xy;
-				tensorDiag[p].y = qfp[p].yz;
-				tensorDiag[p].z = qfp[p].xz;
-			}
-		}
-
-		//-Define campos a grabar.
-		//-Defines fields to be stored.
-		JFormatFiles2::StScalarData fields[16];
-		unsigned nfields = 0;
-		if (idp) { fields[nfields] = JFormatFiles2::DefineField("Idp", JFormatFiles2::UInt32, 1, idp);   nfields++; }
-		if (vel) { fields[nfields] = JFormatFiles2::DefineField("Vel", JFormatFiles2::Float32, 3, vel);   nfields++; }
-		if (rhop) { fields[nfields] = JFormatFiles2::DefineField("Rhop", JFormatFiles2::Float32, 1, rhop);  nfields++; }
-		if (pore) { fields[nfields] = JFormatFiles2::DefineField("Porep", JFormatFiles2::Float32, 1, pore);  nfields++; }
-		if (massp) { fields[nfields] = JFormatFiles2::DefineField("Massp", JFormatFiles2::Float32, 1, massp);  nfields++; }
-		if (press) { fields[nfields] = JFormatFiles2::DefineField("Pressp", JFormatFiles2::Float32, 1, press);  nfields++; }
-		// Augustin
-		if (qfp) {
-			fields[nfields] = JFormatFiles2::DefineField("TensorAxes", JFormatFiles2::Float32, 3, tensorAxes);  nfields++;
-			fields[nfields] = JFormatFiles2::DefineField("TensorDiagAxes", JFormatFiles2::Float32, 3, tensorDiag);  nfields++;
-		}
-		if (vonMises) { fields[nfields] = JFormatFiles2::DefineField("VonMises3D", JFormatFiles2::Float32, 1, vonMises);  nfields++; }
-		if (grVelSave) { fields[nfields] = JFormatFiles2::DefineField("GradVel", JFormatFiles2::Float32, 1, grVelSave);  nfields++; }
-		if (cellOSpr) { fields[nfields] = JFormatFiles2::DefineField("CellOffSpring", JFormatFiles2::UInt32, 1, cellOSpr);  nfields++; }
-		if (gradvel) { fields[nfields] = JFormatFiles2::DefineField("StrainDot", JFormatFiles2::Float32, 3, gradvel);   nfields++; }
-		if (type) { fields[nfields] = JFormatFiles2::DefineField("Type", JFormatFiles2::UChar8, 1, type);  nfields++; }
-		if (SvData & SDAT_Vtk)JFormatFiles2::SaveVtk(DirDataOut + fun::FileNameSec("PartVtk.vtk", Part), npok, posf3, nfields, fields);
-		//if (SvData&SDAT_Csv)JFormatFiles2::SaveCsv(DirDataOut + fun::FileNameSec("PartCsv.csv", Part), CsvSepComa, npok, posf3, nfields, fields);
-		//-libera memoria.
-		//-release of memory.
-		delete[] posf3;
-		delete[] type;
-		if (qfp) {
-			delete[] tensorAxes;
-			delete[] tensorDiag;
-		}
-	}
-
-	//-Graba datos de particulas excluidas.
-	//-Stores data of excluded particles.
-	if (DataOutBi4 && PartsOut->GetCount()) {
-		DataOutBi4->SavePartOut(SvDouble, Part, TimeStep, PartsOut->GetCount(), PartsOut->GetIdpOut(), NULL, PartsOut->GetPosOut(), PartsOut->GetVelOut(), PartsOut->GetRhopOut(), PartsOut->GetMotiveOut());
-	}
-
-	//-Graba datos de floatings.
-	//-Stores data of floatings.
-	if (DataFloatBi4) {
-		if (CellOrder == ORDER_XYZ)for (unsigned cf = 0; cf < FtCount; cf++)DataFloatBi4->AddPartData(cf, FtObjs[cf].center, FtObjs[cf].fvel, FtObjs[cf].fomega);
-		else                    for (unsigned cf = 0; cf < FtCount; cf++)DataFloatBi4->AddPartData(cf, OrderDecodeValue(CellOrder, FtObjs[cf].center), OrderDecodeValue(CellOrder, FtObjs[cf].fvel), OrderDecodeValue(CellOrder, FtObjs[cf].fomega));
-		DataFloatBi4->SavePartFloat(Part, TimeStep, (UseDEM ? DemDtForce : 0));
-	}
-
-	//-Vacia almacen de particulas excluidas.
-	//-Empties stock of excluded particles.
-	PartsOut->Clear();
-}
-
-////////////////////////////////////////////////////
-// SavePartData update 1: add tflaot3 deformation, -float NabVx
-////////////////////////////////////////////////////
-void JSph::SavePartData11_M(unsigned npok, unsigned nout, const unsigned* idp, const tdouble3* pos, const tfloat3* vel
-	, const float* rhop, const float* pore, const float* press, const float* massp, const tsymatrix3f* qfp
-	, const float* vonMises, const float* grVelSave, const unsigned* cellOSpr, tfloat3* gradvel, unsigned ndom, const tdouble3* vdom, const StInfoPartPlus* infoplus) {
-	//-Stores particle data and/or information in bi4 format.
-	//-Graba datos de particulas y/o informacion en formato bi4.
-
-	if (DataBi4) {
-		tfloat3* posf3 = NULL;
-		TimerPart.Stop();
-		JBinaryData* bdpart = DataBi4->AddPartInfo(Part, TimeStep, npok, nout, Nstep, TimerPart.GetElapsedTimeD() / 1000., vdom[0], vdom[1], TotalNp);
-		if (infoplus && SvData & SDAT_Info) {
-			bdpart->SetvDouble("dtmean", (!Nstep ? 0 : (TimeStep - TimeStepM1) / (Nstep - PartNstep)));
-			bdpart->SetvDouble("dtmin", (!Nstep ? 0 : PartDtMin));
-			bdpart->SetvDouble("dtmax", (!Nstep ? 0 : PartDtMax));
-			if (DtFixed)bdpart->SetvDouble("dterror", DtFixed->GetDtError(true));
-			bdpart->SetvDouble("timesim", infoplus->timesim);
-			bdpart->SetvUint("nct", infoplus->nct);
-			bdpart->SetvUint("npbin", infoplus->npbin);
-			bdpart->SetvUint("npbout", infoplus->npbout);
-			bdpart->SetvUint("npf", infoplus->npf);
-			bdpart->SetvUint("npbper", infoplus->npbper);
-			bdpart->SetvUint("npfper", infoplus->npfper);
-			bdpart->SetvLlong("cpualloc", infoplus->memorycpualloc);
-			if (infoplus->gpudata) {
-				bdpart->SetvLlong("nctalloc", infoplus->memorynctalloc);
-				bdpart->SetvLlong("nctused", infoplus->memorynctused);
-				bdpart->SetvLlong("npalloc", infoplus->memorynpalloc);
-				bdpart->SetvLlong("npused", infoplus->memorynpused);
-			}
-		}
-		if (SvData & SDAT_Binx) {
-			if (SvDouble)DataBi4->AddPartData(npok, idp, pos, vel, rhop);
-			else {
-				posf3 = GetPointerDataFloat3(npok, pos);
-				DataBi4->AddPartData(npok, idp, posf3, vel, rhop);
-			}
-			// Press
-			float* pressp = NULL;
-			pressp = new float[npok];
-			for (unsigned p = 0; p < npok; p++) pressp[p] = press[p];
-			DataBi4->AddPartData("Press", npok, pressp);
-
-			// Mass
-			float* mass = NULL;
-			mass = new float[npok];
-			for (unsigned p = 0; p < npok; p++) mass[p] = massp[p];
-			DataBi4->AddPartData("Mass", npok, mass);
-
-			// Von Mises
-			float* vM3D = NULL;
-			vM3D = new float[npok];
-			for (unsigned p = 0; p < npok; p++) vM3D[p] = vonMises[p];
-			DataBi4->AddPartData("VonMises3D", npok, vM3D);
-
-			// GradVelSave
-			float* grVS = NULL;
-			grVS = new float[npok];
-			for (unsigned p = 0; p < npok; p++) grVS[p] = grVelSave[p];
-			DataBi4->AddPartData("GradVel", npok, grVS);
-
-			// CellOffSpring
-			unsigned* cOS = NULL;
-			cOS = new unsigned[npok];
-			for (unsigned p = 0; p < npok; p++) cOS[p] = cellOSpr[p];
-			DataBi4->AddPartData("CellOffSpring", npok, cOS);
-
-			tfloat3* gr = NULL;
-			gr = new tfloat3[npok];
-			for (unsigned p = 0; p < npok; p++) gr[p] = gradvel[p];
-			DataBi4->AddPartData("StrainDot", npok, gr);
-
-			/*// Quadratic form -- Blocked formulation since PartVtk does not seem to read tsymatrix
-			tsymatrix3f *qf = NULL;
-			qf = new tsymatrix3f[npok];
-			for (unsigned p = 0; p < npok; p++) qf[p] = qfp[p];
-			DataBi4->AddPartData("Qf", npok, qf);*/
-			// Quadratic form -- term to term formulation (Voigt notation)
-			float* qfxx = NULL;
-			float* qfyy = NULL;
-			float* qfzz = NULL;
-			float* qfyz = NULL;
-			float* qfxz = NULL;
-			float* qfxy = NULL;
-			qfxx = new float[npok];
-			qfyy = new float[npok];
-			qfzz = new float[npok];
-			qfyz = new float[npok];
-			qfxz = new float[npok];
-			qfxy = new float[npok];
-			for (unsigned p = 0; p < npok; p++) {
-				qfxx[p] = qfp[p].xx;
-				qfyy[p] = qfp[p].yy;
-				qfzz[p] = qfp[p].zz;
-				qfyz[p] = qfp[p].yz;
-				qfxz[p] = qfp[p].xz;
-				qfxy[p] = qfp[p].xy;
-			}
-			DataBi4->AddPartData("Qfxx", npok, qfxx);
-			DataBi4->AddPartData("Qfyy", npok, qfyy);
-			DataBi4->AddPartData("Qfzz", npok, qfzz);
-			DataBi4->AddPartData("Qfyz", npok, qfyz);
-			DataBi4->AddPartData("Qfxz", npok, qfxz);
-			DataBi4->AddPartData("Qfxy", npok, qfxy);
-
-			DataBi4->SaveFilePart();
-			//delete[] tensor; tensor = NULL;
-			// Cleaning remains: fix 17/12
-			delete[] qfxx; qfxx = NULL;
-			delete[] qfyy; qfyy = NULL;
-			delete[] qfzz; qfzz = NULL;
-			delete[] qfyz; qfyz = NULL;
-			delete[] qfxz; qfxz = NULL;
-			delete[] qfxy; qfxy = NULL;
-			delete[] vM3D; vM3D = NULL;
-			delete[] mass; mass = NULL;
-			delete[] grVS; grVS = NULL;
-			delete[] cOS; cOS = NULL;
-			delete[] gr; gr = NULL;
-			delete[] pressp; pressp = NULL;//-Memory must to be deallocated after saving file because DataBi4 uses this memory space.
-										   //delete[] gradvelSave; gradvelSave = NULL;	
 		}
 		if (SvData & SDAT_Info)DataBi4->SaveFileInfo();
 		delete[] posf3;
@@ -3227,106 +2428,6 @@ void JSph::SavePartData12_M(unsigned npok, unsigned nout, const unsigned* idp, c
 	PartsOut->Clear();
 }
 
-
-///////////////////////////
-// SaveData update 1: add float3 deformation
-///////////////////////////
-void JSph::SaveData_M1(unsigned npok, const unsigned* idp, const tdouble3* pos, const tfloat3* vel, const float* rhop, const float* pore
-	, const float* press, const float* mass, const tsymatrix3f* qf, const float* nabvx, const float* vonMises
-	, const float* gradVelSav, unsigned* cellOSpr, tfloat3* gradvel, unsigned ndom, const tdouble3* vdom, const StInfoPartPlus* infoplus)
-{
-	string suffixpartx = fun::PrintStr("_%04d", Part);
-
-	//-Contabiliza nuevas particulas excluidas.
-	//-Counts new excluded particles.
-	const unsigned noutpos = PartsOut->GetOutPosCount(), noutrhop = PartsOut->GetOutRhopCount(), noutmove = PartsOut->GetOutMoveCount();
-	const unsigned nout = noutpos + noutrhop + noutmove;
-	AddOutCount(noutpos, noutrhop, noutmove);
-
-	//-Graba ficheros con datos de particulas.
-	//-Stores data files of particles.
-	SavePartData_M1(npok, nout, idp, pos, vel, rhop, pore, press, mass, qf, nabvx, vonMises, gradVelSav, cellOSpr, gradvel, ndom, vdom, infoplus);
-
-	//-Reinicia limites de dt.
-	//-Reinitialises limits of dt.
-	PartDtMin = DBL_MAX; PartDtMax = -DBL_MAX;
-
-	//-Calculo de tiempo.
-	//-Computation of time.
-	if (Part > PartIni || Nstep) {
-		TimerPart.Stop();
-		double tpart = TimerPart.GetElapsedTimeD() / 1000;
-		double tseg = tpart / (TimeStep - TimeStepM1);
-		TimerSim.Stop();
-		double tcalc = TimerSim.GetElapsedTimeD() / 1000;
-		double tleft = (tcalc / (TimeStep - TimeStepIni)) * (TimeMax - TimeStep);
-		Log->Printf("Part%s  %12.6f  %12d  %7d  %9.2f  %14s", suffixpartx.c_str(), TimeStep, (Nstep + 1), Nstep - PartNstep, tseg, fun::GetDateTimeAfter(int(tleft)).c_str());
-	}
-	else Log->Printf("Part%s        %u particles successfully stored", suffixpartx.c_str(), npok);
-
-
-	//-Muestra info de particulas excluidas
-	//-Shows info of the excluded particles
-	if (nout) {
-		PartOut += nout;
-		Log->Printf("  Particles out: %u  (total: %u)", nout, PartOut);
-	}
-
-	if (SvDomainVtk)SaveDomainVtk(ndom, vdom);
-	if (SaveDt)SaveDt->SaveData();
-	if (GaugeSystem)GaugeSystem->SaveResults(Part);
-}
-
-///////////////////////////
-// SaveData 11 (V32-Da): +float3 def, -float NabVx
-///////////////////////////
-void JSph::SaveData11_M(unsigned npok, const unsigned* idp, const tdouble3* pos, const tfloat3* vel, const float* rhop, const float* pore
-	, const float* press, const float* mass, const tsymatrix3f* qf, const float* vonMises
-	, const float* gradVelSav, unsigned* cellOSpr, tfloat3* gradvel, unsigned ndom, const tdouble3* vdom, const StInfoPartPlus* infoplus)
-{
-	string suffixpartx = fun::PrintStr("_%04d", Part);
-
-	//-Contabiliza nuevas particulas excluidas.
-	//-Counts new excluded particles.
-	const unsigned noutpos = PartsOut->GetOutPosCount(), noutrhop = PartsOut->GetOutRhopCount(), noutmove = PartsOut->GetOutMoveCount();
-	const unsigned nout = noutpos + noutrhop + noutmove;
-	AddOutCount(noutpos, noutrhop, noutmove);
-
-	//-Graba ficheros con datos de particulas.
-	//-Stores data files of particles.
-	SavePartData11_M(npok, nout, idp, pos, vel, rhop, pore, press, mass, qf, vonMises, gradVelSav, cellOSpr, gradvel, ndom, vdom, infoplus);
-
-	//-Reinicia limites de dt.
-	//-Reinitialises limits of dt.
-	PartDtMin = DBL_MAX; PartDtMax = -DBL_MAX;
-
-	//-Calculo de tiempo.
-	//-Computation of time.
-	if (Part > PartIni || Nstep) {
-		TimerPart.Stop();
-		double tpart = TimerPart.GetElapsedTimeD() / 1000;
-		double tseg = tpart / (TimeStep - TimeStepM1);
-		TimerSim.Stop();
-		double tcalc = TimerSim.GetElapsedTimeD() / 1000;
-		double tleft = (tcalc / (TimeStep - TimeStepIni)) * (TimeMax - TimeStep);
-		Log->Printf("Part%s  %12.6f  %12d  %7d  %9.2f  %14s", suffixpartx.c_str(), TimeStep, (Nstep + 1), Nstep - PartNstep, tseg, fun::GetDateTimeAfter(int(tleft)).c_str());
-	}
-	else Log->Printf("Part%s        %u particles successfully stored", suffixpartx.c_str(), npok);
-
-
-	//-Muestra info de particulas excluidas
-	//-Shows info of the excluded particles
-	if (nout) {
-		PartOut += nout;
-		Log->Printf("  Particles out: %u  (total: %u)", nout, PartOut);
-	}
-
-	if (SvDomainVtk)SaveDomainVtk(ndom, vdom);
-	if (SaveDt)SaveDt->SaveData();
-	if (GaugeSystem)GaugeSystem->SaveResults(Part);
-}
-
-
 ///////////////////////////
 // SaveData 12 (V34c): +float3 ace,  fix vmises
 ///////////////////////////
@@ -3373,7 +2474,6 @@ void JSph::SaveData12_M(unsigned npok, const unsigned* idp, const tdouble3* pos,
 
 	if (SvDomainVtk)SaveDomainVtk(ndom, vdom);
 	if (SaveDt)SaveDt->SaveData();
-	if (GaugeSystem)GaugeSystem->SaveResults(Part);
 }
 
 

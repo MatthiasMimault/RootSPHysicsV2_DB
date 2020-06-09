@@ -194,12 +194,6 @@ protected:
 
 	unsigned GetParticlesData(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
 		, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, typecode *code);
-	unsigned GetParticlesData_M1(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
-			, unsigned *idp, tdouble3 *pos, tfloat3 *vel, float *rhop, float *pore, float *press, float* mass, tsymatrix3f *qf
-			, float *nabvx, float* vonMises, float* grVelSav, unsigned* cellOSpr, tfloat3* gradvel, typecode *code);
-	unsigned GetParticlesData11_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
-		, unsigned* idp, tdouble3* pos, tfloat3* vel, float* rhop, float* pore, float* press, float* mass, tsymatrix3f* qf
-		, float* vonMises, float* grVelSav, unsigned* cellOSpr, tfloat3* gradvel, typecode* code);
 	unsigned GetParticlesData12_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
 		, unsigned* idp, tdouble3* pos, tfloat3* vel, float* rhop, float* pore, float* press, float* mass, tsymatrix3f* qf
 		, float* vonMises, float* grVelSav, unsigned* cellOSpr, tfloat3* gradvel, tfloat3* ace, typecode* code);
@@ -486,8 +480,7 @@ protected:
 	void MoveLinBound(unsigned np, unsigned ini, const tdouble3 &mvpos, const tfloat3 &mvvel, const unsigned *ridp, tdouble3 *pos, unsigned *dcell, tfloat4 *velrhop, typecode *code)const;
 	void MoveMatBound(unsigned np, unsigned ini, tmatrix4d m, double dt, const unsigned *ridpmv, tdouble3 *pos, unsigned *dcell, tfloat4 *velrhop, typecode *code)const;
 	void RunMotion(double stepdt);
-	void RunDamping(double dt, unsigned np, unsigned npb, const tdouble3 *pos, const typecode *code, tfloat4 *velrhop)const;
-
+	
 	void ShowTimers(bool onlyfile = false); 
 	void GetTimersInfo(std::string &hinfo, std::string &dinfo)const; 
 	unsigned TimerGetCount()const { return(TmcGetCount()); }
