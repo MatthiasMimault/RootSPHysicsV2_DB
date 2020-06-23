@@ -2,7 +2,7 @@
 <Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugCPU|x64'">
     <LocalDebuggerCommandArguments>-cpu DBG_out\DBG DBG_out -dirdataout data -svres</LocalDebuggerCommandArguments>
-    <LocalDebuggerWorkingDirectory>..\..\debug_v35\1-DIV</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerWorkingDirectory>..\..\debug_v35\2-SQR</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>

@@ -845,6 +845,12 @@ void JSphSolidCpu::PreInteractionVars_Forces(TpInter tinter, unsigned np, unsign
 	for (int p = 0; p<n; p++) {
 		const float rhop = Velrhopc[p].w, rhop_r0 = rhop / RhopZero;
 		Pressc[p] = CalcK(abs(MaxPosition().x - Posc[p].x)) / Gamma * (pow(rhop_r0, Gamma) - 1.0f);
+		// Time growing Pore pressure
+		if (typeGrowth == 6 && TimeStep<0.2f) Porec_M[p] = CalcK(abs(MaxPosition().x - Posc[p].x)) * TimeStep;
+		else if (typeGrowth == 6) Porec_M[p] = CalcK(abs(MaxPosition().x - Posc[p].x)) * 0.2f;
+		
+		if (typeGrowth == 0) Porec_M[p] = PoreZero;
+
 		//Pressc[p] = -0.5f*RhopZero * float(Posc[p].x*Posc[p].x);
 		
 		//Pore Pressure 1 < x < 2
@@ -865,8 +871,8 @@ void JSphSolidCpu::PreInteractionVars_Forces(TpInter tinter, unsigned np, unsign
 		else Porec_M[p] = 0.0f;*/
 
 		// Cst Pore between to X bdy
-		if (p > int(npb) && Posc[p].x > -0.15f) Porec_M[p] = PoreZero;
-		else Porec_M[p] = 0.0f;
+		/*if (p > int(npb) && Posc[p].x > -0.15f) Porec_M[p] = PoreZero;
+		else Porec_M[p] = 0.0f;*/
 
 		//Pore pressure constant
 		//Porec_M[p] = PoreZero;
@@ -7119,11 +7125,11 @@ void JSphSolidCpu::GrowthCell_M(double dt) {
 				Massc_M[p] = Velrhopc[p].w * float(volu);
 				break;
 			}
-			case 6:{
+			case 6: { // Constant global growth - Zero
 				const double volu = double(MassPrec_M[p]) / double(Velrhopc[p].w);
-				const double Gamma = LambdaMass * GrowthRateGaussian(float(Posc[p].x));
+				const double Gamma = 0.0f;
 				Velrhopc[p].w = Velrhopc[p].w + float(dt * Gamma);
-				Massc_M[p] = Velrhopc[p].w * float(volu);				
+				//Massc_M[p] = Velrhopc[p].w * float(volu);
 				break;
 			}
 			case 7: { // Constant global growth
@@ -7140,6 +7146,15 @@ void JSphSolidCpu::GrowthCell_M(double dt) {
 				const double Gamma = LambdaMass/ (1.0f + exp(-k * (float(Posc[p].x) - x0)));
 				Velrhopc[p].w = Velrhopc[p].w + float(dt * Gamma);
 				Massc_M[p] = Velrhopc[p].w * float(volu);
+				break;
+			}
+			case 9: { // Constant global growth
+				if (TimeStep < 0.2f) {
+					const double volu = double(MassPrec_M[p]) / double(Velrhopc[p].w);
+					const double Gamma = LambdaMass;
+					Velrhopc[p].w = Velrhopc[p].w + float(dt * Gamma);
+					Massc_M[p] = Velrhopc[p].w * float(volu);
+				}
 				break;
 			}
 		}
