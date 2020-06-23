@@ -5880,9 +5880,9 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticPreT31_M(double dt) {
 				
 
 				if (Posc[p].x>0.3) {
-					Velrhopc[p].x -= float(dampCoef * Co_M[p] * VelrhopPrec[p].x * dt05);
-					Velrhopc[p].y -= float(dampCoef * Co_M[p] * VelrhopPrec[p].y * dt05);
-					Velrhopc[p].z -= float(dampCoef * Co_M[p] * VelrhopPrec[p].z * dt05);
+					Velrhopc[p].x -= float(dampCoef * VelrhopPrec[p].x * dt05);
+					Velrhopc[p].y -= float(dampCoef * VelrhopPrec[p].y * dt05);
+					Velrhopc[p].z -= float(dampCoef * VelrhopPrec[p].z * dt05);
 				}
 
 
@@ -6454,7 +6454,7 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT_M(double dt) {
 			if (!WithFloating || CODE_IsFluid(Codec[p])) {//-Fluid Particles.
 														  //-Update velocity & density. | Actualiza velocidad y densidad.
 				//Toutes les cellules avec x>0.1 sont considerees comme une plaque que l'on fait bouger.
-				//On fait bouger jusqu'à un certain timestep
+				//On fait bouger jusqu'Ã  un certain timestep
 				/*if (Posc[p].x > 0.1 && TimeStep < 10)
 				{
 					Velrhopc[p].x = -0.0001;
@@ -6713,9 +6713,9 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT31_M(double dt) {
 			
 
 			if (true) {
-				Velrhopc[p].x -= float(dampCoef * Co_M[p] * VelrhopPrec[p].x * dt);
-				Velrhopc[p].y -= float(dampCoef * Co_M[p] * VelrhopPrec[p].y * dt);
-				Velrhopc[p].z -= float(dampCoef * Co_M[p] * VelrhopPrec[p].z * dt);
+				Velrhopc[p].x -= float(dampCoef * VelrhopPrec[p].x * dt);
+				Velrhopc[p].y -= float(dampCoef * VelrhopPrec[p].y * dt);
+				Velrhopc[p].z -= float(dampCoef * VelrhopPrec[p].z * dt);
 			}
 
 			//-Calculate displacement and update position. | Calcula desplazamiento y actualiza posicion.
