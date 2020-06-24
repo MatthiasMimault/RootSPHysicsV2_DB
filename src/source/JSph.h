@@ -388,7 +388,8 @@ protected:
 
   void ConfigConstants(bool simulate2d);
   // Matthias
-  float CalcK(double x);
+  float CalcK(double x); 
+  float CalcMaxK();
   float SigmoidGrowth(double x)const;
   float CircleYoung(float x)const;
 

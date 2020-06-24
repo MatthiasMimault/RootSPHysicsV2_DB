@@ -1056,7 +1056,9 @@ void JSph::ConfigConstants(bool simulate2d){
   Delta2H=float(h*2*DeltaSph);
 
   // Cs0 version originale
-  Cs0=10*sqrt(double(Gamma)*double(max(CalcK(0.0), CalcK(1.5) )/Gamma)/double(RhopZero)); 
+  //Cs0=10*sqrt(double(Gamma)*double(max(CalcK(0.0), CalcK(1.5) )/Gamma)/double(RhopZero)); 
+  //Cs0 = 908.295f;
+  Cs0 = 10* sqrt(double(Gamma) * double(CalcMaxK() / Gamma) / double(RhopZero));
 
   // Old anisotropic versions of Cs0 (vec3) removed - Matthias
 
@@ -1194,6 +1196,19 @@ float JSph::CalcK(double x) {
 	}
 
 	return K;
+}
+
+float JSph::CalcMaxK() {
+	float maxK;	
+
+	if (Simulate2D) {
+		maxK = max(Ex, Ey) / (2 * (1 - max(nuxy, nuyz)));
+	}
+	else {
+		maxK = max(Ex, Ey) / (3 * (1 - 2*max(nuxy, nuyz)));
+	}
+
+	return maxK;
 }
 
 float JSph::SigmoidGrowth(double x) const {
