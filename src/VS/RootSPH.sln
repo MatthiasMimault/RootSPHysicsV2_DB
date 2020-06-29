@@ -1,8 +1,8 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27703.2035
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29215.179
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DualSPHysics", "DualSPHysics4Re.vcxproj", "{55F71337-32A6-4C26-8CBA-A06A9183D6F2}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RootSPH", "RootSPH.vcxproj", "{55F71337-32A6-4C26-8CBA-A06A9183D6F2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
