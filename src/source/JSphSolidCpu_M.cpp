@@ -846,10 +846,13 @@ void JSphSolidCpu::PreInteractionVars_Forces(TpInter tinter, unsigned np, unsign
 		const float rhop = Velrhopc[p].w, rhop_r0 = rhop / RhopZero;
 		Pressc[p] = CalcK(abs(MaxPosition().x - Posc[p].x)) / Gamma * (pow(rhop_r0, Gamma) - 1.0f);
 		// Time growing Pore pressure
-		if (typeGrowth == 6 && TimeStep<0.2f) Porec_M[p] = CalcK(abs(MaxPosition().x - Posc[p].x)) * TimeStep;
-		else if (typeGrowth == 6) Porec_M[p] = CalcK(abs(MaxPosition().x - Posc[p].x)) * 0.2f;
-		
-		if (typeGrowth == 0) Porec_M[p] = PoreZero;
+		switch (typeGrowth) {
+		case 6:
+			if (TimeStep<0.2) Porec_M[p] = CalcK(abs(MaxPosition().x - float(Posc[p].x))) * float(TimeStep);
+			else Porec_M[p] = CalcK(abs(MaxPosition().x - float(Posc[p].x))) * 0.2f;
+		default:
+			Porec_M[p] = PoreZero;
+		}
 
 		//Pressc[p] = -0.5f*RhopZero * float(Posc[p].x*Posc[p].x);
 		
@@ -5878,12 +5881,21 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticPreT31_M(double dt) {
 				Velrhopc[p].y = float(double(VelrhopPrec[p].y) + double(Acec[p].y) * dt05);
 				Velrhopc[p].z = float(double(VelrhopPrec[p].z) + double(Acec[p].z) * dt05);
 				
-
-				if (Posc[p].x>0.3) {
-					Velrhopc[p].x -= float(dampCoef * Co_M[p] * VelrhopPrec[p].x * dt05);
-					Velrhopc[p].y -= float(dampCoef * Co_M[p] * VelrhopPrec[p].y * dt05);
-					Velrhopc[p].z -= float(dampCoef * Co_M[p] * VelrhopPrec[p].z * dt05);
+				switch (typeDamping) {
+				case 0:
+					if (Posc[p].x > 0.3) {
+						Velrhopc[p].x -= float(dampCoef * VelrhopPrec[p].x * dt05);
+						Velrhopc[p].y -= float(dampCoef * VelrhopPrec[p].y * dt05);
+						Velrhopc[p].z -= float(dampCoef * VelrhopPrec[p].z * dt05);
+					}
+				case 1:
+					if (Posc[p].x > 0.3) {
+						Velrhopc[p].x -= float(dampCoef * Co_M[p] * VelrhopPrec[p].x * dt05);
+						Velrhopc[p].y -= float(dampCoef * Co_M[p] * VelrhopPrec[p].y * dt05);
+						Velrhopc[p].z -= float(dampCoef * Co_M[p] * VelrhopPrec[p].z * dt05);
+					}
 				}
+				
 
 
 				bool outrhop = (rhopnew<RhopOutMin || rhopnew>RhopOutMax);
@@ -6712,10 +6724,19 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT31_M(double dt) {
 			Velrhopc[p].z = float(double(VelrhopPrec[p].z) + double(Acec[p].z) * dt);
 			
 
-			if (true) {
-				Velrhopc[p].x -= float(dampCoef * Co_M[p] * VelrhopPrec[p].x * dt);
-				Velrhopc[p].y -= float(dampCoef * Co_M[p] * VelrhopPrec[p].y * dt);
-				Velrhopc[p].z -= float(dampCoef * Co_M[p] * VelrhopPrec[p].z * dt);
+			switch (typeDamping) {
+			case 0:
+				if (Posc[p].x > 0.3) {
+					Velrhopc[p].x -= float(dampCoef * VelrhopPrec[p].x * dt05);
+					Velrhopc[p].y -= float(dampCoef * VelrhopPrec[p].y * dt05);
+					Velrhopc[p].z -= float(dampCoef * VelrhopPrec[p].z * dt05);
+				}
+			case 1:
+				if (Posc[p].x > 0.3) {
+					Velrhopc[p].x -= float(dampCoef * Co_M[p] * VelrhopPrec[p].x * dt05);
+					Velrhopc[p].y -= float(dampCoef * Co_M[p] * VelrhopPrec[p].y * dt05);
+					Velrhopc[p].z -= float(dampCoef * Co_M[p] * VelrhopPrec[p].z * dt05);
+				}
 			}
 
 			//-Calculate displacement and update position. | Calcula desplazamiento y actualiza posicion.

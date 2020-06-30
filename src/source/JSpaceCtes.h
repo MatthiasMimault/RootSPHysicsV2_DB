@@ -114,8 +114,8 @@ private:
 
   // Matthias
   // Simulation choices
-  int typeCase, typeCompression, typeGrowth, typeDivision, typeYoung;
-  float curvAM0;
+  int typeCase, typeCompression, typeGrowth, typeDivision, typeYoung, typeDamping;
+  float curvAM0, xYoung, kYoung;
   bool typeDev;
 
 
@@ -191,8 +191,11 @@ public:
   int GetComp()const { return typeCompression; }
   int GetDiv()const { return typeDivision; }
   float getAM0()const { return curvAM0; }
+  float getXyg()const { return xYoung; }
+  float getKyg()const { return kYoung; }
   int GetGrow()const { return typeGrowth; }
   int GetYoung()const { return typeYoung; }
+  int GetDpg()const { return typeDamping; }
   bool GetDev()const { return typeDev; }
 
   // Extension Domain
@@ -248,8 +251,11 @@ public:
   void SetComp(int v) { typeCompression = v; }
   void SetDiv(int v) { typeDivision = v; }
   void SetAM0(float v) { curvAM0 = v; }
+  void SetXyg(float v) { xYoung = v; }
+  void SetKyg(float v) { kYoung = v; }
   void SetGrow(int v) { typeGrowth = v; }
   void SetYoung(int v) { typeYoung = v; }
+  void SetDpgType(int v) { typeDamping = v; }
   void SetDev(bool v) { typeDev = v; }
 
   // Plan mirroir
