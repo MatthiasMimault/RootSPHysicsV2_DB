@@ -13339,6 +13339,7 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticPreT31_M(double dt) {
 				Velrhopc[p].y = float(double(VelrhopPrec[p].y) + double(Acec[p].y) * dt05);
 				Velrhopc[p].z = float(double(VelrhopPrec[p].z) + double(Acec[p].z) * dt05);
 				
+        Damp_E_v2
 				switch (typeDamping) {
 				case 0:
 					if (Posc[p].x > 0.3) {
@@ -13352,6 +13353,13 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticPreT31_M(double dt) {
 						Velrhopc[p].y -= float(dampCoef * VelrhopPrec[p].y * dt05);
 						Velrhopc[p].z -= float(dampCoef * VelrhopPrec[p].z * dt05);
 					}
+
+
+				if (Posc[p].x>0.3) {
+					Velrhopc[p].x -= float(dampCoef * VelrhopPrec[p].x * dt05);
+					Velrhopc[p].y -= float(dampCoef * VelrhopPrec[p].y * dt05);
+					Velrhopc[p].z -= float(dampCoef * VelrhopPrec[p].z * dt05);
+        Damp_E
 				}
 				
 
@@ -14195,6 +14203,7 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT31_M(double dt) {
 					Velrhopc[p].y -= float(dampCoef * VelrhopPrec[p].y * dt05);
 					Velrhopc[p].z -= float(dampCoef * VelrhopPrec[p].z * dt05);
 				}
+
 			}
 
 			//-Calculate displacement and update position. | Calcula desplazamiento y actualiza posicion.
