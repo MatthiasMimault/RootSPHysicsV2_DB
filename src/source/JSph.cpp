@@ -139,8 +139,8 @@ void JSph::InitVars(){
 
   H=CteB=Gamma=RhopZero=CFLnumber=0;
   // Matthias
-  typeCase = typeCompression = typeGrowth = typeDivision = typeYoung = 0;
-  aM0 = 0.0f;
+  typeCase = typeCompression = typeGrowth = typeDivision = typeYoung = typeDamping = 0;
+  aM0 = xYg = kYg = 0.0f;
   Dp=0;
   Cs0=0;
   Delta2H=0;
@@ -692,8 +692,11 @@ void JSph::LoadCaseConfig(){
   typeCompression = ctes.GetComp();
   typeDivision = ctes.GetDiv();
   aM0 = ctes.getAM0();
+  xYg = ctes.getXyg();
+  kYg = ctes.getKyg();
   typeGrowth = ctes.GetGrow();
   typeYoung = ctes.GetYoung();
+  typeDamping = ctes.GetDpg();
   typeDev = ctes.GetDev();
 
   // Activation des conditions de bord
@@ -1056,7 +1059,9 @@ void JSph::ConfigConstants(bool simulate2d){
   Delta2H=float(h*2*DeltaSph);
 
   // Cs0 version originale
-  Cs0=10*sqrt(double(Gamma)*double(max(CalcK(0.0), CalcK(1.5) )/Gamma)/double(RhopZero)); 
+  //Cs0=10*sqrt(double(Gamma)*double(max(CalcK(0.0), CalcK(1.5) )/Gamma)/double(RhopZero)); 
+  //Cs0 = 908.295f;
+  Cs0 = 10* sqrt(double(Gamma) * double(CalcMaxK() / Gamma) / double(RhopZero));
 
   // Old anisotropic versions of Cs0 (vec3) removed - Matthias
 
@@ -1196,10 +1201,23 @@ float JSph::CalcK(double x) {
 	return K;
 }
 
+float JSph::CalcMaxK() {
+	float maxK;	
+
+	if (Simulate2D) {
+		maxK = max(Ex, Ey) / (2 * (1 - max(nuxy, nuyz)));
+	}
+	else {
+		maxK = max(Ex, Ey) / (3 * (1 - 2*max(nuxy, nuyz)));
+	}
+
+	return maxK;
+}
+
 float JSph::SigmoidGrowth(double x) const {
-	float x0 = 0.15f;
-	float k = 15.0f;
-	return 1.0f / (1.0f + exp(-k * (float(x) - x0)));
+	//float x0 = 0.15f;
+	//float k = 15.0f;
+	return 1.0f / (1.0f + exp(-kYg * (float(x) - xYg)));
 }
 
 float JSph::CircleYoung(float x) const {

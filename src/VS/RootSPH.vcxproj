@@ -22,7 +22,7 @@
     <ProjectGuid>{55F71337-32A6-4C26-8CBA-A06A9183D6F2}</ProjectGuid>
     <RootNamespace>DualSPHysics</RootNamespace>
     <Keyword>Win32Proj</Keyword>
-    <ProjectName>DualSPHysics</ProjectName>
+    <ProjectName>RootSPH</ProjectName>
     <CudaToolkitCustomDir>$(CUDA_PATH_V9_1)</CudaToolkitCustomDir>
     <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
@@ -107,7 +107,7 @@
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">RootSPH_v35</TargetName>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">RootSPH_v34_debug</TargetName>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='ReleaseCPU|x64'">RootSPH_v34</TargetName>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='DebugCPU|x64'">RootSPH_v35a_debug</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='DebugCPU|x64'">RootSPH_v35b_debug</TargetName>
     <PreBuildEventUseInBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</PreBuildEventUseInBuild>
     <PreBuildEventUseInBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</PreBuildEventUseInBuild>
     <PreLinkEventUseInBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</PreLinkEventUseInBuild>
