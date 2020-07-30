@@ -5894,6 +5894,12 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticPreT31_M(double dt) {
 						Velrhopc[p].y -= float(dampCoef * VelrhopPrec[p].y * dt05);
 						Velrhopc[p].z -= float(dampCoef * VelrhopPrec[p].z * dt05);
 					}
+				case 2:
+					if (Posc[p].x > 0.3) {
+						Velrhopc[p].x -= float(dampCoef * VelrhopPrec[p].x * dt05) / (sqrt(float(VelrhopPrec[p].x)* float(VelrhopPrec[p].x)) + 1);
+						Velrhopc[p].y -= float(dampCoef * VelrhopPrec[p].y * dt05) / (sqrt(float(VelrhopPrec[p].y)* float(VelrhopPrec[p].y)) + 1);
+						Velrhopc[p].z -= float(dampCoef * VelrhopPrec[p].z * dt05) / (sqrt(float(VelrhopPrec[p].z)* float(VelrhopPrec[p].z)) + 1);
+					}
 				}
 				
 
@@ -6727,16 +6733,22 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT31_M(double dt) {
 			switch (typeDamping) {
 			case 0:
 				if (Posc[p].x > 0.3) {
-					Velrhopc[p].x -= float(dampCoef * VelrhopPrec[p].x * dt05);
-					Velrhopc[p].y -= float(dampCoef * VelrhopPrec[p].y * dt05);
-					Velrhopc[p].z -= float(dampCoef * VelrhopPrec[p].z * dt05);
+					Velrhopc[p].x -= float(dampCoef * VelrhopPrec[p].x * dt);
+					Velrhopc[p].y -= float(dampCoef * VelrhopPrec[p].y * dt);
+					Velrhopc[p].z -= float(dampCoef * VelrhopPrec[p].z * dt);
 				}
 			case 1:
 				if (Posc[p].x > 0.3) {
-					Velrhopc[p].x -= float(dampCoef * VelrhopPrec[p].x * dt05);
-					Velrhopc[p].y -= float(dampCoef * VelrhopPrec[p].y * dt05);
-					Velrhopc[p].z -= float(dampCoef * VelrhopPrec[p].z * dt05);
+					Velrhopc[p].x -= float(dampCoef * VelrhopPrec[p].x * dt);
+					Velrhopc[p].y -= float(dampCoef * VelrhopPrec[p].y * dt);
+					Velrhopc[p].z -= float(dampCoef * VelrhopPrec[p].z * dt);
 				}
+			case 2:
+					if (Posc[p].x > 0.3) {
+						Velrhopc[p].x -= float(dampCoef * VelrhopPrec[p].x * dt) / (sqrt(float(VelrhopPrec[p].x)* float(VelrhopPrec[p].x)) + 1);
+						Velrhopc[p].y -= float(dampCoef * VelrhopPrec[p].y * dt) / (sqrt(float(VelrhopPrec[p].y)* float(VelrhopPrec[p].y)) + 1);
+						Velrhopc[p].z -= float(dampCoef * VelrhopPrec[p].z * dt) / (sqrt(float(VelrhopPrec[p].z)* float(VelrhopPrec[p].z)) + 1);
+					}
 			}
 
 			//-Calculate displacement and update position. | Calcula desplazamiento y actualiza posicion.
