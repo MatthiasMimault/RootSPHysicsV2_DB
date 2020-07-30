@@ -440,6 +440,12 @@ protected:
   void SavePartData12_M(unsigned npok, unsigned nout, const unsigned* idp, const tdouble3* pos, const tfloat3* vel, const float* rhop
 	  , const float* pore, const float* press, const float* massp, const tsymatrix3f* qfp, const float* vonMises
 	  , const float* grVelSave, const unsigned* cellOSpr, const tfloat3* gradvel, const tfloat3* ace, unsigned ndom, const tdouble3* vdom, const StInfoPartPlus* infoplus);
+  void SaveData35_M(unsigned npok, const unsigned* idp, const tdouble3* pos, const tfloat3* vel, const float* rhop, const float* pore
+	  , const float* press, const float* mass, const tsymatrix3f* qf, const float* vonMises, const float* gradVelSav, unsigned* cellOSpr
+	  , const tfloat3* gradvel, const tfloat3* ace, const tfloat3* fvi, unsigned ndom, const tdouble3* vdom, const StInfoPartPlus* infoplus);
+  void SavePartData35_M(unsigned npok, unsigned nout, const unsigned* idp, const tdouble3* pos, const tfloat3* vel, const float* rhop, const float* pore
+	  , const float* press, const float* massp, const tsymatrix3f* qfp, const float* vonMises, const float* grVelSave, const unsigned* cellOSpr
+	  , const tfloat3* gradvel, const tfloat3* ace, const tfloat3* fvi, unsigned ndom, const tdouble3* vdom, const StInfoPartPlus* infoplus);
 
   void SaveDomainVtk(unsigned ndom,const tdouble3 *vdom)const;
   void SaveInitialDomainVtk()const;

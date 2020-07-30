@@ -123,7 +123,7 @@ protected:
 	float* GradVelSave;
 	unsigned* CellOffSpring;
 	tfloat3* StrainDotSave;
-	tfloat3* AceSave;
+	tfloat3* AceSave, *ForceVisc;
 
 	// Matthias - Root geometry data
 	float maxPosX;
@@ -197,6 +197,9 @@ protected:
 	unsigned GetParticlesData12_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
 		, unsigned* idp, tdouble3* pos, tfloat3* vel, float* rhop, float* pore, float* press, float* mass, tsymatrix3f* qf
 		, float* vonMises, float* grVelSav, unsigned* cellOSpr, tfloat3* gradvel, tfloat3* ace, typecode* code);
+	unsigned GetParticlesData35_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
+		, unsigned* idp, tdouble3* pos, tfloat3* vel, float* rhop, float* pore, float* press, float* mass, tsymatrix3f* qf
+		, float* vonMises, float* grVelSav, unsigned* cellOSpr, tfloat3* gradvel, tfloat3* ace, tfloat3* fvi, typecode* code);
 
 	void ConfigOmp(const JCfgRun *cfg);
 
@@ -450,18 +453,12 @@ protected:
 	void ComputeEuler_M(double dt);
 
 	template<bool shift> void ComputeSymplecticPreT_M(double dt);
-	template<bool shift> void ComputeSymplecticPreT2_M(double dt);
-	template<bool shift> void ComputeSymplecticPreT_BlockBdy_M(double dt);
-	template<bool shift> void ComputeSymplecticPreT_CompressBdy_M(double dt);
-	template<bool shift> void ComputeSymplecticPreT31_M(double dt);
+	template<bool shift> void ComputeSymplecticPreT35_M(double dt);
 
 
 	void ComputeSymplecticPre_M(double dt);
 	template<bool shift> void ComputeSymplecticCorrT_M(double dt);
-	template<bool shift> void ComputeSymplecticCorrT2_M(double dt);
-	template<bool shift> void ComputeSymplecticCorrT_BlockBdy_M(double dt);
-	template<bool shift> void ComputeSymplecticCorrT_CompressBdy_M(double dt);
-	template<bool shift> void ComputeSymplecticCorrT31_M(double dt);
+	template<bool shift> void ComputeSymplecticCorrT35_M(double dt);
 	void ComputeSymplecticCorr_M(double dt);
 
 	void GrowthCell_M(double dt);

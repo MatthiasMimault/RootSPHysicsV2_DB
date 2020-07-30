@@ -90,13 +90,12 @@ void JSphSolidCpu::InitVars() {
 	Divisionc_M = NULL;
 	QuadFormc_M = NULL;	QuadFormM1c_M = NULL;
 	L_M = NULL; Co_M = NULL;
-
-	// Augustin
 	VonMises = NULL;
 	GradVelSave = NULL;
 	CellOffSpring = NULL;
 	StrainDotSave = NULL;
 	AceSave = NULL;
+	ForceVisc = NULL;
 
 	RidpMove = NULL;
 	FtRidp = NULL;
@@ -205,7 +204,7 @@ void JSphSolidCpu::AllocCpuMemoryParticles(unsigned np, float over) {
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_4B, 1); // VonMises3D
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_4B, 1); // GradVelSave
 	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_4B, 1); // CellOffSpring
-	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_12B, 4); // Grad vel save, ace save
+	ArraysCpu->AddArrayCount(JArraysCpu::SIZE_12B, 6); // Grad vel save, ace save, ForceVisc, ForceVisc(Save)
 
 	//-Shows the allocated memory.
 	MemCpuParticles = ArraysCpu->GetAllocMemoryCpu();
@@ -241,7 +240,8 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	float  	      *gradVelSav = SaveArrayCpu(Np, GradVelSave);
 	unsigned      *cellOSpr = SaveArrayCpu(Np, CellOffSpring);
 	tfloat3      *sds= SaveArrayCpu(Np, StrainDotSave);
-	tfloat3		* aces = SaveArrayCpu(Np, AceSave);
+	tfloat3		*aces = SaveArrayCpu(Np, AceSave);
+	tfloat3		*fvi = SaveArrayCpu(Np, ForceVisc);
 
 	//-Frees pointers.
 	ArraysCpu->Free(Idpc);
@@ -262,12 +262,12 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	ArraysCpu->Free(TauM1c_M);
 	ArraysCpu->Free(QuadFormc_M);
 	ArraysCpu->Free(QuadFormM1c_M);
-	// Augustin
 	ArraysCpu->Free(VonMises);
 	ArraysCpu->Free(GradVelSave);
 	ArraysCpu->Free(CellOffSpring);
 	ArraysCpu->Free(StrainDotSave);
 	ArraysCpu->Free(AceSave);
+	ArraysCpu->Free(ForceVisc);
 
 	//-Resizes CPU memory allocation.
 	const double mbparticle = (double(MemCpuParticles) / (1024 * 1024)) / CpuParticlesSize; //-MB por particula.
@@ -299,6 +299,7 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	if (cellOSpr) CellOffSpring = ArraysCpu->ReserveUint();
 	if (sds) StrainDotSave = ArraysCpu->ReserveFloat3();
 	if (aces) AceSave = ArraysCpu->ReserveFloat3();
+	if (fvi) ForceVisc = ArraysCpu->ReserveFloat3();
 
 	//-Restore data in CPU memory.
 	RestoreArrayCpu(Np, idp, Idpc);
@@ -324,6 +325,7 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	RestoreArrayCpu(Np, cellOSpr, CellOffSpring);
 	RestoreArrayCpu(Np, sds, StrainDotSave);
 	RestoreArrayCpu(Np, aces, AceSave);
+	RestoreArrayCpu(Np, fvi, ForceVisc);
 
 	//-Updates values.
 	CpuParticlesSize = npnew;
@@ -384,6 +386,7 @@ void JSphSolidCpu::ReserveBasicArraysCpu() {
 	CellOffSpring = ArraysCpu->ReserveUint();
 	StrainDotSave = ArraysCpu->ReserveFloat3();
 	AceSave = ArraysCpu->ReserveFloat3();
+	ForceVisc = ArraysCpu->ReserveFloat3();
 }
 
 //==============================================================================
@@ -509,6 +512,81 @@ unsigned JSphSolidCpu::GetParticlesData12_M(unsigned n, unsigned pini, bool cell
 	if (cellOSpr) memcpy(cellOSpr, CellOffSpring + pini, sizeof(unsigned) * n);
 	if (gradvel) memcpy(gradvel, StrainDotSave + pini, sizeof(tfloat3) * n);
 	if (ace) memcpy(ace, AceSave + pini, sizeof(tfloat3) * n);
+
+
+	//-Eliminate non-normal particles (periodic & others). | Elimina particulas no normales (periodicas y otras).
+	if (onlynormal) {
+		printf("NonNormalPart_SavePart\n");
+		if (!idp || !pos || !vel || !rhop)RunException(met, "Pointers without data.");
+		typecode* code2 = code;
+		if (!code2) {
+			code2 = ArraysCpu->ReserveTypeCode();
+			memcpy(code2, Codec + pini, sizeof(typecode) * n);
+		}
+		unsigned ndel = 0;
+		for (unsigned p = 0; p < n; p++) {
+			bool normal = CODE_IsNormal(code2[p]);
+			if (ndel && normal) {
+				const unsigned pdel = p - ndel;
+				idp[pdel] = idp[p];
+				pos[pdel] = pos[p];
+				vel[pdel] = vel[p];
+				rhop[pdel] = rhop[p];
+				code2[pdel] = code2[p];
+			}
+			if (!normal)ndel++;
+		}
+		num -= ndel;
+		if (!code)ArraysCpu->Free(code2);
+	}
+	//-Reorder components in their original order. | Reordena componentes en su orden original.
+	if (cellorderdecode)DecodeCellOrder(n, pos, vel);
+	return(num);
+}
+
+//////////////////////////////////////
+// Collect data from a range of particles
+// 34c: add float3 deformation, remove NabVx
+// 35c: add float3 ForceVisc
+//////////////////////////////////////
+unsigned JSphSolidCpu::GetParticlesData35_M(unsigned n, unsigned pini, bool cellorderdecode, bool onlynormal
+	, unsigned* idp, tdouble3* pos, tfloat3* vel, float* rhop, float* pore, float* press, float* mass
+	, tsymatrix3f* qf, float* vonMises, float* grVelSav, unsigned* cellOSpr, tfloat3* gradvel, tfloat3* ace, tfloat3* fvi, typecode* code)
+{
+	const char met[] = "GetParticlesData";
+	unsigned num = n;
+	//-Copy selected values.
+	if (code)memcpy(code, Codec + pini, sizeof(typecode) * n);
+	if (idp)memcpy(idp, Idpc + pini, sizeof(unsigned) * n);
+	if (pos)memcpy(pos, Posc + pini, sizeof(tdouble3) * n);
+	if (vel && rhop) {
+		for (unsigned p = 0; p < n; p++) {
+			tfloat4 vr = Velrhopc[p + pini];
+			vel[p] = TFloat3(vr.x, vr.y, vr.z);
+			rhop[p] = vr.w;
+		}
+	}
+	else {
+		if (vel) for (unsigned p = 0; p < n; p++) { tfloat4 vr = Velrhopc[p + pini]; vel[p] = TFloat3(vr.x, vr.y, vr.z); }
+		if (rhop)for (unsigned p = 0; p < n; p++)rhop[p] = Velrhopc[p + pini].w;
+	}
+
+	// Matthias
+	if (pore)memcpy(pore, Porec_M + pini, sizeof(float) * n);
+	if (press) {
+		for (unsigned p = 0; p < n; p++) {
+			press[p] = CalcK(abs(MaxPosition().x - Posc[p].x)) / Gamma * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f);
+			//press[p] = -0.5f*RhopZero*float(Posc[p].x*Posc[p].x);
+		}
+	}
+	if (mass)memcpy(mass, Massc_M + pini, sizeof(float) * n);
+	if (qf)memcpy(qf, QuadFormc_M + pini, sizeof(tsymatrix3f) * n);
+	if (vonMises) memcpy(vonMises, VonMises + pini, sizeof(float) * n);
+	if (grVelSav) memcpy(grVelSav, GradVelSave + pini, sizeof(float) * n);
+	if (cellOSpr) memcpy(cellOSpr, CellOffSpring + pini, sizeof(unsigned) * n);
+	if (gradvel) memcpy(gradvel, StrainDotSave + pini, sizeof(tfloat3) * n);
+	if (ace) memcpy(ace, AceSave + pini, sizeof(tfloat3) * n);
+	if (fvi) memcpy(ace, ForceVisc + pini, sizeof(tfloat3) * n);
 
 
 	//-Eliminate non-normal particles (periodic & others). | Elimina particulas no normales (periodicas y otras).
@@ -700,6 +778,7 @@ void JSphSolidCpu::InitRun_Uni_M() {
 	memset(CellOffSpring, 0, sizeof(unsigned) * Np);
 	memset(StrainDotSave, 0, sizeof(tfloat3) * Np);
 	memset(AceSave, 0, sizeof(tfloat3) * Np);
+	memset(ForceVisc, 0, sizeof(tfloat3) * Np);
 
 	if (UseDEM)DemDtForce = DtIni; //(DEM)
 	if (CaseNfloat)InitFloating();
@@ -5792,26 +5871,25 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT(double dt) {
 // Symplectic code, Matthias version
 // With NSPH, solid dynamics and Cell geometry
 // #Symplectic_M #Version #damping
-// V34c
+// V35c Update ForceVisc + clean old versions
 /// /////////////////////////////////////////////
 void JSphSolidCpu::ComputeSymplecticPre_M(double dt) {
 	switch (typeCompression) {
 	case 0: {
 		// No compression
-		if (TShifting)ComputeSymplecticPreT31_M<false>(dt); //-We strongly recommend running the shifting correction only for the corrector. 
-		else         ComputeSymplecticPreT31_M<false>(dt); // If you want to re-enable shifting in the predictor, change the value here to "true".	
+		if (TShifting)ComputeSymplecticPreT35_M<false>(dt); //-We strongly recommend running the shifting correction only for the corrector. 
+		else         ComputeSymplecticPreT35_M<false>(dt); // If you want to re-enable shifting in the predictor, change the value here to "true".	
 		break;
 	}
-	case 1: {
-		// Compression from tip boundary
-		if (TShifting)ComputeSymplecticPreT_CompressBdy_M<false>(dt); //-We strongly recommend running the shifting correction only for the corrector. 
-		else         ComputeSymplecticPreT_CompressBdy_M<false>(dt); // If you want to re-enable shifting in the predictor, change the value here to "true".
+	default: {
+		if (TShifting)ComputeSymplecticPreT35_M<false>(dt); //-We strongly recommend running the shifting correction only for the corrector. 
+		else         ComputeSymplecticPreT35_M<false>(dt); // If you want to re-enable shifting in the predictor, change the value here to "true".	
 		break;
 	}
 	}
 }
 
-template<bool shift> void JSphSolidCpu::ComputeSymplecticPreT31_M(double dt) {
+template<bool shift> void JSphSolidCpu::ComputeSymplecticPreT35_M(double dt) {
 	TmcStart(Timers, TMC_SuComputeStep);
 	//-Assign memory to variables Pre. | Asigna memoria a variables Pre.
 	PosPrec = ArraysCpu->ReserveDouble3();
@@ -5839,143 +5917,10 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticPreT31_M(double dt) {
 #pragma omp parallel for schedule (static) if(npb>OMP_LIMIT_COMPUTESTEP)
 #endif
 	for (int p = 0; p < npb; p++) {
-			const tfloat4 vr = VelrhopPrec[p];
-			const float rhopnew = float(double(vr.w) + dt05 * Arc[p]);
-			Velrhopc[p] = TFloat4(vr.x, vr.y, vr.z, (rhopnew < RhopZero ? RhopZero : rhopnew));//-Avoid fluid particles being absorbed by boundary ones. | Evita q las boundary absorvan a las fluidas.
-			//Velrhopc[p] = TFloat4(vr.x, vr.y, vr.z, rhopnew);//-Avoid fluid particles being absorbed by boundary ones. | Evita q las boundary absorvan a las fluidas.
-
-				// Update Shear stress
-			Tauc_M[p].xx = float(double(TauPrec_M[p].xx) + double(TauDotc_M[p].xx) * dt05);
-			Tauc_M[p].xy = float(double(TauPrec_M[p].xy) + double(TauDotc_M[p].xy) * dt05);
-			Tauc_M[p].xz = float(double(TauPrec_M[p].xz) + double(TauDotc_M[p].xz) * dt05);
-			Tauc_M[p].yy = float(double(TauPrec_M[p].yy) + double(TauDotc_M[p].yy) * dt05);
-			Tauc_M[p].yz = float(double(TauPrec_M[p].yz) + double(TauDotc_M[p].yz) * dt05);
-			Tauc_M[p].zz = float(double(TauPrec_M[p].zz) + double(TauDotc_M[p].zz) * dt05);
-
-			QuadFormc_M[p] = QuadFormPrec_M[p];
-			Massc_M[p] = MassPrec_M[p];
-	}
-
-	//-Calculate new values of fluid. | Calcula nuevos datos del fluido.
-	const int np = int(Np);
-#ifdef OMP_USE
-#pragma omp parallel for schedule (static) if(np>OMP_LIMIT_COMPUTESTEP)
-#endif
-	for (int p = npb; p < np; p++) {
-			//-Calculate density.
-			const float rhopnew = float(double(VelrhopPrec[p].w) + dt05 * Arc[p]); // Not const because of source update 
-
-			if (!WithFloating || CODE_IsFluid(Codec[p])) {//-Fluid Particles.
-					//-Calculate displacement & update position. | Calcula desplazamiento y actualiza posicion.
-				
-				double dx = double(VelrhopPrec[p].x) * dt05;
-				double dy = double(VelrhopPrec[p].y) * dt05;
-				double dz = double(VelrhopPrec[p].z) * dt05;
-				if (shift) {
-					dx += double(ShiftPosc[p].x);
-					dy += double(ShiftPosc[p].y);
-					dz += double(ShiftPosc[p].z);
-				}
-				// With damping (#34c)
-				Velrhopc[p].x = float(double(VelrhopPrec[p].x) + double(Acec[p].x) * dt05);
-				Velrhopc[p].y = float(double(VelrhopPrec[p].y) + double(Acec[p].y) * dt05);
-				Velrhopc[p].z = float(double(VelrhopPrec[p].z) + double(Acec[p].z) * dt05);
-				
-				switch (typeDamping) {
-				case 0:
-					if (Posc[p].x > 0.3) {
-						Velrhopc[p].x -= float(dampCoef * VelrhopPrec[p].x * dt05);
-						Velrhopc[p].y -= float(dampCoef * VelrhopPrec[p].y * dt05);
-						Velrhopc[p].z -= float(dampCoef * VelrhopPrec[p].z * dt05);
-					}
-				case 1:
-					if (Posc[p].x > 0.3) {
-						Velrhopc[p].x -= float(dampCoef * Co_M[p] * VelrhopPrec[p].x * dt05);
-						Velrhopc[p].y -= float(dampCoef * Co_M[p] * VelrhopPrec[p].y * dt05);
-						Velrhopc[p].z -= float(dampCoef * Co_M[p] * VelrhopPrec[p].z * dt05);
-					}
-				}
-				
-
-
-				bool outrhop = (rhopnew<RhopOutMin || rhopnew>RhopOutMax);
-				
-				UpdatePos(PosPrec[p], dx, dy, dz, outrhop, p, Posc, Dcellc, Codec);
-
-				//-Update velocity & density. | Actualiza velocidad y densidad.
-
-				//#Speed #Limiter
-				/*if (PosPrec[p].x > 2.0f) {
-					Velrhopc[p].x = float(min(double(VelrhopPrec[p].x) + double(Acec[p].x)* dt05, 0.03));
-					Velrhopc[p].y = 0.0f;
-					Velrhopc[p].z = 0.0f;
-				}*/
-
-				// Update Shear stress
-				Tauc_M[p].xx = float(double(TauPrec_M[p].xx) + double(TauDotc_M[p].xx) * dt05);
-				Tauc_M[p].xy = float(double(TauPrec_M[p].xy) + double(TauDotc_M[p].xy) * dt05);
-				Tauc_M[p].xz = float(double(TauPrec_M[p].xz) + double(TauDotc_M[p].xz) * dt05);
-				Tauc_M[p].yy = float(double(TauPrec_M[p].yy) + double(TauDotc_M[p].yy) * dt05);
-				Tauc_M[p].yz = float(double(TauPrec_M[p].yz) + double(TauDotc_M[p].yz) * dt05);
-				Tauc_M[p].zz = float(double(TauPrec_M[p].zz) + double(TauDotc_M[p].zz) * dt05);
-
-				// Update Quadratic form - Commented since Defor only in CorrT
-				QuadFormc_M[p] = QuadFormPrec_M[p];
-
-				// Source Density and Mass - Commented since Source/Mass only in CorrT
-				Velrhopc[p].w = rhopnew;
-
-				Massc_M[p] = MassPrec_M[p];
-
-			}
-
-			else {//-Floating Particles.
-				Velrhopc[p] = VelrhopPrec[p];
-				Velrhopc[p].w = (rhopnew < RhopZero ? RhopZero : rhopnew); //-Avoid fluid particles being absorbed by floating ones. | Evita q las floating absorvan a las fluidas.
-																		 //-Copy position. | Copia posicion.
-				Posc[p] = PosPrec[p];
-			}
-	}
-
-	//-Copy previous position of boundary. | Copia posicion anterior del contorno.
-	memcpy(Posc, PosPrec, sizeof(tdouble3)*Npb);
-
-	TmcStop(Timers, TMC_SuComputeStep);
-
-}
-
-// V32-Da (merged from b): Include density treatment on boundary (removal of rho0 filter)
-template<bool shift> void JSphSolidCpu::ComputeSymplecticPreT2_M(double dt) {
-	TmcStart(Timers, TMC_SuComputeStep);
-	//-Assign memory to variables Pre. | Asigna memoria a variables Pre.
-	PosPrec = ArraysCpu->ReserveDouble3();
-	VelrhopPrec = ArraysCpu->ReserveFloat4();
-	MassPrec_M = ArraysCpu->ReserveFloat();
-	TauPrec_M = ArraysCpu->ReserveSymatrix3f();
-	QuadFormPrec_M = ArraysCpu->ReserveSymatrix3f();
-
-	//-Change data to variables Pre to calculate new data. | Cambia datos a variables Pre para calcular nuevos datos.
-	swap(PosPrec, Posc);         //Put value of Pos[] in PosPre[].         | Es decir... PosPre[] <= Pos[].
-	swap(VelrhopPrec, Velrhopc); //Put value of Velrhop[] in VelrhopPre[]. | Es decir... VelrhopPre[] <= Velrhop[].
-								 //-Calculate new values of particles. | Calcula nuevos datos de particulas.
-
-	// Swap MTQ
-	swap(Massc_M, MassPrec_M);
-	swap(Tauc_M, TauPrec_M);
-	swap(QuadFormc_M, QuadFormPrec_M);
-
-	const double dt05 = dt * .5;
-
-	//-Calculate new density for boundary and copy velocity. | Calcula nueva densidad para el contorno y copia velocidad.
-	const int npb = int(Npb);
-#ifdef OMP_USE
-#pragma omp parallel for schedule (static) if(npb>OMP_LIMIT_COMPUTESTEP)
-#endif
-	for (int p = 0; p < npb; p++) {
 		const tfloat4 vr = VelrhopPrec[p];
 		const float rhopnew = float(double(vr.w) + dt05 * Arc[p]);
-		//Velrhopc[p] = TFloat4(0,0,0, (rhopnew < RhopZero ? RhopZero : rhopnew));//-Avoid fluid particles being absorbed by boundary ones. | Evita q las boundary absorvan a las fluidas.
-		Velrhopc[p] = TFloat4(0, 0, 0, rhopnew);//-Avoid fluid particles being absorbed by boundary ones. | Evita q las boundary absorvan a las fluidas.
+		Velrhopc[p] = TFloat4(vr.x, vr.y, vr.z, (rhopnew < RhopZero ? RhopZero : rhopnew));//-Avoid fluid particles being absorbed by boundary ones. | Evita q las boundary absorvan a las fluidas.
+		//Velrhopc[p] = TFloat4(vr.x, vr.y, vr.z, rhopnew);//-Avoid fluid particles being absorbed by boundary ones. | Evita q las boundary absorvan a las fluidas.
 
 			// Update Shear stress
 		Tauc_M[p].xx = float(double(TauPrec_M[p].xx) + double(TauDotc_M[p].xx) * dt05);
@@ -6009,9 +5954,27 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticPreT2_M(double dt) {
 				dy += double(ShiftPosc[p].y);
 				dz += double(ShiftPosc[p].z);
 			}
+			// With damping (#34c)
 			Velrhopc[p].x = float(double(VelrhopPrec[p].x) + double(Acec[p].x) * dt05);
 			Velrhopc[p].y = float(double(VelrhopPrec[p].y) + double(Acec[p].y) * dt05);
 			Velrhopc[p].z = float(double(VelrhopPrec[p].z) + double(Acec[p].z) * dt05);
+
+			switch (typeDamping) {
+				// #ForceVisc update
+			case 0:
+				if (Posc[p].x > 0.3) {
+					Velrhopc[p].x -= float(dampCoef * VelrhopPrec[p].x * dt05);
+					Velrhopc[p].y -= float(dampCoef * VelrhopPrec[p].y * dt05);
+					Velrhopc[p].z -= float(dampCoef * VelrhopPrec[p].z * dt05);
+				}
+			case 1:
+				if (Posc[p].x > 0.3) {
+					Velrhopc[p].x -= float(dampCoef * Co_M[p] * VelrhopPrec[p].x * dt05);
+					Velrhopc[p].y -= float(dampCoef * Co_M[p] * VelrhopPrec[p].y * dt05);
+					Velrhopc[p].z -= float(dampCoef * Co_M[p] * VelrhopPrec[p].z * dt05);
+				}
+			}
+
 
 
 			bool outrhop = (rhopnew<RhopOutMin || rhopnew>RhopOutMax);
@@ -6019,6 +5982,13 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticPreT2_M(double dt) {
 			UpdatePos(PosPrec[p], dx, dy, dz, outrhop, p, Posc, Dcellc, Codec);
 
 			//-Update velocity & density. | Actualiza velocidad y densidad.
+
+			//#Speed #Limiter
+			/*if (PosPrec[p].x > 2.0f) {
+				Velrhopc[p].x = float(min(double(VelrhopPrec[p].x) + double(Acec[p].x)* dt05, 0.03));
+				Velrhopc[p].y = 0.0f;
+				Velrhopc[p].z = 0.0f;
+			}*/
 
 			// Update Shear stress
 			Tauc_M[p].xx = float(double(TauPrec_M[p].xx) + double(TauDotc_M[p].xx) * dt05);
@@ -6052,6 +6022,7 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticPreT2_M(double dt) {
 	TmcStop(Timers, TMC_SuComputeStep);
 
 }
+
 
 // BdVis (#34): General damping term in acceleration
 template<bool shift> void JSphSolidCpu::ComputeSymplecticPreT_M(double dt) {
@@ -6162,265 +6133,19 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticPreT_M(double dt) {
 
 }
 
-template<bool shift> void JSphSolidCpu::ComputeSymplecticPreT_BlockBdy_M(double dt) {
-	TmcStart(Timers, TMC_SuComputeStep);
-	//-Assign memory to variables Pre. | Asigna memoria a variables Pre.
-	PosPrec = ArraysCpu->ReserveDouble3();
-	VelrhopPrec = ArraysCpu->ReserveFloat4();
-	MassPrec_M = ArraysCpu->ReserveFloat();
-	TauPrec_M = ArraysCpu->ReserveSymatrix3f();
-	QuadFormPrec_M = ArraysCpu->ReserveSymatrix3f();
-
-	//-Change data to variables Pre to calculate new data. | Cambia datos a variables Pre para calcular nuevos datos.
-	swap(PosPrec, Posc);         //Put value of Pos[] in PosPre[].         | Es decir... PosPre[] <= Pos[].
-	swap(VelrhopPrec, Velrhopc); //Put value of Velrhop[] in VelrhopPre[]. | Es decir... VelrhopPre[] <= Velrhop[].
-								 //-Calculate new values of particles. | Calcula nuevos datos de particulas.
-
-	// Swap MTQ
-	swap(Massc_M, MassPrec_M);
-	swap(Tauc_M, TauPrec_M);
-	swap(QuadFormc_M, QuadFormPrec_M);
-
-	const double dt05 = dt * .5;
-
-	//-Calculate new density for boundary and copy velocity. | Calcula nueva densidad para el contorno y copia velocidad.
-	const int npb = int(Npb);
-#ifdef OMP_USE
-#pragma omp parallel for schedule (static) if(npb>OMP_LIMIT_COMPUTESTEP)
-#endif
-	for (int p = 0; p < npb; p++) {
-		const tfloat4 vr = VelrhopPrec[p];
-		const float rhopnew = float(double(vr.w) + dt05 * Arc[p]);
-		Velrhopc[p] = TFloat4(vr.x, vr.y, vr.z, (rhopnew < RhopZero ? RhopZero : rhopnew));//-Avoid fluid particles being absorbed by boundary ones. | Evita q las boundary absorvan a las fluidas.
-		//Velrhopc[p] = TFloat4(vr.x, vr.y, vr.z, rhopnew);//-Avoid fluid particles being absorbed by boundary ones. | Evita q las boundary absorvan a las fluidas.
-
-			// Update Shear stress
-		Tauc_M[p].xx = float(double(TauPrec_M[p].xx) + double(TauDotc_M[p].xx) * dt05);
-		Tauc_M[p].xy = float(double(TauPrec_M[p].xy) + double(TauDotc_M[p].xy) * dt05);
-		Tauc_M[p].xz = float(double(TauPrec_M[p].xz) + double(TauDotc_M[p].xz) * dt05);
-		Tauc_M[p].yy = float(double(TauPrec_M[p].yy) + double(TauDotc_M[p].yy) * dt05);
-		Tauc_M[p].yz = float(double(TauPrec_M[p].yz) + double(TauDotc_M[p].yz) * dt05);
-		Tauc_M[p].zz = float(double(TauPrec_M[p].zz) + double(TauDotc_M[p].zz) * dt05);
-
-		QuadFormc_M[p] = QuadFormPrec_M[p];
-		Massc_M[p] = MassPrec_M[p];
-	}
-
-	//-Calculate new values of fluid. | Calcula nuevos datos del fluido.
-	const int np = int(Np);
-#ifdef OMP_USE
-#pragma omp parallel for schedule (static) if(np>OMP_LIMIT_COMPUTESTEP)
-#endif
-	for (int p = npb; p < np; p++) {
-		//-Calculate density.
-		const float rhopnew = float(double(VelrhopPrec[p].w) + dt05 * Arc[p]); // Not const because of source update 
-
-		if ((Posc[p].x > -0.16) && (!WithFloating || CODE_IsFluid(Codec[p]))) {//-Fluid Particles.
-				//-Calculate displacement & update position. | Calcula desplazamiento y actualiza posicion.
-
-			double dx = double(VelrhopPrec[p].x) * dt05;
-			double dy = double(VelrhopPrec[p].y) * dt05;
-			double dz = double(VelrhopPrec[p].z) * dt05;
-			if (shift) {
-				dx += double(ShiftPosc[p].x);
-				dy += double(ShiftPosc[p].y);
-				dz += double(ShiftPosc[p].z);
-			}
-			Velrhopc[p].x = float(double(VelrhopPrec[p].x) + double(Acec[p].x) * dt05);
-			Velrhopc[p].y = float(double(VelrhopPrec[p].y) + double(Acec[p].y) * dt05);
-			Velrhopc[p].z = float(double(VelrhopPrec[p].z) + double(Acec[p].z) * dt05);
-
-
-			bool outrhop = (rhopnew<RhopOutMin || rhopnew>RhopOutMax);
-
-			UpdatePos(PosPrec[p], dx, dy, dz, outrhop, p, Posc, Dcellc, Codec);
-
-			//-Update velocity & density. | Actualiza velocidad y densidad.
-
-			//#Speed #Limiter
-			/*if (PosPrec[p].x > 2.0f) {
-				Velrhopc[p].x = float(min(double(VelrhopPrec[p].x) + double(Acec[p].x)* dt05, 0.03));
-				Velrhopc[p].y = 0.0f;
-				Velrhopc[p].z = 0.0f;
-			}*/
-
-			// Update Shear stress
-			Tauc_M[p].xx = float(double(TauPrec_M[p].xx) + double(TauDotc_M[p].xx) * dt05);
-			Tauc_M[p].xy = float(double(TauPrec_M[p].xy) + double(TauDotc_M[p].xy) * dt05);
-			Tauc_M[p].xz = float(double(TauPrec_M[p].xz) + double(TauDotc_M[p].xz) * dt05);
-			Tauc_M[p].yy = float(double(TauPrec_M[p].yy) + double(TauDotc_M[p].yy) * dt05);
-			Tauc_M[p].yz = float(double(TauPrec_M[p].yz) + double(TauDotc_M[p].yz) * dt05);
-			Tauc_M[p].zz = float(double(TauPrec_M[p].zz) + double(TauDotc_M[p].zz) * dt05);
-
-			// Update Quadratic form - Commented since Defor only in CorrT
-			QuadFormc_M[p] = QuadFormPrec_M[p];
-
-			// Source Density and Mass - Commented since Source/Mass only in CorrT
-			Velrhopc[p].w = rhopnew;
-
-			Massc_M[p] = MassPrec_M[p];
-
-		}
-
-		else {//-Floating Particles.
-			Velrhopc[p] = VelrhopPrec[p];
-			Velrhopc[p].w = (rhopnew < RhopZero ? RhopZero : rhopnew); //-Avoid fluid particles being absorbed by floating ones. | Evita q las floating absorvan a las fluidas.
-																	 //-Copy position. | Copia posicion.
-			Posc[p] = PosPrec[p];
-		}
-	}
-
-	//-Copy previous position of boundary. | Copia posicion anterior del contorno.
-	memcpy(Posc, PosPrec, sizeof(tdouble3) * Npb);
-
-	TmcStop(Timers, TMC_SuComputeStep);
-
-}
-
-template<bool shift> void JSphSolidCpu::ComputeSymplecticPreT_CompressBdy_M(double dt) {
-	TmcStart(Timers, TMC_SuComputeStep);
-	//-Assign memory to variables Pre. | Asigna memoria a variables Pre.
-	PosPrec = ArraysCpu->ReserveDouble3();
-	VelrhopPrec = ArraysCpu->ReserveFloat4();
-	MassPrec_M = ArraysCpu->ReserveFloat();
-	TauPrec_M = ArraysCpu->ReserveSymatrix3f();
-	QuadFormPrec_M = ArraysCpu->ReserveSymatrix3f();
-
-	//-Change data to variables Pre to calculate new data. | Cambia datos a variables Pre para calcular nuevos datos.
-	swap(PosPrec, Posc);         //Put value of Pos[] in PosPre[].         | Es decir... PosPre[] <= Pos[].
-	swap(VelrhopPrec, Velrhopc); //Put value of Velrhop[] in VelrhopPre[]. | Es decir... VelrhopPre[] <= Velrhop[].
-								 //-Calculate new values of particles. | Calcula nuevos datos de particulas.
-
-	// Swap MTQ
-	swap(Massc_M, MassPrec_M);
-	swap(Tauc_M, TauPrec_M);
-	swap(QuadFormc_M, QuadFormPrec_M);
-
-	const double dt05 = dt * .5;
-
-	//-Calculate new density for boundary and copy velocity. | Calcula nueva densidad para el contorno y copia velocidad.
-	const int npb = int(Npb);
-#ifdef OMP_USE
-#pragma omp parallel for schedule (static) if(npb>OMP_LIMIT_COMPUTESTEP)
-#endif
-	for (int p = 0; p < npb; p++) {
-		const tfloat4 vr = VelrhopPrec[p];
-		const float rhopnew = float(double(vr.w) + dt05 * Arc[p]);
-		Velrhopc[p] = TFloat4(vr.x, vr.y, vr.z, (rhopnew < RhopZero ? RhopZero : rhopnew));//-Avoid fluid particles being absorbed by boundary ones. | Evita q las boundary absorvan a las fluidas.
-		//Velrhopc[p] = TFloat4(vr.x, vr.y, vr.z, rhopnew);//-Avoid fluid particles being absorbed by boundary ones. | Evita q las boundary absorvan a las fluidas.
-
-		// #Mobile #Bdy
-		// Move the compressive boundary 0.17-0.21
-		if (PosPrec[p].x > 0.0) {
-			double dx = double(VelrhopPrec[p].x) * dt05;
-			double dy = double(VelrhopPrec[p].y) * dt05;
-			double dz = double(VelrhopPrec[p].z) * dt05;
-
-			if (shift) {
-				dx += double(ShiftPosc[p].x);
-				dy += double(ShiftPosc[p].y);
-				dz += double(ShiftPosc[p].z);
-			}
-			UpdatePos(PosPrec[p], dx, dy, dz, false, p, Posc, Dcellc, Codec);
-		}
-
-			// Update Shear stress
-		Tauc_M[p].xx = float(double(TauPrec_M[p].xx) + double(TauDotc_M[p].xx) * dt05);
-		Tauc_M[p].xy = float(double(TauPrec_M[p].xy) + double(TauDotc_M[p].xy) * dt05);
-		Tauc_M[p].xz = float(double(TauPrec_M[p].xz) + double(TauDotc_M[p].xz) * dt05);
-		Tauc_M[p].yy = float(double(TauPrec_M[p].yy) + double(TauDotc_M[p].yy) * dt05);
-		Tauc_M[p].yz = float(double(TauPrec_M[p].yz) + double(TauDotc_M[p].yz) * dt05);
-		Tauc_M[p].zz = float(double(TauPrec_M[p].zz) + double(TauDotc_M[p].zz) * dt05);
-
-		QuadFormc_M[p] = QuadFormPrec_M[p];
-		Massc_M[p] = MassPrec_M[p];
-	}
-
-	//-Calculate new values of fluid. | Calcula nuevos datos del fluido.
-	const int np = int(Np);
-#ifdef OMP_USE
-#pragma omp parallel for schedule (static) if(np>OMP_LIMIT_COMPUTESTEP)
-#endif
-	for (int p = npb; p < np; p++) {
-		//-Calculate density.
-		const float rhopnew = float(double(VelrhopPrec[p].w) + dt05 * Arc[p]); // Not const because of source update 
-
-		//if ((Posc[p].x > -0.16) && (!WithFloating || CODE_IsFluid(Codec[p]))) {//-Fluid Particles.
-		if (!WithFloating || CODE_IsFluid(Codec[p])) {//-Fluid Particles.
-				//-Calculate displacement & update position. | Calcula desplazamiento y actualiza posicion.
-
-			double dx = double(VelrhopPrec[p].x) * dt05;
-			double dy = double(VelrhopPrec[p].y) * dt05;
-			double dz = double(VelrhopPrec[p].z) * dt05;
-			if (shift) {
-				dx += double(ShiftPosc[p].x);
-				dy += double(ShiftPosc[p].y);
-				dz += double(ShiftPosc[p].z);
-			}
-			Velrhopc[p].x = float(double(VelrhopPrec[p].x) + double(Acec[p].x) * dt05);
-			Velrhopc[p].y = float(double(VelrhopPrec[p].y) + double(Acec[p].y) * dt05);
-			Velrhopc[p].z = float(double(VelrhopPrec[p].z) + double(Acec[p].z) * dt05);
-
-
-			bool outrhop = (rhopnew<RhopOutMin || rhopnew>RhopOutMax);
-
-			UpdatePos(PosPrec[p], dx, dy, dz, outrhop, p, Posc, Dcellc, Codec);
-
-			//-Update velocity & density. | Actualiza velocidad y densidad.
-
-			//#Speed #Limiter
-			/*if (PosPrec[p].x > 2.0f) {
-				Velrhopc[p].x = float(min(double(VelrhopPrec[p].x) + double(Acec[p].x)* dt05, 0.03));
-				Velrhopc[p].y = 0.0f;
-				Velrhopc[p].z = 0.0f;
-			}*/
-
-			// Update Shear stress
-			Tauc_M[p].xx = float(double(TauPrec_M[p].xx) + double(TauDotc_M[p].xx) * dt05);
-			Tauc_M[p].xy = float(double(TauPrec_M[p].xy) + double(TauDotc_M[p].xy) * dt05);
-			Tauc_M[p].xz = float(double(TauPrec_M[p].xz) + double(TauDotc_M[p].xz) * dt05);
-			Tauc_M[p].yy = float(double(TauPrec_M[p].yy) + double(TauDotc_M[p].yy) * dt05);
-			Tauc_M[p].yz = float(double(TauPrec_M[p].yz) + double(TauDotc_M[p].yz) * dt05);
-			Tauc_M[p].zz = float(double(TauPrec_M[p].zz) + double(TauDotc_M[p].zz) * dt05);
-
-			// Update Quadratic form - Commented since Defor only in CorrT
-			QuadFormc_M[p] = QuadFormPrec_M[p];
-
-			// Source Density and Mass - Commented since Source/Mass only in CorrT
-			Velrhopc[p].w = rhopnew;
-
-			Massc_M[p] = MassPrec_M[p];
-
-		}
-
-		else {//-Floating Particles.
-			Velrhopc[p] = VelrhopPrec[p];
-			Velrhopc[p].w = (rhopnew < RhopZero ? RhopZero : rhopnew); //-Avoid fluid particles being absorbed by floating ones. | Evita q las floating absorvan a las fluidas.
-																	 //-Copy position. | Copia posicion.
-			Posc[p] = PosPrec[p];
-		}
-	}
-
-	//-Copy previous position of boundary. | Copia posicion anterior del contorno.
-	memcpy(Posc, PosPrec, sizeof(tdouble3) * Npb);
-
-	TmcStop(Timers, TMC_SuComputeStep);
-
-}
-
 void JSphSolidCpu::ComputeSymplecticCorr_M(double dt) {
 
 	switch (typeCompression) {
 	case 0: {
 		// No compression
-		if (TShifting)ComputeSymplecticCorrT31_M<true>(dt);
-		else          ComputeSymplecticCorrT31_M<false>(dt);
+		if (TShifting)ComputeSymplecticCorrT35_M<true>(dt);
+		else          ComputeSymplecticCorrT35_M<false>(dt);
 		break;
 	}
-	case 1: {
-		// Compression from tip boundary
-		if (TShifting)ComputeSymplecticCorrT_CompressBdy_M<true>(dt);
-		else          ComputeSymplecticCorrT_CompressBdy_M<false>(dt);
+	default: {
+		// No compression
+		if (TShifting)ComputeSymplecticCorrT35_M<true>(dt);
+		else          ComputeSymplecticCorrT35_M<false>(dt);
 		break;
 	}
 	}
@@ -6568,116 +6293,10 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT_M(double dt) {
 	TmcStop(Timers, TMC_SuComputeStep);
 }
 
-// V32-Da (merged from b): Include density treatment on boundary (removal of rho0 filter)
-template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT2_M(double dt) {
-	TmcStart(Timers, TMC_SuComputeStep);
-
-	//-Calculate rhop of boudary and set velocity=0. | Calcula rhop de contorno y vel igual a cero.
-	const int npb = int(Npb);
-
-	//
-#ifdef OMP_USE
-#pragma omp parallel for schedule (static) if(npb>OMP_LIMIT_COMPUTESTEP)
-#endif
-	for (int p = 0; p < npb; p++) {
-		const double epsilon_rdot = (-double(Arc[p]) / double(Velrhopc[p].w)) * dt;
-		const float rhopnew = float(double(VelrhopPrec[p].w) * (2. - epsilon_rdot) / (2. + epsilon_rdot));
-		//Velrhopc[p] = TFloat4(0, 0, 0, (rhopnew < RhopZero ? RhopZero : rhopnew));
-		Velrhopc[p] = TFloat4(0, 0, 0, rhopnew);
-
-		// Update Shear stress
-		Tauc_M[p].xx = float(double(TauPrec_M[p].xx) + double(TauDotc_M[p].xx) * dt);
-		Tauc_M[p].xy = float(double(TauPrec_M[p].xy) + double(TauDotc_M[p].xy) * dt);
-		Tauc_M[p].xz = float(double(TauPrec_M[p].xz) + double(TauDotc_M[p].xz) * dt);
-		Tauc_M[p].yy = float(double(TauPrec_M[p].yy) + double(TauDotc_M[p].yy) * dt);
-		Tauc_M[p].yz = float(double(TauPrec_M[p].yz) + double(TauDotc_M[p].yz) * dt);
-		Tauc_M[p].zz = float(double(TauPrec_M[p].zz) + double(TauDotc_M[p].zz) * dt);
-	}
-
-	//-Calculate fluid values. | Calcula datos de fluido.
-	const double dt05 = dt * .5;
-	const int np = int(Np);
-#ifdef OMP_USE
-#pragma omp parallel for schedule (static) if(np>OMP_LIMIT_COMPUTESTEP)
-#endif
-	for (int p = npb; p < np; p++) {
-		const double epsilon_rdot = (-double(Arc[p]) / double(Velrhopc[p].w)) * dt;
-
-		float rhopnew = float(double(VelrhopPrec[p].w) * (2. - epsilon_rdot) / (2. + epsilon_rdot));
-
-		// 27/03/19 - I need to find references for this equation, report on it
-
-		if (!WithFloating || CODE_IsFluid(Codec[p])) {//-Fluid Particles.
-													  //-Update velocity & density. | Actualiza velocidad y densidad.
-			Velrhopc[p].x = float(double(VelrhopPrec[p].x) + double(Acec[p].x) * dt);
-			Velrhopc[p].y = float(double(VelrhopPrec[p].y) + double(Acec[p].y) * dt);
-			Velrhopc[p].z = float(double(VelrhopPrec[p].z) + double(Acec[p].z) * dt);
-
-			//-Calculate displacement and update position. | Calcula desplazamiento y actualiza posicion.
-			double dx = (double(VelrhopPrec[p].x) + double(Velrhopc[p].x)) * dt05;
-			double dy = (double(VelrhopPrec[p].y) + double(Velrhopc[p].y)) * dt05;
-			double dz = (double(VelrhopPrec[p].z) + double(Velrhopc[p].z)) * dt05;
-			if (shift) {
-				dx += double(ShiftPosc[p].x);
-				dy += double(ShiftPosc[p].y);
-				dz += double(ShiftPosc[p].z);
-			}
-			bool outrhop = (rhopnew<RhopOutMin || rhopnew>RhopOutMax);
-			UpdatePos(PosPrec[p], dx, dy, dz, outrhop, p, Posc, Dcellc, Codec);
-
-			// Update Shear stress
-			Tauc_M[p].xx = float(double(TauPrec_M[p].xx) + double(TauDotc_M[p].xx) * dt);
-			Tauc_M[p].xy = float(double(TauPrec_M[p].xy) + double(TauDotc_M[p].xy) * dt);
-			Tauc_M[p].xz = float(double(TauPrec_M[p].xz) + double(TauDotc_M[p].xz) * dt);
-			Tauc_M[p].yy = float(double(TauPrec_M[p].yy) + double(TauDotc_M[p].yy) * dt);
-			Tauc_M[p].yz = float(double(TauPrec_M[p].yz) + double(TauDotc_M[p].yz) * dt);
-			Tauc_M[p].zz = float(double(TauPrec_M[p].zz) + double(TauDotc_M[p].zz) * dt);
-
-			// Update Quadratic form
-			// ep+om modified 09042019
-			// #Velocity #Gradient
-			tmatrix3f Q = TMatrix3f(QuadFormPrec_M[p].xx, QuadFormPrec_M[p].xy, QuadFormPrec_M[p].xz
-				, QuadFormPrec_M[p].xy, QuadFormPrec_M[p].yy, QuadFormPrec_M[p].yz, QuadFormPrec_M[p].xz, QuadFormPrec_M[p].yz, QuadFormPrec_M[p].zz);
-
-			tmatrix3f GdVel = TMatrix3f(StrainDotc_M[p].xx, StrainDotc_M[p].xy, StrainDotc_M[p].xz
-				, StrainDotc_M[p].xy, StrainDotc_M[p].yy, StrainDotc_M[p].yz
-				, StrainDotc_M[p].xz, StrainDotc_M[p].yz, StrainDotc_M[p].zz) + TMatrix3f(Spinc_M[p].xx, Spinc_M[p].xy, Spinc_M[p].xz
-					, -Spinc_M[p].xy, Spinc_M[p].yy, Spinc_M[p].yz
-					, -Spinc_M[p].xz, -Spinc_M[p].yz, Spinc_M[p].zz);
-
-			tmatrix3f DQD = ToTMatrix3f((TMatrix3d(1, 0, 0, 0, 1, 0, 0, 0, 1) - dt
-				* ToTMatrix3d(Ttransp(GdVel))) * ToTMatrix3d(Q) * (TMatrix3d(1, 0, 0, 0, 1, 0, 0, 0, 1) - dt * ToTMatrix3d(GdVel)));
-			//27/03/19 - Is it possible to reduce this DQD line ? -> no because there is the complete multiplication of three dense matrices.
-			QuadFormc_M[p].xx = float(DQD.a11);
-			QuadFormc_M[p].xy = float(DQD.a12);
-			QuadFormc_M[p].xz = float(DQD.a13);
-			QuadFormc_M[p].yy = float(DQD.a22);
-			QuadFormc_M[p].yz = float(DQD.a23);
-			QuadFormc_M[p].zz = float(DQD.a33);
-
-			Velrhopc[p].w = rhopnew;
-		}
-		else {//-Floating Particles.
-			Velrhopc[p] = VelrhopPrec[p];
-			Velrhopc[p].w = (rhopnew < RhopZero ? RhopZero : rhopnew); //-Avoid fluid particles being absorbed by floating ones. | Evita q las floating absorvan a las fluidas.
-																	 //-Copy position. | Copia posicion.
-			Posc[p] = PosPrec[p];
-		}
-	}
-	// Growth function
-	GrowthCell_M(dt);
-
-	//-Free memory assigned to variables Pre and ComputeSymplecticPre(). | Libera memoria asignada a variables Pre en ComputeSymplecticPre().
-	ArraysCpu->Free(PosPrec);         PosPrec = NULL;
-	ArraysCpu->Free(VelrhopPrec);	  VelrhopPrec = NULL;
-	ArraysCpu->Free(MassPrec_M);	  MassPrec_M = NULL;
-	ArraysCpu->Free(TauPrec_M);		  TauPrec_M = NULL;
-	ArraysCpu->Free(QuadFormPrec_M);  QuadFormPrec_M = NULL;
-	TmcStop(Timers, TMC_SuComputeStep);
-}
-
-// BdVis (#34): General damping term in acceleration
-template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT31_M(double dt) {
+template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT35_M(double dt) {
+// #32 (merged from b): Include density treatment on boundary (removal of rho0 filter)
+// #34 BdVis: General damping term in acceleration
+// #35 ForceVisc: Update of Force Visc
 	TmcStart(Timers, TMC_SuComputeStep);
 
 	//-Calculate rhop of boudary and set velocity=0. | Calcula rhop de contorno y vel igual a cero.
@@ -6718,26 +6337,26 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT31_M(double dt) {
 
 		if (!WithFloating || CODE_IsFluid(Codec[p])) {//-Fluid Particles.
 													  //-Update velocity & density. | Actualiza velocidad y densidad.
-			
+
 			Velrhopc[p].x = float(double(VelrhopPrec[p].x) + double(Acec[p].x) * dt);
 			Velrhopc[p].y = float(double(VelrhopPrec[p].y) + double(Acec[p].y) * dt);
 			Velrhopc[p].z = float(double(VelrhopPrec[p].z) + double(Acec[p].z) * dt);
-			
 
-			switch (typeDamping) {
-			case 0:
-				if (Posc[p].x > 0.3) {
-					Velrhopc[p].x -= float(dampCoef * VelrhopPrec[p].x * dt05);
-					Velrhopc[p].y -= float(dampCoef * VelrhopPrec[p].y * dt05);
-					Velrhopc[p].z -= float(dampCoef * VelrhopPrec[p].z * dt05);
+
+			if (Posc[p].x > 0.3) {
+				switch (typeDamping) {
+				case 0:
+					ForceVisc[p] = TFloat3(VelrhopPrec[p].x, VelrhopPrec[p].y, VelrhopPrec[p].z) * dampCoef;
+					break;
+				case 1:
+					ForceVisc[p] = TFloat3(VelrhopPrec[p].x, VelrhopPrec[p].y, VelrhopPrec[p].z) * dampCoef * Co_M[p];
+					break;
 				}
-			case 1:
-				if (Posc[p].x > 0.3) {
-					Velrhopc[p].x -= float(dampCoef * Co_M[p] * VelrhopPrec[p].x * dt05);
-					Velrhopc[p].y -= float(dampCoef * Co_M[p] * VelrhopPrec[p].y * dt05);
-					Velrhopc[p].z -= float(dampCoef * Co_M[p] * VelrhopPrec[p].z * dt05);
-				}
+				Velrhopc[p].x -= ForceVisc[p].x * float(dt);
+				Velrhopc[p].y -= ForceVisc[p].y * float(dt);
+				Velrhopc[p].z -= ForceVisc[p].z * float(dt);
 			}
+			else ForceVisc[p] = TFloat3(0);
 
 			//-Calculate displacement and update position. | Calcula desplazamiento y actualiza posicion.
 			double dx = (double(VelrhopPrec[p].x) + double(Velrhopc[p].x)) * dt05;
@@ -6789,264 +6408,6 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT31_M(double dt) {
 																	 //-Copy position. | Copia posicion.
 			Posc[p] = PosPrec[p];
 		}
-	}
-	// Growth function
-	GrowthCell_M(dt);
-
-	//-Free memory assigned to variables Pre and ComputeSymplecticPre(). | Libera memoria asignada a variables Pre en ComputeSymplecticPre().
-	ArraysCpu->Free(PosPrec);         PosPrec = NULL;
-	ArraysCpu->Free(VelrhopPrec);	  VelrhopPrec = NULL;
-	ArraysCpu->Free(MassPrec_M);	  MassPrec_M = NULL;
-	ArraysCpu->Free(TauPrec_M);		  TauPrec_M = NULL;
-	ArraysCpu->Free(QuadFormPrec_M);  QuadFormPrec_M = NULL;
-	TmcStop(Timers, TMC_SuComputeStep);
-}
-
-template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT_BlockBdy_M(double dt) {
-	TmcStart(Timers, TMC_SuComputeStep);
-
-	//-Calculate rhop of boudary and set velocity=0. | Calcula rhop de contorno y vel igual a cero.
-	const int npb = int(Npb);
-#ifdef OMP_USE
-#pragma omp parallel for schedule (static) if(npb>OMP_LIMIT_COMPUTESTEP)
-#endif
-	for (int p = 0; p < npb; p++) {
-		const double epsilon_rdot = (-double(Arc[p]) / double(Velrhopc[p].w)) * dt;
-		const float rhopnew = float(double(VelrhopPrec[p].w) * (2. - epsilon_rdot) / (2. + epsilon_rdot));
-		Velrhopc[p] = TFloat4(0, 0, 0, (rhopnew < RhopZero ? RhopZero : rhopnew));//-Avoid fluid particles being absorbed by boundary ones. | Evita q las boundary absorvan a las fluidas.
-
-		// Update Shear stress
-		Tauc_M[p].xx = float(double(TauPrec_M[p].xx) + double(TauDotc_M[p].xx) * dt);
-		Tauc_M[p].xy = float(double(TauPrec_M[p].xy) + double(TauDotc_M[p].xy) * dt);
-		Tauc_M[p].xz = float(double(TauPrec_M[p].xz) + double(TauDotc_M[p].xz) * dt);
-		Tauc_M[p].yy = float(double(TauPrec_M[p].yy) + double(TauDotc_M[p].yy) * dt);
-		Tauc_M[p].yz = float(double(TauPrec_M[p].yz) + double(TauDotc_M[p].yz) * dt);
-		Tauc_M[p].zz = float(double(TauPrec_M[p].zz) + double(TauDotc_M[p].zz) * dt);
-	}
-
-	//-Calculate fluid values. | Calcula datos de fluido.
-	const double dt05 = dt * .5;
-	const int np = int(Np);
-#ifdef OMP_USE
-#pragma omp parallel for schedule (static) if(np>OMP_LIMIT_COMPUTESTEP)
-#endif
-	for (int p = npb; p < np; p++) {
-		const double epsilon_rdot = (-double(Arc[p]) / double(Velrhopc[p].w)) * dt;
-
-		float rhopnew = float(double(VelrhopPrec[p].w) * (2. - epsilon_rdot) / (2. + epsilon_rdot));
-
-		// 27/03/19 - I need to find references for this equation, report on it
-
-		if ((Posc[p].x>-0.16)&&(!WithFloating || CODE_IsFluid(Codec[p]))) {//-Fluid Particles.
-													  //-Update velocity & density. | Actualiza velocidad y densidad.
-			Velrhopc[p].x = float(double(VelrhopPrec[p].x) + double(Acec[p].x) * dt);
-			Velrhopc[p].y = float(double(VelrhopPrec[p].y) + double(Acec[p].y) * dt);
-			Velrhopc[p].z = float(double(VelrhopPrec[p].z) + double(Acec[p].z) * dt);
-
-
-			//-Calculate displacement and update position. | Calcula desplazamiento y actualiza posicion.
-			double dx = (double(VelrhopPrec[p].x) + double(Velrhopc[p].x)) * dt05;
-			double dy = (double(VelrhopPrec[p].y) + double(Velrhopc[p].y)) * dt05;
-			double dz = (double(VelrhopPrec[p].z) + double(Velrhopc[p].z)) * dt05;
-			if (shift) {
-				dx += double(ShiftPosc[p].x);
-				dy += double(ShiftPosc[p].y);
-				dz += double(ShiftPosc[p].z);
-			}
-			bool outrhop = (rhopnew<RhopOutMin || rhopnew>RhopOutMax);
-			UpdatePos(PosPrec[p], dx, dy, dz, outrhop, p, Posc, Dcellc, Codec);
-
-			// Update Shear stress
-			Tauc_M[p].xx = float(double(TauPrec_M[p].xx) + double(TauDotc_M[p].xx) * dt);
-			Tauc_M[p].xy = float(double(TauPrec_M[p].xy) + double(TauDotc_M[p].xy) * dt);
-			Tauc_M[p].xz = float(double(TauPrec_M[p].xz) + double(TauDotc_M[p].xz) * dt);
-			Tauc_M[p].yy = float(double(TauPrec_M[p].yy) + double(TauDotc_M[p].yy) * dt);
-			Tauc_M[p].yz = float(double(TauPrec_M[p].yz) + double(TauDotc_M[p].yz) * dt);
-			Tauc_M[p].zz = float(double(TauPrec_M[p].zz) + double(TauDotc_M[p].zz) * dt);
-
-			// Update Quadratic form
-			// ep+om modified 09042019
-			// #Velocity #Gradient
-			tmatrix3f Q = TMatrix3f(QuadFormPrec_M[p].xx, QuadFormPrec_M[p].xy, QuadFormPrec_M[p].xz
-				, QuadFormPrec_M[p].xy, QuadFormPrec_M[p].yy, QuadFormPrec_M[p].yz, QuadFormPrec_M[p].xz, QuadFormPrec_M[p].yz, QuadFormPrec_M[p].zz);
-
-			tmatrix3f GdVel = TMatrix3f(StrainDotc_M[p].xx, StrainDotc_M[p].xy, StrainDotc_M[p].xz
-				, StrainDotc_M[p].xy, StrainDotc_M[p].yy, StrainDotc_M[p].yz
-				, StrainDotc_M[p].xz, StrainDotc_M[p].yz, StrainDotc_M[p].zz) + TMatrix3f(Spinc_M[p].xx, Spinc_M[p].xy, Spinc_M[p].xz
-					, -Spinc_M[p].xy, Spinc_M[p].yy, Spinc_M[p].yz
-					, -Spinc_M[p].xz, -Spinc_M[p].yz, Spinc_M[p].zz);
-
-			tmatrix3f DQD = ToTMatrix3f((TMatrix3d(1, 0, 0, 0, 1, 0, 0, 0, 1) - dt
-				* ToTMatrix3d(Ttransp(GdVel))) * ToTMatrix3d(Q) * (TMatrix3d(1, 0, 0, 0, 1, 0, 0, 0, 1) - dt * ToTMatrix3d(GdVel)));
-			//27/03/19 - Is it possible to reduce this DQD line ? -> no because there is the complete multiplication of three dense matrices.
-			QuadFormc_M[p].xx = float(DQD.a11);
-			QuadFormc_M[p].xy = float(DQD.a12);
-			QuadFormc_M[p].xz = float(DQD.a13);
-			QuadFormc_M[p].yy = float(DQD.a22);
-			QuadFormc_M[p].yz = float(DQD.a23);
-			QuadFormc_M[p].zz = float(DQD.a33);
-
-			// Source Density and Mass - To be moved upward, with E_rdot
-			const float volu = float(double(MassPrec_M[p]) / double(rhopnew));
-			float adens = float(LambdaMass) * (RhopZero / Velrhopc[p].w - 1);
-			//float adens = float(LambdaMass);
-
-			// Growth regional
-			rhopnew = float(rhopnew + dt * adens);
-			Massc_M[p] = float(double(MassPrec_M[p]) + dt * double(adens * volu));
-			
-
-
-			// Global growth
-			/*rhopnew = float(rhopnew + dt * adens);
-			Massc_M[p] = float(double(MassPrec_M[p]) + dt * double(adens * volu));*/
-
-			Velrhopc[p].w = rhopnew;
-		}
-		else {//-Floating Particles.
-			Velrhopc[p] = VelrhopPrec[p];
-			Velrhopc[p].w = (rhopnew < RhopZero ? RhopZero : rhopnew); //-Avoid fluid particles being absorbed by floating ones. | Evita q las floating absorvan a las fluidas.
-																	 //-Copy position. | Copia posicion.
-			Posc[p] = PosPrec[p];
-		}
-	}
-
-	//-Free memory assigned to variables Pre and ComputeSymplecticPre(). | Libera memoria asignada a variables Pre en ComputeSymplecticPre().
-	ArraysCpu->Free(PosPrec);         PosPrec = NULL;
-	ArraysCpu->Free(VelrhopPrec);	  VelrhopPrec = NULL;
-	ArraysCpu->Free(MassPrec_M);	  MassPrec_M = NULL;
-	ArraysCpu->Free(TauPrec_M);		  TauPrec_M = NULL;
-	ArraysCpu->Free(QuadFormPrec_M);  QuadFormPrec_M = NULL;
-	TmcStop(Timers, TMC_SuComputeStep);
-}
-
-template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT_CompressBdy_M(double dt) {
-	TmcStart(Timers, TMC_SuComputeStep);
-
-	//-Calculate rhop of boudary and set velocity=0. | Calcula rhop de contorno y vel igual a cero.
-	const int npb = int(Npb);
-	const double dt05 = dt * .5;
-#ifdef OMP_USE
-#pragma omp parallel for schedule (static) if(npb>OMP_LIMIT_COMPUTESTEP)
-#endif
-	for (int p = 0; p < npb; p++) {
-		const double epsilon_rdot = (-double(Arc[p]) / double(Velrhopc[p].w)) * dt;
-		const float rhopnew = float(double(VelrhopPrec[p].w) * (2. - epsilon_rdot) / (2. + epsilon_rdot));
-
-		// #Mobile #Bdy
-		// Give a velocity to the compressive part only during a certain time (0.5 h for 0.01 mm)
-		if (Posc[p].x > 0.0 && TimeStep < 0.5) {
-			Velrhopc[p] = TFloat4(-0.01f / 0.5f, 0, 0, (rhopnew < RhopZero ? RhopZero : rhopnew));
-			double dx = double(VelrhopPrec[p].x) * dt05;
-			double dy = double(VelrhopPrec[p].y) * dt05;
-			double dz = double(VelrhopPrec[p].z) * dt05;
-
-			if (shift) {
-				dx += double(ShiftPosc[p].x);
-				dy += double(ShiftPosc[p].y);
-				dz += double(ShiftPosc[p].z);
-			}
-			UpdatePos(PosPrec[p], dx, dy, dz, false, p, Posc, Dcellc, Codec);
-		}
-		else Velrhopc[p] = TFloat4(0, 0, 0, (rhopnew < RhopZero ? RhopZero : rhopnew));//-Avoid fluid particles being absorbed by boundary ones. | Evita q las boundary absorvan a las fluidas.
-
-
-		// Update Shear stress
-		Tauc_M[p].xx = float(double(TauPrec_M[p].xx) + double(TauDotc_M[p].xx) * dt);
-		Tauc_M[p].xy = float(double(TauPrec_M[p].xy) + double(TauDotc_M[p].xy) * dt);
-		Tauc_M[p].xz = float(double(TauPrec_M[p].xz) + double(TauDotc_M[p].xz) * dt);
-		Tauc_M[p].yy = float(double(TauPrec_M[p].yy) + double(TauDotc_M[p].yy) * dt);
-		Tauc_M[p].yz = float(double(TauPrec_M[p].yz) + double(TauDotc_M[p].yz) * dt);
-		Tauc_M[p].zz = float(double(TauPrec_M[p].zz) + double(TauDotc_M[p].zz) * dt);
-	}
-
-	//-Calculate fluid values. | Calcula datos de fluido.
-	const int np = int(Np);
-#ifdef OMP_USE
-#pragma omp parallel for schedule (static) if(np>OMP_LIMIT_COMPUTESTEP)
-#endif
-	for (int p = npb; p < np; p++) {
-		const double epsilon_rdot = (-double(Arc[p]) / double(Velrhopc[p].w)) * dt;
-
-		float rhopnew = float(double(VelrhopPrec[p].w) * (2. - epsilon_rdot) / (2. + epsilon_rdot));
-
-		// 27/03/19 - I need to find references for this equation, report on it
-
-		//if ((Posc[p].x > -0.16) && (!WithFloating || CODE_IsFluid(Codec[p]))) {//-Fluid Particles.
-		if (!WithFloating || CODE_IsFluid(Codec[p])) {//-Fluid Particles.
-													  //-Update velocity & density. | Actualiza velocidad y densidad.
-			Velrhopc[p].x = float(double(VelrhopPrec[p].x) + double(Acec[p].x) * dt);
-			Velrhopc[p].y = float(double(VelrhopPrec[p].y) + double(Acec[p].y) * dt);
-			Velrhopc[p].z = float(double(VelrhopPrec[p].z) + double(Acec[p].z) * dt);
-
-
-			//-Calculate displacement and update position. | Calcula desplazamiento y actualiza posicion.
-			double dx = (double(VelrhopPrec[p].x) + double(Velrhopc[p].x)) * dt05;
-			double dy = (double(VelrhopPrec[p].y) + double(Velrhopc[p].y)) * dt05;
-			double dz = (double(VelrhopPrec[p].z) + double(Velrhopc[p].z)) * dt05;
-			if (shift) {
-				dx += double(ShiftPosc[p].x);
-				dy += double(ShiftPosc[p].y);
-				dz += double(ShiftPosc[p].z);
-			}
-			bool outrhop = (rhopnew<RhopOutMin || rhopnew>RhopOutMax);
-			UpdatePos(PosPrec[p], dx, dy, dz, outrhop, p, Posc, Dcellc, Codec);
-
-			// Update Shear stress
-			Tauc_M[p].xx = float(double(TauPrec_M[p].xx) + double(TauDotc_M[p].xx) * dt);
-			Tauc_M[p].xy = float(double(TauPrec_M[p].xy) + double(TauDotc_M[p].xy) * dt);
-			Tauc_M[p].xz = float(double(TauPrec_M[p].xz) + double(TauDotc_M[p].xz) * dt);
-			Tauc_M[p].yy = float(double(TauPrec_M[p].yy) + double(TauDotc_M[p].yy) * dt);
-			Tauc_M[p].yz = float(double(TauPrec_M[p].yz) + double(TauDotc_M[p].yz) * dt);
-			Tauc_M[p].zz = float(double(TauPrec_M[p].zz) + double(TauDotc_M[p].zz) * dt);
-
-			// Update Quadratic form
-			// ep+om modified 09042019
-			// #Velocity #Gradient
-			tmatrix3f Q = TMatrix3f(QuadFormPrec_M[p].xx, QuadFormPrec_M[p].xy, QuadFormPrec_M[p].xz
-				, QuadFormPrec_M[p].xy, QuadFormPrec_M[p].yy, QuadFormPrec_M[p].yz, QuadFormPrec_M[p].xz, QuadFormPrec_M[p].yz, QuadFormPrec_M[p].zz);
-
-			tmatrix3f GdVel = TMatrix3f(StrainDotc_M[p].xx, StrainDotc_M[p].xy, StrainDotc_M[p].xz
-				, StrainDotc_M[p].xy, StrainDotc_M[p].yy, StrainDotc_M[p].yz
-				, StrainDotc_M[p].xz, StrainDotc_M[p].yz, StrainDotc_M[p].zz) + TMatrix3f(Spinc_M[p].xx, Spinc_M[p].xy, Spinc_M[p].xz
-					, -Spinc_M[p].xy, Spinc_M[p].yy, Spinc_M[p].yz
-					, -Spinc_M[p].xz, -Spinc_M[p].yz, Spinc_M[p].zz);
-
-			tmatrix3f DQD = ToTMatrix3f((TMatrix3d(1, 0, 0, 0, 1, 0, 0, 0, 1) - dt
-				* ToTMatrix3d(Ttransp(GdVel))) * ToTMatrix3d(Q) * (TMatrix3d(1, 0, 0, 0, 1, 0, 0, 0, 1) - dt * ToTMatrix3d(GdVel)));
-			//27/03/19 - Is it possible to reduce this DQD line ? -> no because there is the complete multiplication of three dense matrices.
-			QuadFormc_M[p].xx = float(DQD.a11);
-			QuadFormc_M[p].xy = float(DQD.a12);
-			QuadFormc_M[p].xz = float(DQD.a13);
-			QuadFormc_M[p].yy = float(DQD.a22);
-			QuadFormc_M[p].yz = float(DQD.a23);
-			QuadFormc_M[p].zz = float(DQD.a33);
-
-			// Source Density and Mass - To be moved upward, with E_rdot
-			//const float volu = float(double(MassPrec_M[p]) / double(rhopnew));
-			//float adens = float(LambdaMass) * (RhopZero / Velrhopc[p].w - 1);
-			//float adens = float(LambdaMass);
-
-			// Growth regional
-			//rhopnew = float(rhopnew + dt * adens);
-			//Massc_M[p] = float(double(MassPrec_M[p]) + dt * double(adens * volu));
-
-
-
-			// Global growth
-			/*rhopnew = float(rhopnew + dt * adens);
-			Massc_M[p] = float(double(MassPrec_M[p]) + dt * double(adens * volu));*/
-
-			Velrhopc[p].w = rhopnew;
-
-		}
-		else {//-Floating Particles.
-			Velrhopc[p] = VelrhopPrec[p];
-			Velrhopc[p].w = (rhopnew < RhopZero ? RhopZero : rhopnew); //-Avoid fluid particles being absorbed by floating ones. | Evita q las floating absorvan a las fluidas.
-																	 //-Copy position. | Copia posicion.
-			Posc[p] = PosPrec[p];
-		}
-
 	}
 	// Growth function
 	GrowthCell_M(dt);
