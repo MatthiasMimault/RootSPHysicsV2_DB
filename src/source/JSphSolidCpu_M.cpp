@@ -586,7 +586,7 @@ unsigned JSphSolidCpu::GetParticlesData35_M(unsigned n, unsigned pini, bool cell
 	if (cellOSpr) memcpy(cellOSpr, CellOffSpring + pini, sizeof(unsigned) * n);
 	if (gradvel) memcpy(gradvel, StrainDotSave + pini, sizeof(tfloat3) * n);
 	if (ace) memcpy(ace, AceSave + pini, sizeof(tfloat3) * n);
-	if (fvi) memcpy(ace, ForceVisc + pini, sizeof(tfloat3) * n);
+	if (fvi) memcpy(fvi, ForceVisc + pini, sizeof(tfloat3) * n);
 
 
 	//-Eliminate non-normal particles (periodic & others). | Elimina particulas no normales (periodicas y otras).
@@ -3206,6 +3206,7 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 		InteractionForces_V31_M<psingle, tker, ftmode, lamsps, tdelta, shift>
 			(npf, npb, nc, hdiv, cellfluid, Visco, begincell, cellzero, dcell
 				, jautau, jaugradvel, jauomega, pos, pspos, velrhop, code, idp, press, pore, mass, L, viscdt, ar, ace, delta, tshifting, shiftpos, shiftdetect);
+		
 		for (unsigned p = npb; p < np; p++) acesave[p] = ace[p];
 
 		//-Interaction Fluid-Bound.

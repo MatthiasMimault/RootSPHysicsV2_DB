@@ -2574,7 +2574,7 @@ void JSph::SavePartData35_M(unsigned npok, unsigned nout, const unsigned* idp, c
 			tfloat3* fv = NULL;
 			fv = new tfloat3[npok];
 			for (unsigned p = 0; p < npok; p++) fv[p] = fvi[p];
-			DataBi4->AddPartData("ForceVisc", npok, fv);
+			DataBi4->AddPartData("AceVisc", npok, fv);
 
 			/*// Quadratic form -- Blocked formulation since PartVtk does not seem to read tsymatrix
 			tsymatrix3f *qf = NULL;
