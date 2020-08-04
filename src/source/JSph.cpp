@@ -1010,7 +1010,7 @@ void JSph::ConfigConstants(bool simulate2d){
   const char* met="ConfigConstants";
 
   // Matthias - Solid mechanics #constants
-  const float  nf = Ey / Ex;
+ /* const float  nf = Ey / Ex;
 
   if (Simulate2D) {
 	  const float Delta = 1.0f / (1.0f - nuxy * nuxy * nf);
@@ -1049,7 +1049,7 @@ void JSph::ConfigConstants(bool simulate2d){
   printf("S1 = %.8f, S12 = %.8f, S13 = %.8f\n", S1, S12, S13);
   printf("S12 = %.8f, S2 = %.8f, S23 = %.8f\n", S12, S2, S23);
   printf("S13 = %.8f, S23 = %.8f, S3 = %.8f\n", S13, S23, S3);
-  printf("Kani = %.8f\n", Kani);
+  printf("Kani = %.8f\n", Kani);*/
 
   // New B for anisotropy
   //CteB = Kani / (Gamma); 

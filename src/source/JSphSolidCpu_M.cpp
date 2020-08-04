@@ -2963,8 +2963,7 @@ void JSphSolidCpu::ComputeTauDot_Gradual_M(unsigned n, unsigned pini, tsymatrix3
 
 		const float E = theta * Ey + (1.0f - theta) * Ex;
 		const float G = theta * Gf + (1.0f - theta) * Ex * 0.5f * (1 + nuxy);
-		const float nu = theta * nuyz + (1.0f - theta) * nuxy;
-		const float  nf = E / Ex;
+		const float nf = E / Ex;
 
 		if (Simulate2D) {
 			const float Delta = 1.0f / (1.0f - nuxy * nuxy * nf);
@@ -2988,6 +2987,7 @@ void JSphSolidCpu::ComputeTauDot_Gradual_M(unsigned n, unsigned pini, tsymatrix3
 				1.0f / 2.0f * (-C1 + C13) * gradvel.xx + 1.0f / 2.0f * (-C13 + C3) * gradvel.zz };
 		}
 		else {
+			const float nu = theta * nuyz + (1.0f - theta) * nuxy;
 			const float Delta = nf * Ex / (1.0f - nu - 2.0f * nf * nuxy * nuxy);
 			const float C1 = Delta * (1.0f - nu) / nf;
 			const float C12 = Delta * nuxy;
@@ -3106,7 +3106,6 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 	}
 
 	// Overall computation of taudot
-	// #Young
 	switch (typeYoung) {
 		case 0: {
 			ComputeJauTauDot_M(np, 0, jaugradvel, jautau, jautaudot, jauomega);
@@ -3167,7 +3166,8 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 
 	// Overall computation of taudot
 	// #Young
-	switch (typeYoung) {
+	ComputeTauDot_Gradual_M(np, 0, jautaudot);
+	/*switch (typeYoung) {
 	case 0: {
 		ComputeJauTauDot_M(np, 0, jaugradvel, jautau, jautaudot, jauomega);
 		break;
@@ -3176,7 +3176,7 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 		ComputeTauDot_Gradual_M(np, 0, jautaudot);
 		break;
 	}
-	}
+	}*/
 }
 
 //==============================================================================
