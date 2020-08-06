@@ -1009,51 +1009,8 @@ void JSph::ResizeMapLimits(){
 void JSph::ConfigConstants(bool simulate2d){
   const char* met="ConfigConstants";
 
-  // Matthias - Solid mechanics #constants
- /* const float  nf = Ey / Ex;
-
-  if (Simulate2D) {
-	  const float Delta = 1.0f / (1.0f - nuxy * nuxy * nf);
-	  C1 = Delta * Ex; C12 = 0.0f; C13 = Delta * nuxy * Ey;
-	  C2 = 0.0f; C23 = 0.0f; C3 = Delta * Ey;	  
-	  
-	  C4 = 0.0f; C5 = Gf; C6 = 0.0f;
-
-	  //#S
-	  S1 = 1 / Ex;		S12 = 0.0f; S13 = -nuxy / Ex;
-	  S21 = 0.0f;		S2 = 0.0f;	S23 = 0.0f;
-	  S31 = -nuxy / Ex; S32 = 0.0f; S3 = 1 / Ey;
-	  Kani = 1 / (S1 + S12 + S13 + S21 + S2 + S23 + S31 + S32 + S3);
-
-  }
-  else {
-	  const float Delta = nf * Ex / (1.0f - nuyz - 2.0f*nf*nuxy*nuxy);
-	  C1 = Delta * (1.0f - nuyz) / nf;
-	  C2 = C3 = Delta * (1.0f - nf * nuxy*nuxy) / (1.0f + nuyz);
-	  C12 = C13 = Delta * nuxy;
-	  C23 = Delta * (nuyz + nf * nuxy*nuxy) / (1.0f + nuyz);
-
-	  C4 = Ey / (2.0f + 2.0f*nuxy); C5 = Gf; C6 = Gf;
-
-	  S1 = 1 / Ex; S12 = -nuxy / Ex; S13 = -nuxy / Ex;
-	  S21 = -nuxy / Ex; S2 = 1 / Ey; S23 = -nuyz / Ey;
-	  S31 = -nuxy / Ex; S32 = -nuyz / Ey; S3 = 1 / Ey;
-	  Kani = 1 / (S1 + S12 + S13 + S21 + S2 + S23 + S31 + S32 + S3);
-  }
-
-
-  printf("////\n");
-  printf("C1 = %.3f, C12 = %.3f, C13 = %.3f\n", C1, C12, C13);
-  printf("C12 = %.3f, C2 = %.3f, C23 = %.3f\n", C12, C2, C23);
-  printf("C13 = %.3f, C23 = %.3f, C3 = %.3f\n", C13, C23, C3);
-  printf("S1 = %.8f, S12 = %.8f, S13 = %.8f\n", S1, S12, S13);
-  printf("S12 = %.8f, S2 = %.8f, S23 = %.8f\n", S12, S2, S23);
-  printf("S13 = %.8f, S23 = %.8f, S3 = %.8f\n", S13, S23, S3);
-  printf("Kani = %.8f\n", Kani);*/
-
-  // New B for anisotropy
-  //CteB = Kani / (Gamma); 
-
+  // #constants
+  
   //-Computation of constants.
   const double h=H;
   Delta2H=float(h*2*DeltaSph);

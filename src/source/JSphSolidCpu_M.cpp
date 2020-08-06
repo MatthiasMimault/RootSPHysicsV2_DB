@@ -3106,7 +3106,8 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 	}
 
 	// Overall computation of taudot
-	switch (typeYoung) {
+	ComputeTauDot_Gradual_M(np, 0, jautaudot);
+	/*switch (typeYoung) {
 		case 0: {
 			ComputeJauTauDot_M(np, 0, jaugradvel, jautau, jautaudot, jauomega);
 			break;
@@ -3115,14 +3116,15 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 			ComputeTauDot_Gradual_M(np, 0, jautaudot);
 			break;
 		}
-	}
+	}*/
 }
 
 
 
 //==============================================================================
 //#InteractionForces
-// #V34c w damping and surface detection - Matthias
+// #V34c - Damping and surface detection - Matthias
+// #V35d - Generalise Taudt computation
 //==============================================================================
 template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph tdelta, bool shift> void JSphSolidCpu::Interaction_ForcesT
 (unsigned np, unsigned npb, unsigned npbok
@@ -3226,7 +3228,9 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 
 	// Overall computation of taudot
 	// #Young
-	switch (typeYoung) {
+
+	ComputeTauDot_Gradual_M(np, 0, jautaudot);
+	/*switch (typeYoung) {
 	case 0: {
 		ComputeJauTauDot_M(np, 0, jaugradvel, jautau, jautaudot, jauomega);
 		break;
@@ -3235,7 +3239,7 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 		ComputeTauDot_Gradual_M(np, 0, jautaudot);
 		break;
 	}
-	}
+	}*/
 }
 
 //==============================================================================
