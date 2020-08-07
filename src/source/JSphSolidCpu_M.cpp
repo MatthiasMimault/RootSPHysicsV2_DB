@@ -5974,9 +5974,9 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticPreT35_M(double dt) {
 				}
 			case 1:
 				if (Posc[p].x > 0.3) {
-					Velrhopc[p].x -= float(dampCoef * Co_M[p] * VelrhopPrec[p].x * dt05);
-					Velrhopc[p].y -= float(dampCoef * Co_M[p] * VelrhopPrec[p].y * dt05);
-					Velrhopc[p].z -= float(dampCoef * Co_M[p] * VelrhopPrec[p].z * dt05);
+					Velrhopc[p].x -= float(dampCoef * VelrhopPrec[p].x * dt05) / (sqrt(float(VelrhopPrec[p].x * VelrhopPrec[p].x) + float(VelrhopPrec[p].y * VelrhopPrec[p].y) + float(VelrhopPrec[p].z * VelrhopPrec[p].z)) + 1);
+					Velrhopc[p].y -= float(dampCoef * VelrhopPrec[p].y * dt05) / (sqrt(float(VelrhopPrec[p].x * VelrhopPrec[p].x) + float(VelrhopPrec[p].y * VelrhopPrec[p].y) + float(VelrhopPrec[p].z * VelrhopPrec[p].z)) + 1);
+					Velrhopc[p].z -= float(dampCoef * VelrhopPrec[p].z * dt05) / (sqrt(float(VelrhopPrec[p].x * VelrhopPrec[p].x) + float(VelrhopPrec[p].y * VelrhopPrec[p].y) + float(VelrhopPrec[p].z * VelrhopPrec[p].z)) + 1);
 				}
 			}
 
@@ -6351,10 +6351,10 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT35_M(double dt) {
 			if (Posc[p].x > 0.3) {
 				switch (typeDamping) {
 				case 0:
-					ForceVisc[p] = TFloat3(VelrhopPrec[p].x, VelrhopPrec[p].y, VelrhopPrec[p].z) * dampCoef;
+					ForceVisc[p] = (TFloat3(VelrhopPrec[p].x, VelrhopPrec[p].y, VelrhopPrec[p].z) * dampCoef);
 					break;
 				case 1:
-					ForceVisc[p] = TFloat3(VelrhopPrec[p].x, VelrhopPrec[p].y, VelrhopPrec[p].z) * dampCoef * Co_M[p];
+					ForceVisc[p] = (TFloat3(VelrhopPrec[p].x, VelrhopPrec[p].y, VelrhopPrec[p].z) * dampCoef) / (sqrt(float(VelrhopPrec[p].x * VelrhopPrec[p].x) + float(VelrhopPrec[p].y * VelrhopPrec[p].y) + float(VelrhopPrec[p].z * VelrhopPrec[p].z)) + 1);
 					break;
 				}
 				Velrhopc[p].x -= ForceVisc[p].x * float(dt);
