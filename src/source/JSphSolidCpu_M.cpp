@@ -5967,16 +5967,17 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticPreT35_M(double dt) {
 			switch (typeDamping) {
 				// #ForceVisc update
 			case 0:
-				if (Posc[p].x > 0.3) {
+				if (Posc[p].x > -0.1) {
 					Velrhopc[p].x -= float(dampCoef * VelrhopPrec[p].x * dt05);
 					Velrhopc[p].y -= float(dampCoef * VelrhopPrec[p].y * dt05);
 					Velrhopc[p].z -= float(dampCoef * VelrhopPrec[p].z * dt05);
 				}
 			case 1:
-				if (Posc[p].x > 0.3) {
+				if (Posc[p].x > -0.1) {
 					Velrhopc[p].x -= float(dampCoef * VelrhopPrec[p].x * dt05) / (sqrt(float(VelrhopPrec[p].x * VelrhopPrec[p].x) + float(VelrhopPrec[p].y * VelrhopPrec[p].y) + float(VelrhopPrec[p].z * VelrhopPrec[p].z)) + 1);
 					Velrhopc[p].y -= float(dampCoef * VelrhopPrec[p].y * dt05) / (sqrt(float(VelrhopPrec[p].x * VelrhopPrec[p].x) + float(VelrhopPrec[p].y * VelrhopPrec[p].y) + float(VelrhopPrec[p].z * VelrhopPrec[p].z)) + 1);
 					Velrhopc[p].z -= float(dampCoef * VelrhopPrec[p].z * dt05) / (sqrt(float(VelrhopPrec[p].x * VelrhopPrec[p].x) + float(VelrhopPrec[p].y * VelrhopPrec[p].y) + float(VelrhopPrec[p].z * VelrhopPrec[p].z)) + 1);
+
 				}
 			}
 
@@ -6348,10 +6349,10 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT35_M(double dt) {
 			Velrhopc[p].z = float(double(VelrhopPrec[p].z) + double(Acec[p].z) * dt);
 
 
-			if (Posc[p].x > 0.3) {
+			if (Posc[p].x > -0.1) {
 				switch (typeDamping) {
 				case 0:
-					ForceVisc[p] = (TFloat3(VelrhopPrec[p].x, VelrhopPrec[p].y, VelrhopPrec[p].z) * dampCoef);
+					ForceVisc[p] = TFloat3(VelrhopPrec[p].x, VelrhopPrec[p].y, VelrhopPrec[p].z) * dampCoef;
 					break;
 				case 1:
 					ForceVisc[p] = (TFloat3(VelrhopPrec[p].x, VelrhopPrec[p].y, VelrhopPrec[p].z) * dampCoef) / (sqrt(float(VelrhopPrec[p].x * VelrhopPrec[p].x) + float(VelrhopPrec[p].y * VelrhopPrec[p].y) + float(VelrhopPrec[p].z * VelrhopPrec[p].z)) + 1);
@@ -6445,21 +6446,20 @@ void JSphSolidCpu::GrowthCell_M(double dt) {
 	
 	for (int p = npb; p < np; p++) {
 		switch (typeGrowth) {
-			case 0: {
+			case 0: {// #Turgor growth model
 				const double volu = double(MassPrec_M[p]) / double(Velrhopc[p].w);
 				const double adens = float(LambdaMass) * (RhopZero / Velrhopc[p].w - 1);
 				Massc_M[p] = float(double(MassPrec_M[p]) + dt * adens * volu);
 				Velrhopc[p].w = float(Velrhopc[p].w + dt * adens);
 				break;
 			}
-			case 1: {// #Sigmoid growth 0.6 from PosXmax
-				const double volu = double(MassPrec_M[p]) / double(Velrhopc[p].w);
-				float x = maxPosX - float(Posc[p].x);
-				float xg = 0.6f;
-				float k = 50.0f;
-				const double Gamma = LambdaMass - LambdaMass / (1.0f + exp(-k * (x - xg)));
-				Velrhopc[p].w = Velrhopc[p].w + float(dt * Gamma);
-				Massc_M[p] = Velrhopc[p].w * float(volu);
+			case 1: {// #Constant growth Cut-off 0.3
+				if (Posc[p].x > 0.3f) {
+					const double volu = double(MassPrec_M[p]) / double(Velrhopc[p].w);
+					const double Gamma = LambdaMass;
+					Velrhopc[p].w = Velrhopc[p].w + float(dt * Gamma);
+					Massc_M[p] = Velrhopc[p].w * float(volu);
+				}				
 				break;
 			}
 			case 2: {// #Gaussian #Sigmoid growth
@@ -6507,9 +6507,26 @@ void JSphSolidCpu::GrowthCell_M(double dt) {
 			}
 			case 5: {
 				const double volu = double(MassPrec_M[p]) / double(Velrhopc[p].w);
-				const double Gamma = LambdaMass * GrowthRateGaussian(float(Posc[p].x));
-				Velrhopc[p].w = Velrhopc[p].w + float(dt * Gamma);
-				Massc_M[p] = Velrhopc[p].w * float(volu);
+				float x = maxPosX - float(Posc[p].x);
+				// Sigmoid
+				float L = 0.125f;
+				float k = 15.0f;
+				float xs = 0.5f;
+				// Gaussian 				
+				float xg = 0.5f;
+				float b = 0.15f;
+				// Drop
+				float kd = 50.0f;
+				float xd = 0.65f;
+
+				double Gamma = 0.0;
+
+				if (x < xg) Gamma = LambdaMass / 1.065f * (L - L / (1.0f + exp(-k * (x - xs))) + exp(-0.5f * pow((x - xg) / b, 2.0f)));
+				else Gamma = LambdaMass * (1.0f - 1.0f / (1.0f + exp(-kd * (x - xd))));
+
+				const double adens = (RhopZero / Velrhopc[p].w - 1) * Gamma;
+				Massc_M[p] = float(double(MassPrec_M[p]) + dt * adens * volu);
+				Velrhopc[p].w = float(Velrhopc[p].w + dt * adens);
 				break;
 			}
 			case 6: { // Constant global growth - Zero
