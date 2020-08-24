@@ -933,6 +933,13 @@ void JSphSolidCpu::PreInteractionVars_Forces(TpInter tinter, unsigned np, unsign
 			Porec_M[p] = PoreZero;
 		}
 
+		if (Posc[p].x > 0.3) 
+			Porec_M[p] = PoreZero;
+		else
+			Porec_M[p] = 0.0f;
+
+
+
 		//Pressc[p] = -0.5f*RhopZero * float(Posc[p].x*Posc[p].x);
 		
 		//Pore Pressure 1 < x < 2
@@ -5964,23 +5971,13 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticPreT35_M(double dt) {
 			Velrhopc[p].y = float(double(VelrhopPrec[p].y) + double(Acec[p].y) * dt05);
 			Velrhopc[p].z = float(double(VelrhopPrec[p].z) + double(Acec[p].z) * dt05);
 
-			switch (typeDamping) {
-				// #ForceVisc update
-			case 0:
-				if (Posc[p].x > -0.1) {
-					Velrhopc[p].x -= float(dampCoef * VelrhopPrec[p].x * dt05);
-					Velrhopc[p].y -= float(dampCoef * VelrhopPrec[p].y * dt05);
-					Velrhopc[p].z -= float(dampCoef * VelrhopPrec[p].z * dt05);
-				}
-			case 1:
-				if (Posc[p].x > -0.1) {
-					Velrhopc[p].x -= float(dampCoef * Co_M[p] * VelrhopPrec[p].x * dt05);
-					Velrhopc[p].y -= float(dampCoef * Co_M[p] * VelrhopPrec[p].y * dt05);
-					Velrhopc[p].z -= float(dampCoef * Co_M[p] * VelrhopPrec[p].z * dt05);
-				}
+			// Apply damping
+			if(Posc[p].x > -0.1) {
+				tfloat3 av = ViscousDamping(TFloat3(VelrhopPrec[p].x, VelrhopPrec[p].y, VelrhopPrec[p].z), Co_M[p]);
+				Velrhopc[p].x -= av.x * float(dt05);
+				Velrhopc[p].y -= av.y * float(dt05);
+				Velrhopc[p].z -= av.z * float(dt05);
 			}
-
-
 
 			bool outrhop = (rhopnew<RhopOutMin || rhopnew>RhopOutMax);
 
@@ -6347,21 +6344,15 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT35_M(double dt) {
 			Velrhopc[p].y = float(double(VelrhopPrec[p].y) + double(Acec[p].y) * dt);
 			Velrhopc[p].z = float(double(VelrhopPrec[p].z) + double(Acec[p].z) * dt);
 
-
+			// Apply damping
 			if (Posc[p].x > -0.1) {
-				switch (typeDamping) {
-				case 0:
-					ForceVisc[p] = TFloat3(VelrhopPrec[p].x, VelrhopPrec[p].y, VelrhopPrec[p].z) * dampCoef;
-					break;
-				case 1:
-					ForceVisc[p] = TFloat3(VelrhopPrec[p].x, VelrhopPrec[p].y, VelrhopPrec[p].z) * dampCoef * Co_M[p];
-					break;
-				}
+				ForceVisc[p] = ViscousDamping(TFloat3(VelrhopPrec[p].x, VelrhopPrec[p].y, VelrhopPrec[p].z), Co_M[p]);
 				Velrhopc[p].x -= ForceVisc[p].x * float(dt);
 				Velrhopc[p].y -= ForceVisc[p].y * float(dt);
 				Velrhopc[p].z -= ForceVisc[p].z * float(dt);
 			}
 			else ForceVisc[p] = TFloat3(0);
+
 
 			//-Calculate displacement and update position. | Calcula desplazamiento y actualiza posicion.
 			double dx = (double(VelrhopPrec[p].x) + double(Velrhopc[p].x)) * dt05;
@@ -6504,9 +6495,26 @@ void JSphSolidCpu::GrowthCell_M(double dt) {
 				Massc_M[p] = Velrhopc[p].w * float(volu);
 				break;
 			}
-			case 5: {
+
+			case 5: {// #Turgor growth model + Beemster
 				const double volu = double(MassPrec_M[p]) / double(Velrhopc[p].w);
-				const double Gamma = LambdaMass * GrowthRateGaussian(float(Posc[p].x));
+				float x = maxPosX - float(Posc[p].x);
+				// Sigmoid
+				float L = 0.125f;
+				float k = 15.0f;
+				float xs = 0.5f;
+				// Gaussian 				
+				float xg = 0.5f;
+				float b = 0.15f;
+				// Drop
+				float kd = 50.0f;
+				float xd = 0.65f;
+
+				double Gamma = 0.0;
+
+				if (x < xg) Gamma = LambdaMass / 1.065f * (L - L / (1.0f + exp(-k * (x - xs))) + exp(-0.5f * pow((x - xg) / b, 2.0f))) * (RhopZero / Velrhopc[p].w - 1);
+				else Gamma = LambdaMass * (1.0f - 1.0f / (1.0f + exp(-kd * (x - xd)))) * (RhopZero / Velrhopc[p].w - 1);
+
 				Velrhopc[p].w = Velrhopc[p].w + float(dt * Gamma);
 				Massc_M[p] = Velrhopc[p].w * float(volu);
 				break;
@@ -6546,6 +6554,26 @@ void JSphSolidCpu::GrowthCell_M(double dt) {
 		}
 	}
 
+}
+
+// #Viscous function
+tfloat3 JSphSolidCpu::ViscousDamping(tfloat3 vel, float co) {
+	switch (typeDamping) {
+	case 0: {
+		// Homogeneous application of the damping
+		return vel * dampCoef;
+	}
+	case 1: {
+		// Weighted application of the damping only on the surface
+		return vel * dampCoef * co;
+	}
+	case 2: {
+		// Homogeneous application of the plaeteaued damping
+		return vel * dampCoef / (sqrt(pow(vel.x,2.0f)+ pow(vel.y, 2.0f)+ pow(vel.z, 2.0f))+1.0f);
+	}
+	default:
+		return TFloat3(0.0f);
+	}
 }
 
 // #Growth function - Beemster 1998 approx

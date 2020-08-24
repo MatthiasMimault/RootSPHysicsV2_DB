@@ -462,6 +462,7 @@ protected:
 	void ComputeSymplecticCorr_M(double dt);
 
 	void GrowthCell_M(double dt);
+	tfloat3 ViscousDamping(tfloat3 vel, float co);
 	float GrowthRateSpace(float pos);
 	float GrowthRateSpaceNormalised(float pos);
 	float GrowthRateGaussian(float pos);
