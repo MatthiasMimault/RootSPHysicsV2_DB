@@ -6519,17 +6519,18 @@ void JSphSolidCpu::GrowthCell_M(double dt) {
 				Massc_M[p] = Velrhopc[p].w * float(volu);
 				break;
 			}
-			case 6: { // Constant global growth - Zero
+			case 6: { // #Turgor growth model + Constant
 				const double volu = double(MassPrec_M[p]) / double(Velrhopc[p].w);
-				const double Gamma = 0.0f;
-				Velrhopc[p].w = Velrhopc[p].w + float(dt * Gamma);
-				//Massc_M[p] = Velrhopc[p].w * float(volu);
+
+				Velrhopc[p].w = Velrhopc[p].w + float(dt * LambdaMass * (RhopZero / Velrhopc[p].w - 1));
+				Massc_M[p] = Velrhopc[p].w * float(volu);
 				break;
 			}
-			case 7: { // Constant global growth
+			case 7: { // #Turgor growth model + Triangle
 				const double volu = double(MassPrec_M[p]) / double(Velrhopc[p].w);
-				const double Gamma = LambdaMass;
-				Velrhopc[p].w = Velrhopc[p].w + float(dt * Gamma);
+				float pp = GrowthNormTrigle(float(Posc[p].x));
+				Velrhopc[p].w = Velrhopc[p].w + float(dt * GrowthNormTrigle(float(Posc[p].x)) * LambdaMass * (RhopZero / Velrhopc[p].w - 1));
+				
 				Massc_M[p] = Velrhopc[p].w * float(volu);
 				break;
 			}
@@ -6574,6 +6575,18 @@ tfloat3 JSphSolidCpu::ViscousDamping(tfloat3 vel, float co) {
 	default:
 		return TFloat3(0.0f);
 	}
+}
+
+// Growth function - Normalised Triangle 0-0.6
+float JSphSolidCpu::GrowthNormTrigle(float pos) {
+	float distance = abs(pos - maxPosX);
+	if (distance < 0.3f) {
+		return distance/ 0.3f;
+	}
+	else if (distance < 0.6f) {
+		return abs(2.0f - distance / 0.3f);
+	}
+	else return 0.0f;
 }
 
 // #Growth function - Beemster 1998 approx

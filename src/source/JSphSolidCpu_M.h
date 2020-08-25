@@ -463,6 +463,7 @@ protected:
 
 	void GrowthCell_M(double dt);
 	tfloat3 ViscousDamping(tfloat3 vel, float co);
+	float GrowthNormTrigle(float pos);
 	float GrowthRateSpace(float pos);
 	float GrowthRateSpaceNormalised(float pos);
 	float GrowthRateGaussian(float pos);
