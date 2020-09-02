@@ -71,7 +71,8 @@ void JSpaceCtes::Reset(){
   Dp=0;
   //Matthias
   typeCase = typeCompression = typeDivision = typeGrowth = typeYoung = 0;
-  curvAM0 = xYoung = kYoung = 0.0f;
+  curvAM0 = xYoung = kYoung = posGr = 0.0f;
+  spGr = 1.0f;
   typeDev = false;
   // Extension Domain
   BordDomain = 0;
@@ -260,6 +261,8 @@ void JSpaceCtes::ReadAddXmlRun_M(JXml *sxml, TiXmlElement* node) {
 	SetDiv(sxml->ReadElementInt(node, "typeDivision", "value"));
 	SetAM0(sxml->ReadElementFloat(node, "typeDivision", "aM0"));
 	SetGrow(sxml->ReadElementInt(node, "typeGrowth", "value"));
+	SetPosGr(sxml->ReadElementFloat(node, "typeGrowth", "position"));
+	SetSpGr(sxml->ReadElementFloat(node, "typeGrowth", "spread"));
 	SetYoung(sxml->ReadElementInt(node, "typeYoung", "value"));
 	SetXyg(sxml->ReadElementFloat(node, "typeYoung", "position"));
 	SetKyg(sxml->ReadElementFloat(node, "typeYoung", "stiffness"));
