@@ -6536,10 +6536,9 @@ void JSphSolidCpu::GrowthCell_M(double dt) {
 			}
 			case 8: { // #Sigmoid growth centered on third PosXmax
 				const double volu = double(MassPrec_M[p]) / double(Velrhopc[p].w);
-				float x0 = maxPosX/3.0f;
-				float k = 15.0f;
-				const double Gamma = LambdaMass/ (1.0f + exp(-k * (float(Posc[p].x) - x0)));
-				Velrhopc[p].w = Velrhopc[p].w + float(dt * Gamma);
+				float pp = GrowthNormTrigle(float(Posc[p].x));
+				Velrhopc[p].w = Velrhopc[p].w + float(dt * GrowthNormGauss(float(Posc[p].x)) * LambdaMass * (RhopZero / Velrhopc[p].w - 1));
+
 				Massc_M[p] = Velrhopc[p].w * float(volu);
 				break;
 			}
@@ -6575,6 +6574,12 @@ tfloat3 JSphSolidCpu::ViscousDamping(tfloat3 vel, float co) {
 	default:
 		return TFloat3(0.0f);
 	}
+}
+
+// Growth function - Normalised Gauss
+float JSphSolidCpu::GrowthNormGauss(float pos) {
+	float distance = abs(pos - maxPosX);
+	return float(exp(-pow(distance - posGr, 2.0f) / (2.0f * pow(spGr, 2.0f))));
 }
 
 // Growth function - Normalised Triangle 0-0.6

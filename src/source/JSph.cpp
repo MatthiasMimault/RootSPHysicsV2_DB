@@ -140,7 +140,8 @@ void JSph::InitVars(){
   H=CteB=Gamma=RhopZero=CFLnumber=0;
   // Matthias
   typeCase = typeCompression = typeGrowth = typeDivision = typeYoung = typeDamping = 0;
-  aM0 = xYg = kYg = 0.0f;
+  aM0 = xYg = kYg = posGr = 0.0f;
+  spGr = 1.0f;
   Dp=0;
   Cs0=0;
   Delta2H=0;
@@ -694,6 +695,8 @@ void JSph::LoadCaseConfig(){
   aM0 = ctes.getAM0();
   xYg = ctes.getXyg();
   kYg = ctes.getKyg();
+  posGr = ctes.getPosGr();
+  spGr = ctes.getSpGr();
   typeGrowth = ctes.GetGrow();
   typeYoung = ctes.GetYoung();
   typeDamping = ctes.GetDpg();
