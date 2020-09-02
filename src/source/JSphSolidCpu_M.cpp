@@ -6576,7 +6576,7 @@ tfloat3 JSphSolidCpu::ViscousDamping(tfloat3 vel, float co) {
 	}
 }
 
-// Growth function - Normalised Triangle 0-0.6
+// Growth function - Normalised Gauss
 float JSphSolidCpu::GrowthNormGauss(float pos) {
 	float distance = abs(pos - maxPosX);
 	return float(exp(-pow(distance - posGr, 2.0f) / (2.0f * pow(spGr, 2.0f))));
