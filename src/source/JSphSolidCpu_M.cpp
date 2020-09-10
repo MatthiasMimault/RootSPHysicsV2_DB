@@ -6534,7 +6534,7 @@ void JSphSolidCpu::GrowthCell_M(double dt) {
 				Massc_M[p] = Velrhopc[p].w * float(volu);
 				break;
 			}
-			case 8: { // #Sigmoid growth centered on third PosXmax
+			case 8: { // #Composite distribution for turgor growth
 				const double volu = double(MassPrec_M[p]) / double(Velrhopc[p].w);
 				float pp = GrowthNormTrigle(float(Posc[p].x));
 				Velrhopc[p].w = Velrhopc[p].w + float(dt * GrowthNormComposite(float(Posc[p].x)) * LambdaMass * (RhopZero / Velrhopc[p].w - 1));
@@ -6542,13 +6542,12 @@ void JSphSolidCpu::GrowthCell_M(double dt) {
 				Massc_M[p] = Velrhopc[p].w * float(volu);
 				break;
 			}
-			case 9: { // Constant global growth
-				if (TimeStep < 0.2f) {
-					const double volu = double(MassPrec_M[p]) / double(Velrhopc[p].w);
-					const double Gamma = LambdaMass;
-					Velrhopc[p].w = Velrhopc[p].w + float(dt * Gamma);
-					Massc_M[p] = Velrhopc[p].w * float(volu);
-				}
+			case 9: { // #Kill #Composite distribution
+				const double volu = double(MassPrec_M[p]) / double(Velrhopc[p].w);
+				float pp = GrowthNormTrigle(float(Posc[p].x));
+				Velrhopc[p].w = Velrhopc[p].w + float(dt * KillSwitchSigmoid(float(Posc[p].x)) 
+					* GrowthNormComposite(float(Posc[p].x)) * LambdaMass * (RhopZero / Velrhopc[p].w - 1));
+				Massc_M[p] = Velrhopc[p].w * float(volu);
 				break;
 			}
 		}
@@ -6598,6 +6597,12 @@ float JSphSolidCpu::GrowthNormTrigle(float pos) {
 		return abs(2.0f - distance / 0.3f);
 	}
 	else return 0.0f;
+}
+
+// Growth function - Kill switch (Sigmoid)
+float JSphSolidCpu::KillSwitchSigmoid(float pos) {
+	float distance = abs(pos - maxPosX);
+	return 1.0f - 1.0f / (1.0f + exp(-40.0f * (distance - klGr)));
 }
 
 // #Growth function - Beemster 1998 approx

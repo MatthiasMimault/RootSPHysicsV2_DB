@@ -226,7 +226,7 @@ protected:
   // Simulation #choice markers
   int typeCase, typeGrowth, typeCompression, typeDivision, typeYoung, typeDamping;
   bool typeDev;
-  float dampCoef, aM0, xYg, kYg, posGr, spGr, ctGr;
+  float dampCoef, aM0, xYg, kYg, posGr, spGr, ctGr, klGr;
   // Plan mirroir
   float PlanMirror;
   // Extension Domain

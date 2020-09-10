@@ -466,6 +466,7 @@ protected:
 	float GrowthNormGauss(float pos);
 	float GrowthNormComposite(float pos);
 	float GrowthNormTrigle(float pos);
+	float KillSwitchSigmoid(float pos);
 	float GrowthRateSpace(float pos);
 	float GrowthRateSpaceNormalised(float pos);
 	float GrowthRateGaussian(float pos);
