@@ -750,6 +750,7 @@ void JSphCpuSingle::RunSizeDivision12_M(double stepdt){
 
 	// 1. Test division cellulaire
 	switch (typeDivision) {
+		// #division
 		default: { // No division
 			break;
 		}
@@ -781,13 +782,19 @@ void JSphCpuSingle::RunSizeDivision12_M(double stepdt){
 			}	
 			break;	
 		}
-		case 3: { // Mass cubic distribution
+		case 3: { // Size quadratic forced distribution
 			for (unsigned p = Npb; p < Np; p++) {
-				float a = 10.0f;
 				float x = maxPosX - float(Posc[p].x);
-				float x0 = 0.1f;
-				float m0 = float(SizeDivision_M) * MassFluid * (1.0f + a * pow(x - x0, 2.0f));
-				if (Massc_M[p] > m0) {
+				float threshold = 0.05f;
+				float length = 2.0f / sqrt(QuadFormc_M[p].xx);
+				float baseline = 1.0f;
+				float aperture = 25.0f;
+				float locationMin = 0.1f;
+				float kill = 0.6f;
+				float l0;
+				if (x < kill) l0 = float(SizeDivision_M) * threshold * (baseline + aperture * pow(x - locationMin, 2.0f));
+				else l0 = 0.8 * H;
+				if (length > l0) {
 					Divisionc_M[p] = true;
 					count++;
 					run = true;
@@ -844,7 +851,6 @@ void JSphCpuSingle::RunSizeDivision12_M(double stepdt){
 
 		// 3. Divide marked particles
 		else {
-			// #division
 			run = false;
 			// Divide the selected particles in X direction
 			if (TStep == STEP_Verlet) {

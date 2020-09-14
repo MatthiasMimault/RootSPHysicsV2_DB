@@ -107,7 +107,7 @@
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">RootSPH_v35</TargetName>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">RootSPH_v34_debug</TargetName>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='ReleaseCPU|x64'">RootSPH_v35</TargetName>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='DebugCPU|x64'">RootSPH_v36b_debug</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='DebugCPU|x64'">RootSPH_v36c_debug</TargetName>
     <PreBuildEventUseInBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</PreBuildEventUseInBuild>
     <PreBuildEventUseInBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</PreBuildEventUseInBuild>
     <PreLinkEventUseInBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</PreLinkEventUseInBuild>

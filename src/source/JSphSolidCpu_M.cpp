@@ -6443,13 +6443,11 @@ void JSphSolidCpu::GrowthCell_M(double dt) {
 				Velrhopc[p].w = float(Velrhopc[p].w + dt * adens);
 				break;
 			}
-			case 1: {// #Constant growth Cut-off 0.3
-				if (Posc[p].x > 0.3f) {
-					const double volu = double(MassPrec_M[p]) / double(Velrhopc[p].w);
-					const double Gamma = LambdaMass;
-					Velrhopc[p].w = Velrhopc[p].w + float(dt * Gamma);
-					Massc_M[p] = Velrhopc[p].w * float(volu);
-				}				
+			case 1: {// #Constant growth Cut-off Kill
+				const double volu = double(MassPrec_M[p]) / double(Velrhopc[p].w);
+				const double Gamma = KillSwitchSigmoid(float(Posc[p].x)) * LambdaMass;
+				Velrhopc[p].w = Velrhopc[p].w + float(dt * Gamma);
+				Massc_M[p] = Velrhopc[p].w * float(volu);		
 				break;
 			}
 			case 2: {// #Gaussian #Sigmoid growth
