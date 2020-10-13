@@ -802,13 +802,14 @@ void JSphCpuSingle::RunSizeDivision12_M(double stepdt){
 			}
 			break;
 		}
-		case 4: { // Mass cubic distribution a22
+		case 4: { // Volume division 2
 			for (unsigned p = Npb; p < Np; p++) {
-				float a = 22.0f;
 				float x = maxPosX - float(Posc[p].x);
-				float x0 = 0.1f;
-				float m0 = float(SizeDivision_M) * MassFluid * (1.0f + a * pow(x - x0, 2.0f));
-				if (Massc_M[p] > m0) {
+				float aperture = 0.0f;
+				float baseline = 0.02f;
+				float position = 0.15f;
+				float l0 = baseline + aperture * pow(x - position, 2.0f);
+				if (2.0f / sqrt(QuadFormc_M[p].xx) > min(0.75f*H,l0)) {
 					Divisionc_M[p] = true;
 					count++;
 					run = true;
@@ -1339,7 +1340,7 @@ void JSphCpuSingle::MarkedDivisionSymp11_M(unsigned countMax, unsigned np, unsig
 
 	for (unsigned p = pini; p < np; p++) {
 		if (divisionp[p]) {
-			// #Disparition #Division
+			// #Disparition
 
 			const unsigned pnew = np + count;
 
@@ -1441,7 +1442,7 @@ void JSphCpuSingle::MarkedDivision34_M(unsigned countMax, unsigned np, unsigned 
 
 	for (unsigned p = pini; p < np; p++) {
 		if (divisionp[p]) {
-			// #Disparition #Division
+			// #Disparition 
 
 			const unsigned pnew = np + count;
 
@@ -1542,7 +1543,7 @@ void JSphCpuSingle::MarkedDivision35_M(unsigned countMax, unsigned np, unsigned 
 
 	for (unsigned p = pini; p < np; p++) {
 		if (divisionp[p]) {
-			// #Disparition #Division
+			// #Disparition 
 
 			const unsigned pnew = np + count;
 
