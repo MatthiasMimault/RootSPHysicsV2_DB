@@ -265,6 +265,9 @@ void JSpaceCtes::ReadAddXmlRun_M(JXml *sxml, TiXmlElement* node) {
 	SetSpGr(sxml->ReadElementFloat(node, "typeGrowth", "spread"));
 	SetCtGr(sxml->ReadElementFloat(node, "typeGrowth", "constant"));
 	SetKlGr(sxml->ReadElementFloat(node, "typeGrowth", "kill"));
+	SetAdv(sxml->ReadElementFloat(node, "typeDivision", "a"));
+	SetBdv(sxml->ReadElementFloat(node, "typeDivision", "b"));
+	SetPdv(sxml->ReadElementFloat(node, "typeDivision", "p"));
 	SetYoung(sxml->ReadElementInt(node, "typeYoung", "value"));
 	SetXyg(sxml->ReadElementFloat(node, "typeYoung", "position"));
 	SetKyg(sxml->ReadElementFloat(node, "typeYoung", "stiffness"));

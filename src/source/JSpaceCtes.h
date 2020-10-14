@@ -115,7 +115,7 @@ private:
   // Matthias
   // Simulation choices
   int typeCase, typeCompression, typeGrowth, typeDivision, typeYoung, typeDamping;
-  float curvAM0, xYoung, kYoung, posGr, spGr, ctGr, klGr;
+  float curvAM0, xYoung, kYoung, posGr, spGr, ctGr, klGr, aDv, bDv, pDv;
   bool typeDev;
 
 
@@ -197,6 +197,9 @@ public:
   float getSpGr()const { return spGr; }
   float getCtGr()const { return ctGr; }
   float getKlGr()const { return klGr; }
+  float getAdv()const { return aDv; }
+  float getBdv()const { return bDv; }
+  float getPdv()const { return pDv; }
   int GetGrow()const { return typeGrowth; }
   int GetYoung()const { return typeYoung; }
   int GetDpg()const { return typeDamping; }
@@ -261,6 +264,9 @@ public:
   void SetSpGr(float v) { spGr = v; }
   void SetCtGr(float v) { ctGr = v; }
   void SetKlGr(float v) { klGr = v; }
+  void SetAdv(float v) { aDv = v; }
+  void SetBdv(float v) { bDv = v; }
+  void SetPdv(float v) { pDv = v; }
   void SetGrow(int v) { typeGrowth = v; }
   void SetYoung(int v) { typeYoung = v; }
   void SetDpgType(int v) { typeDamping = v; }

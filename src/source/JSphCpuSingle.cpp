@@ -793,7 +793,7 @@ void JSphCpuSingle::RunSizeDivision12_M(double stepdt){
 				float kill = 0.6f;
 				float l0;
 				if (x < kill) l0 = float(SizeDivision_M) * threshold * (baseline + aperture * pow(x - locationMin, 2.0f));
-				else l0 = 0.8 * H;
+				else l0 = 0.8f * H;
 				if (length > l0) {
 					Divisionc_M[p] = true;
 					count++;
@@ -805,10 +805,7 @@ void JSphCpuSingle::RunSizeDivision12_M(double stepdt){
 		case 4: { // Volume division 2
 			for (unsigned p = Npb; p < Np; p++) {
 				float x = maxPosX - float(Posc[p].x);
-				float aperture = 0.0f;
-				float baseline = 0.02f;
-				float position = 0.15f;
-				float l0 = baseline + aperture * pow(x - position, 2.0f);
+				float l0 = bDv + aDv * pow(x - pDv, 2.0f);
 				if (2.0f / sqrt(QuadFormc_M[p].xx) > min(0.75f*H,l0)) {
 					Divisionc_M[p] = true;
 					count++;
