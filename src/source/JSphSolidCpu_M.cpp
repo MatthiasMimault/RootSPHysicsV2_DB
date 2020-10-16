@@ -235,7 +235,6 @@ void JSphSolidCpu::ResizeCpuMemoryParticles(unsigned npnew) {
 	tsymatrix3f *jautaum12 = SaveArrayCpu(Np, TauM1c_M);
 	tsymatrix3f *quadform = SaveArrayCpu(Np, QuadFormc_M);
 	tsymatrix3f *quadformm1 = SaveArrayCpu(Np, QuadFormM1c_M);
-	// Augustin
 	float         *vonMises = SaveArrayCpu(Np, VonMises);
 	float  	      *gradVelSav = SaveArrayCpu(Np, GradVelSave);
 	unsigned      *cellOSpr = SaveArrayCpu(Np, CellOffSpring);
@@ -5973,7 +5972,7 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticPreT35_M(double dt) {
 
 			// Apply damping
 			if(Posc[p].x > -0.1) {
-				tfloat3 av = ViscousDamping(TFloat3(VelrhopPrec[p].x, VelrhopPrec[p].y, VelrhopPrec[p].z), Co_M[p]);
+				tfloat3 av = ViscousDamping36(TFloat3(VelrhopPrec[p].x, VelrhopPrec[p].y, VelrhopPrec[p].z), Co_M[p], VelrhopPrec[p].w, 2.0f / sqrt(QuadFormPrec_M[p].xx));
 				Velrhopc[p].x -= av.x * float(dt05);
 				Velrhopc[p].y -= av.y * float(dt05);
 				Velrhopc[p].z -= av.z * float(dt05);
@@ -6346,7 +6345,7 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT35_M(double dt) {
 
 			// Apply damping
 			if (Posc[p].x > -0.1) {
-				ForceVisc[p] = ViscousDamping(TFloat3(VelrhopPrec[p].x, VelrhopPrec[p].y, VelrhopPrec[p].z), Co_M[p]);
+				ForceVisc[p] = ViscousDamping36(TFloat3(VelrhopPrec[p].x, VelrhopPrec[p].y, VelrhopPrec[p].z), Co_M[p], VelrhopPrec[p].w, 2.0f/sqrt(QuadFormPrec_M[p].xx));
 				Velrhopc[p].x -= ForceVisc[p].x * float(dt);
 				Velrhopc[p].y -= ForceVisc[p].y * float(dt);
 				Velrhopc[p].z -= ForceVisc[p].z * float(dt);
@@ -6542,7 +6541,6 @@ void JSphSolidCpu::GrowthCell_M(double dt) {
 			}
 			case 9: { // #Kill #Composite distribution
 				const double volu = double(MassPrec_M[p]) / double(Velrhopc[p].w);
-				float pp = GrowthNormTrigle(float(Posc[p].x));
 				Velrhopc[p].w = Velrhopc[p].w + float(dt * KillSwitchSigmoid(float(Posc[p].x)) 
 					* GrowthNormComposite(float(Posc[p].x)) * LambdaMass * (RhopZero / Velrhopc[p].w - 1));
 				Massc_M[p] = Velrhopc[p].w * float(volu);
@@ -6554,7 +6552,7 @@ void JSphSolidCpu::GrowthCell_M(double dt) {
 }
 
 // #Viscous function
-tfloat3 JSphSolidCpu::ViscousDamping(tfloat3 vel, float co) {
+tfloat3 JSphSolidCpu::ViscousDamping36(tfloat3 vel, float co, float rho, float l) {
 	switch (typeDamping) {
 	case 0: {
 		// Homogeneous application of the damping
@@ -6567,6 +6565,14 @@ tfloat3 JSphSolidCpu::ViscousDamping(tfloat3 vel, float co) {
 	case 2: {
 		// Homogeneous application of the plaeteaued damping
 		return vel * dampCoef / (sqrt(pow(vel.x,2.0f)+ pow(vel.y, 2.0f)+ pow(vel.z, 2.0f))+1.0f);
+	}
+	case 3: {
+		// Homogeneous viscosity weighted by density  (Inspired from Monaghan1997Drag and Monaghan2006Toy1D)
+		return vel * dampCoef / rho;
+	}
+	case 4: {
+		// Sophisticated viscosity weighted by density, velocity and cell lenght (Inspired from Monaghan1997Drag)
+		return vel * vel * dampCoef / (rho * l);
 	}
 	default:
 		return TFloat3(0.0f);
