@@ -466,6 +466,9 @@ protected:
 	tfloat3 ViscousDamping(tfloat3 vel, float co);
 	float GrowthNormGauss(float pos);
 	float GrowthNormComposite(float pos);
+	float CroserGrowth(float pos);
+	float AntiSigmoid(float x, float p, float s);
+	float dGaussian(float x, float p, float s);
 	float GrowthNormTrigle(float pos);
 	float KillSwitchSigmoid(float pos);
 	float GrowthRateSpace(float pos);

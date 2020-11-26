@@ -6546,6 +6546,12 @@ void JSphSolidCpu::GrowthCell_M(double dt) {
 				Massc_M[p] = Velrhopc[p].w * float(volu);
 				break;
 			}
+			case 10: { // #Composite distribution II: From Croser 1999 I, 6 parameters (2 baselines, 2 tip positions, 2 spreads
+				const double volu = double(MassPrec_M[p]) / double(Velrhopc[p].w);
+				Velrhopc[p].w = Velrhopc[p].w + float(dt * CroserGrowth(float(Posc[p].x)) * LambdaMass * (RhopZero / Velrhopc[p].w - 1));
+				Massc_M[p] = Velrhopc[p].w * float(volu);
+				break;
+			}
 		}
 	}
 
@@ -6589,6 +6595,38 @@ float JSphSolidCpu::GrowthNormGauss(float pos) {
 float JSphSolidCpu::GrowthNormComposite(float pos) {
 	float distance = abs(pos - maxPosX);
 	return float(ctGr * (1.0f - 1.0f / (1.0f + exp(-20.0 * (distance - posGr)))) + exp(-pow(distance - posGr, 2.0f) / (2.0f * pow(spGr, 2.0f)))) / (ctGr + 1.0f);
+}
+
+// Growth function - From Croser 1999 I, sigmoid baseline + dGaussian
+// cs, cg are the scale parameters
+// ps, pg are the positions of the tilt of the sigmoid and the dGaussian
+// ss, sg are the spread parameters
+float JSphSolidCpu::CroserGrowth(float pos) {
+	// Values in mm for a 15 mm long sample
+	float cs = 0.025f;
+	float cg = 0.16f;
+	float ps = 6.0f;
+	float pg = 0.0f;
+	float ss = 2.0f;
+	float sg = 4.0f;
+	float distance = abs(pos - maxPosX);
+	return cs * AntiSigmoid(distance, ps, ss) + abs(cg - cs) * dGaussian(distance, pg, sg);
+}
+
+// Anti Sigmoid function (1 minus Sigmoid)
+float JSphSolidCpu::AntiSigmoid(float x, float p, float s) {
+	// x is evaluation position
+	// p is tilt position
+	// s is spread value
+	return 1.0f - 1.0f / (1.0f + exp(-s*(x - p)));
+}
+
+// Normalised space first derivative of Gaussian function (Bell and tail)
+float JSphSolidCpu::dGaussian(float x, float p, float s) {
+	// x is evaluation position
+	// p is tilt position
+	// s is spread value
+	return (x-p)/s * exp(0.5f - pow(x-p, 2.0f) / (2*s*s));
 }
 
 // Growth function - Normalised Triangle 0-0.6
