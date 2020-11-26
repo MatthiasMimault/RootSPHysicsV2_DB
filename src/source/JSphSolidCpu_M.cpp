@@ -6603,14 +6603,14 @@ float JSphSolidCpu::GrowthNormComposite(float pos) {
 // ss, sg are the spread parameters
 float JSphSolidCpu::CroserGrowth(float pos) {
 	// Values in mm for a 15 mm long sample
-	float cs = 0.025f;
+	/*float cs = 0.025f;
 	float cg = 0.16f;
 	float ps = 6.0f;
 	float pg = 0.0f;
 	float ss = 2.0f;
-	float sg = 4.0f;
+	float sg = 4.0f;*/
 	float distance = abs(pos - maxPosX);
-	return cs * AntiSigmoid(distance, ps, ss) + abs(cg - cs) * dGaussian(distance, pg, sg);
+	return ctGr * AntiSigmoid(distance, posGr, spGr) + abs(c2Gr - ctGr) * dGaussian(distance, po2Gr, s2Gr);
 }
 
 // Anti Sigmoid function (1 minus Sigmoid)
