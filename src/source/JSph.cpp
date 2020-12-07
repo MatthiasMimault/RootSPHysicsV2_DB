@@ -688,6 +688,9 @@ void JSph::LoadCaseConfig(){
   MassFluid=(float)ctes.GetMassFluid();
   MassBound=(float)ctes.GetMassBound();
   //Matthias
+  // Pore
+  PoreZero = (float)ctes.GetPoreZero();
+
   // Simulation #choices markers
   //typeCase = ctes.GetCase();
   typeCompression = ctes.GetComp();
@@ -695,16 +698,20 @@ void JSph::LoadCaseConfig(){
   aM0 = ctes.getAM0();
   xYg = ctes.getXyg();
   kYg = ctes.getKyg();
-  posGr = ctes.getPosGr();
-  spGr = ctes.getSpGr();
-  ctGr = ctes.getCtGr();
-  po2Gr = ctes.getPo2Gr();
-  s2Gr = ctes.getS2Gr();
-  c2Gr = ctes.getC2Gr();
-  klGr = ctes.getKlGr();
+
   aDv = ctes.getAdv();
   bDv = ctes.getBdv();
   pDv = ctes.getPdv();
+
+  // Growth parameters depending on turgor pressure 
+  posGr = (2.0f * PoreZero - 1.0f) * ctes.getPsu() + (2.0f - 2.0f * PoreZero) * ctes.getPsi();
+  spGr = (2.0f*PoreZero-1.0f)*ctes.getSsu()+(2.0f-2.0f*PoreZero)*ctes.getSsi();
+  ctGr = (2.0f * PoreZero - 1.0f) * ctes.getCu() + (2.0f - 2.0f * PoreZero) *ctes.getCi();
+  po2Gr = (2.0f * PoreZero - 1.0f) * ctes.getPtu() + (2.0f - 2.0f * PoreZero) *ctes.getPti();
+  s2Gr = (2.0f * PoreZero - 1.0f) * ctes.getStu() + (2.0f - 2.0f * PoreZero) *ctes.getSti();
+  c2Gr = 1.0f;
+  klGr = ctes.getKlGr();
+
   typeGrowth = ctes.GetGrow();
   typeYoung = ctes.GetYoung();
   typeDamping = ctes.GetDpg();
@@ -724,8 +731,6 @@ void JSph::LoadCaseConfig(){
   dampCoef = (float)ctes.GetDamp();
 
   //#Constants 
-  // Pore
-  PoreZero = (float)ctes.GetPoreZero();
   // Mass
   LambdaMass = (float)ctes.GetLambdaMass();
   // Cell division

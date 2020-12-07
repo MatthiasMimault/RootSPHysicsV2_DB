@@ -115,7 +115,8 @@ private:
   // Matthias
   // Simulation choices
   int typeCase, typeCompression, typeGrowth, typeDivision, typeYoung, typeDamping;
-  float curvAM0, xYoung, kYoung, posGr, spGr, ctGr, po2Gr, s2Gr, c2Gr, klGr, aDv, bDv, pDv;
+  float curvAM0, xYoung, kYoung, klGr, aDv, bDv, pDv;
+  float psu, psi, ptu, pti, ssu, ssi, stu, sti, cstu, csti;
   bool typeDev;
 
 
@@ -193,12 +194,18 @@ public:
   float getAM0()const { return curvAM0; }
   float getXyg()const { return xYoung; }
   float getKyg()const { return kYoung; }
-  float getPosGr()const { return posGr; }
-  float getPo2Gr()const { return po2Gr; }
-  float getSpGr()const { return spGr; }
-  float getS2Gr()const { return s2Gr; }
-  float getCtGr()const { return ctGr; }
-  float getC2Gr()const { return c2Gr; }
+
+  float getPtu()const { return ptu; }
+  float getPsu()const { return psu; }
+  float getPti()const { return pti; }
+  float getPsi()const { return psi; }
+  float getStu()const { return stu; }
+  float getSsu()const { return ssu; }
+  float getSti()const { return sti; }
+  float getSsi()const { return ssi; }
+  float getCu()const { return cstu; }
+  float getCi()const { return csti; }
+
   float getKlGr()const { return klGr; }
   float getAdv()const { return aDv; }
   float getBdv()const { return bDv; }
@@ -263,12 +270,18 @@ public:
   void SetAM0(float v) { curvAM0 = v; }
   void SetXyg(float v) { xYoung = v; }
   void SetKyg(float v) { kYoung = v; }
-  void SetPosGr(float v) { posGr = v; }
-  void SetSpGr(float v) { spGr = v; }
-  void SetCtGr(float v) { ctGr = v; }
-  void SetPo2Gr(float v) { po2Gr = v; }
-  void SetS2Gr(float v) { s2Gr = v; }
-  void SetC2Gr(float v) { c2Gr = v; }
+
+  void SetPsu(float v) { psu = v; }
+  void SetPtu(float v) { ptu = v; }
+  void SetPsi(float v) { psi = v; }
+  void SetPti(float v) { pti = v; }
+  void SetSsu(float v) { ssu = v; }
+  void SetStu(float v) { stu = v; }
+  void SetSsi(float v) { ssi = v; }
+  void SetSti(float v) { sti = v; }
+  void SetCi(float v) { csti = v; }
+  void SetCu(float v) { cstu = v; }
+
   void SetKlGr(float v) { klGr = v; }
   void SetAdv(float v) { aDv = v; }
   void SetBdv(float v) { bDv = v; }
