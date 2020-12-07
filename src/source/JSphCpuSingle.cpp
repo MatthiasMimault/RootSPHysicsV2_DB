@@ -866,7 +866,7 @@ void JSphCpuSingle::RunSizeDivision12_M(double stepdt){
 
 		}
 		// 4, Update Minimal number of ptcs
-		//NpMinimum = CaseNp - unsigned(PartsOutMax * (Np-Npb));
+		NpMinimum = Np - unsigned(PartsOutMax * (Np-Npb));
 	}
 	//printf("RUnsizeDivision2\n");
 	TmcStop(Timers, TMC_SuPeriodic);
