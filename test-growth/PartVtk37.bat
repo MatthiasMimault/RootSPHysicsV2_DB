@@ -2,7 +2,7 @@
 REM "name" and "dirout" are named according to the testcase
 
 set name=DBG
-set casename=A1-Run_test-growth
+set casename=B1-Visible_growth
 set dirout=%name%_out
 
 REM "executables" are renamed and called from their directory
