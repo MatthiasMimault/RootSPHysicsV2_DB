@@ -105,7 +105,7 @@
     <CodeAnalysisRuleAssemblies Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
     <CodeAnalysisRuleAssemblies Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" />
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">RootSPH_v35</TargetName>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">RootSPH_v34_debug</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">RootSPH_v37_debug</TargetName>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='ReleaseCPU|x64'">RootSPH_v35</TargetName>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='DebugCPU|x64'">RootSPH_v37b_debug</TargetName>
     <PreBuildEventUseInBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</PreBuildEventUseInBuild>

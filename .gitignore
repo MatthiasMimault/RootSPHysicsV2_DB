@@ -6,46 +6,17 @@ src/VS/*
 !src/VS/*.vcxproj.filters
 !src/VS/*.sln
 
-## Ignores output of examples in 01_DamBreak.
-examples/*
-
-## Ignores other directories.
+## Ignores bin, debug and Eigen library
 __Tools__
 bin/*
-debug/*
+debug*/*
+src/lib/EigenLibs/*
 
 ## Ignores temporary files.
 bin/windows/*.iobj
 bin/windows/*.ipdb
 bin/windows/*.pdb
 bin/windows/*.ilk
-bin/windows/DualSPHysics*
 
-## Ignores additional library Eigen (installed by hand)
-src/lib/EigenLibs/*
-/debug/*
-/debug_v33/1-2DA
-/doc/Period 0101 - 0331
-/debug_v34/1-2DA
-/doc/DualSPHysics/help
-/doc/DualSPHysics
-/doc/Period 0101 - 0319/Dev log - 200305 - ASPH Cpp.rtf
-*.rtf
-*.png
-/debug_v34/2-DMP
-/doc/Period 0320 - 0402
-/doc/Period 0403 - 0419
-/debug_v34
-/debug_v35/1-DIV
-/debug_v35/2-SQR
-/debug_v35/3-RAD
-/debug_v35/4-YDV
-/debug_v35/5-VSC
-/debug_v35/6-ANI
-/debug_v36/1-VSC
-/debug_v36/2-Be7
-/debug_v36/3-TGX
-/debug_v36/4-DvV/DBG_out
-/debug_v36/4-DvV
-/debug_v37/1-G10
-/debug_v37
+## Ignore data in test-growth
+test-growth/*_out
