@@ -7,45 +7,41 @@
     <casedef>
         <constantsdef>
             <typeCase value="0" /> %0 Gencase generation, 1 Real data generation
-            <typeGrowth value="10" psu="6" ssu="2" ptu="0" stu="4" psi="8" ssi="2" pti="0" sti="2" cstu="0.156" csti="0.125" kill="1"/> %0 No Growth, 1 Cutoff 0.3, 3 SigGauDrop, 5 T+Bee, 6 T+Cte, 7 T+Tri, 8 T+Gaus, 9 TGKill
-            <typeCompression value="0" /> %0 No compression, 1 Tip boundary compression
-            <typeDivision value="1" aM0 = "25" a="0" b="0.04" p="0.15"/> %0 No Division, 1 Double size, 2 Mathis proba, 3 aM0 22 4 aM0 10 5 aM0 variable
-            <typeYoung value="0"  position = "0.15" stiffness = "15"/> %0 Full Aniso, 1 Sigmoid, 2 Circle, 3 Full Iso
-            <typeDev value="false" /> %0 Full Aniso, 1 Sigmoid, 2 Circle, 3 Full Iso
-			<damping type = "0" value = "0.0" comment="Damping term in acceleration" />
-            <lattice bound="1" fluid="1" />
-            <gravity x="0" y="0" z="0" comment="Gravitational acceleration" units_comment="mm/min^2" />
-            <rhop0 value="50.0" comment="Reference density of the fluid" units_comment="ug/mm^3" />
-            <hswl value="0" auto="true" comment="Maximum still water level to calculate speedofsound using coefsound" units_comment="metres (m)" />
-            <gamma value="1" comment="Polytropic constant for water used in the state equation" />
-            <speedsystem value="1" auto="true" comment="Maximum system speed (by default the dam-break propagation is used)" />
-            <coefsound value="10" comment="Coefficient to multiply speedsystem" />
-            <speedsound value="20" auto="false" comment="Speed of sound to use in the simulation (by default speedofsound=coefsound*speedsystem)" />
-            <coefh value="3" hmin="3" hmax="3" comment="Coefficient to calculate the smoothing length (h=coefh*sqrt(3*dp^2) in 3D)" />
-            <cflnumber value="0.9" comment="Coefficient to multiply dt" />
-            <!-- Domain dimensions -->
-            <borddomain value="10.0"/>
+            <!-- Growth - mass -->
+            <rhop0 value="25.0" comment="Reference density of the fluid" units_comment="ug/mm^3" />
+            <lambdamass value="5000"/>
+            <typeGrowth value="10" psu="6" ssu="2" ptu="0" stu="4" psi="8" ssi="2" pti="0" sti="2" cstu="0.156" csti="0.125" kill="1"/> 
+			%0 No Growth, 1 Cutoff 0.3, 3 SigGauDrop, 5 T+Bee, 6 T+Cte, 7 T+Tri, 8 T+Gaus, 9 TGKill
             <!-- Solid - anisotropic constants-->
             <youngx value="1020"/> %1020 MPa
             <youngy value="15000"/> %15000 MPa
             <shear1 value="85000"/> %85000 MPa
             <poissonxy value = "0.06"/>
             <poissonyz value = "0.3"/>
-            <!-- Solid - isotropic constants
-            <youngx value="15000"/>
-            <youngy value="15000"/>
-            <shear1 value="5769.231"/>
-            <poissonxy value = "0.3"/>
-            <poissonyz value = "0.3"/>-->
-            <!-- Poroelasticity -->
             <porezero value="1"/> %0.3 MPa
-            <!-- Growth - mass -->
-            <lambdamass value="5000"/>
-            <!-- Growth - cell division -->
+            <typeYoung value="0"  position = "0.15" stiffness = "15"/> %0 Full Aniso, 1 Sigmoid, 2 Circle, 3 Full Iso
+			<!-- Growth - cell division -->
             <localdivision x="1.5" y="0.5" z="0.5"/>
             <spreaddivision value="0.1"/>
             <velocitydivisioncoef value="0" units_comment="cell.cell-1.s-1"/>
             <sizedivision value = "2"/> % Mass threshold
+			<typeDivision value="1" aM0 = "25" a="0" b="0.04" p="0.15"/> %0 No Division, 1 Double size, 2 Mathis proba, 3 aM0 22 4 aM0 10 5 aM0 variable
+            <!-- Numerics -->
+            <coefh value="3" hmin="3" hmax="3" comment="Coefficient to calculate the smoothing length (h=coefh*sqrt(3*dp^2) in 3D)" />
+            <cflnumber value="0.9" comment="Coefficient to multiply dt" />
+            <gamma value="1" comment="Polytropic constant for water used in the state equation" />
+            <speedsystem value="1" auto="true" comment="Maximum system speed (by default the dam-break propagation is used)" />
+            <coefsound value="10" comment="Coefficient to multiply speedsystem" />
+            <speedsound value="20" auto="false" comment="Speed of sound to use in the simulation (by default speedofsound=coefsound*speedsystem)" />
+            <!-- Domain dimensions -->
+            <borddomain value="10.0"/>
+			<!--Other (unused) options-->
+            <typeCompression value="0" /> %0 No compression, 1 Tip boundary compression
+            <typeDev value="false" /> %0 Full Aniso, 1 Sigmoid, 2 Circle, 3 Full Iso
+			<damping type = "0" value = "0.0" comment="Damping term in acceleration" />
+            <lattice bound="1" fluid="1" />
+            <gravity x="0" y="0" z="0" comment="Gravitational acceleration" units_comment="mm/min^2" />
+            <hswl value="0" auto="true" comment="Maximum still water level to calculate speedofsound using coefsound" units_comment="metres (m)" />
         </constantsdef>
         <mkconfig boundcount="240" fluidcount="10"/>
         <geometry>
@@ -103,7 +99,7 @@
             <parameter key="TimeOut" value="0.01" comment="Time out data" units_comment="seconds" />
             <parameter key="IncZ" value="0" comment="Increase of Z+" units_comment="decimal" />
             <parameter key="PartsOutMax" value="0" comment="%/100 of fluid particles allowed to be excluded from domain (default=1)" units_comment="decimal" />
-            <parameter key="RhopOutMin" value="10" comment="Minimum rhop valid (default=700)" units_comment="ug/mm^3" />
+            <parameter key="RhopOutMin" value="9" comment="Minimum rhop valid (default=700)" units_comment="ug/mm^3" />
             <parameter key="RhopOutMax" value="3000" comment="Maximum rhop valid (default=1300)" units_comment="ug/mm^3" />
         </parameters>
     </execution>
