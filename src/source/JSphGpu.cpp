@@ -30,13 +30,11 @@
 #include "JSphDtFixed.h"
 #include "JSaveDt.h"
 #include "JTimeOut.h"
-#include "JWaveGen.h"
 #include "JDamping.h"
 #include "JSphAccInput.h"
 #include "JXml.h"
 #include "JFormatFiles2.h"
 #include "JGaugeSystem.h"
-//#include "JSphSolidGpu_ker_L.h"
 
 using namespace std;
 

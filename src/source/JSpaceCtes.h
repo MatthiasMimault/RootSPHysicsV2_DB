@@ -113,12 +113,19 @@ private:
   double MassFluid;       ///<Mass of a fluid particle.
 
   // Matthias
+  // Simulation choices
+  int typeCase, typeCompression, typeGrowth, typeDivision, typeYoung, typeDamping;
+  float curvAM0, xYoung, kYoung, klGr, aDv, bDv, pDv;
+  float psu, psi, ptu, pti, ssu, ssi, stu, sti, cstu, csti;
+  bool typeDev;
+
+
   // Bord mirroir
   double PlanMirror;
   // Extension domain
   double BordDomain;
   // Solid - anisotropic
-  double Ef, Et, Gf, nuxy, nuyz;
+  double Ef, Et, Gf, nuxy, nuyz, dampCoef;
   //double K;
   //double Mu;
   // Pore
@@ -179,6 +186,35 @@ public:
   double GetGamma()const{ return(Gamma); }
   double GetRhop0()const{ return(Rhop0); }
   double GetEps()const{ return(Eps); }
+  
+  // Simulation choices
+  int GetCase()const { return typeCase; }
+  int GetComp()const { return typeCompression; }
+  int GetDiv()const { return typeDivision; }
+  float getAM0()const { return curvAM0; }
+  float getXyg()const { return xYoung; }
+  float getKyg()const { return kYoung; }
+
+  float getPtu()const { return ptu; }
+  float getPsu()const { return psu; }
+  float getPti()const { return pti; }
+  float getPsi()const { return psi; }
+  float getStu()const { return stu; }
+  float getSsu()const { return ssu; }
+  float getSti()const { return sti; }
+  float getSsi()const { return ssi; }
+  float getCu()const { return cstu; }
+  float getCi()const { return csti; }
+
+  float getKlGr()const { return klGr; }
+  float getAdv()const { return aDv; }
+  float getBdv()const { return bDv; }
+  float getPdv()const { return pDv; }
+  int GetGrow()const { return typeGrowth; }
+  int GetYoung()const { return typeYoung; }
+  int GetDpg()const { return typeDamping; }
+  bool GetDev()const { return typeDev; }
+
   // Extension Domain
   double GetBordDomain()const { return BordDomain; }
 
@@ -189,6 +225,7 @@ public:
   double GetShear()const { return(Gf); }
   double GetPoissonXY()const { return nuxy; }
   double GetPoissonYZ()const { return nuyz; }
+  double GetDamp()const { return dampCoef; }
   //double GetShear()const { return(Mu); }
 
   // Pore Pressure
@@ -226,6 +263,34 @@ public:
   void SetRhop0(double v){ Rhop0=v; }
   void SetEps(double v){ Eps=v; }
   // Matthias
+  // Simulation choices
+  void SetCase(int v) { typeCase = v; }
+  void SetComp(int v) { typeCompression = v; }
+  void SetDiv(int v) { typeDivision = v; }
+  void SetAM0(float v) { curvAM0 = v; }
+  void SetXyg(float v) { xYoung = v; }
+  void SetKyg(float v) { kYoung = v; }
+
+  void SetPsu(float v) { psu = v; }
+  void SetPtu(float v) { ptu = v; }
+  void SetPsi(float v) { psi = v; }
+  void SetPti(float v) { pti = v; }
+  void SetSsu(float v) { ssu = v; }
+  void SetStu(float v) { stu = v; }
+  void SetSsi(float v) { ssi = v; }
+  void SetSti(float v) { sti = v; }
+  void SetCi(float v) { csti = v; }
+  void SetCu(float v) { cstu = v; }
+
+  void SetKlGr(float v) { klGr = v; }
+  void SetAdv(float v) { aDv = v; }
+  void SetBdv(float v) { bDv = v; }
+  void SetPdv(float v) { pDv = v; }
+  void SetGrow(int v) { typeGrowth = v; }
+  void SetYoung(int v) { typeYoung = v; }
+  void SetDpgType(int v) { typeDamping = v; }
+  void SetDev(bool v) { typeDev = v; }
+
   // Plan mirroir
   void SetPlanMirror(double v) { PlanMirror = v; }
   // Extension Domain
@@ -238,6 +303,7 @@ public:
   void SetShear(double v) { Gf = v; };
   void SetPoissonXY(double v) { nuxy = v; };
   void SetPoissonYZ(double v) { nuyz = v; };
+  void SetDamp(double v) { dampCoef = v; };
 
   // Pore Pressure
   void SetPoreZero(double v) { PoreZero = v; };

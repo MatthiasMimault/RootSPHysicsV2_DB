@@ -41,6 +41,7 @@
 #include "TypesDef.h"
 #include "JObject.h"
 #include <cstring>
+#include <iostream> 
 
 //##############################################################################
 //# JPartsLoad4
@@ -86,6 +87,10 @@ protected:
   tdouble3 *Pos;
   tfloat4 *VelRhop;
   float *Mass;
+  tsymatrix3f *Qf;
+
+  // Matthias
+  //string Datacsvname;
 
   void AllocMemory(unsigned count);
   template<typename T> T* SortParticles(const unsigned *vsort,unsigned count,T *v)const;
@@ -97,12 +102,17 @@ public:
   ~JPartsLoad4();
   void Reset();
 
-  void LoadParticles(const std::string &casedir,const std::string &casename,unsigned partbegin,const std::string &casedirbegin);
+  void LoadParticles(const std::string& casedir, const std::string& casename, unsigned partbegin, const std::string& casedirbegin);
+  void LoadParticles_Mixed_M(const std::string& casedir, const std::string& casename, unsigned partbegin, const std::string& casedirbegin);
+  void LoadParticles_Mixed2_M(const std::string& casedir, const std::string& casename, unsigned partbegin
+	  , const std::string& casedirbegin, const std::string& datacasename);
+  void LoadParticles_Mixed3_M(const std::string& casedir, const std::string& casename, unsigned partbegin
+	  , const std::string& casedirbegin, const std::string& datacasename, const std::string& datacsvname);
   void LoadParticles_T(const std::string &casedir, const std::string &casename, unsigned partbegin, const std::string &casedirbegin);
   void CheckConfig(ullong casenp,ullong casenfixed,ullong casenmoving,ullong casenfloat,ullong casenfluid,bool perix,bool periy,bool periz)const;
   void CheckConfig(ullong casenp,ullong casenfixed,ullong casenmoving,ullong casenfloat,ullong casenfluid)const;
   void RemoveBoundary();
-
+  
   unsigned GetCount()const{ return(Count); }
 
   bool MapSizeLoaded()const{ return(MapSize); }
@@ -118,6 +128,7 @@ public:
   const tdouble3* GetPos(){ return(Pos); }
   const tfloat4* GetVelRhop(){ return(VelRhop); }
   const float* GetMass() { return(Mass); }
+  const tsymatrix3f* GetQf() { return(Qf); }
 
   tdouble3 GetCasePosMin()const{ return(CasePosMin); }
   tdouble3 GetCasePosMax()const{ return(CasePosMax); }

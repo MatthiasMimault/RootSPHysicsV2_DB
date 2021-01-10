@@ -20,25 +20,25 @@ class GenCaseBis_T
 
 private:
 	JPartDataBi4 *jpd;
-	boolean test = true;
-	boolean useGencase;
+	bool test = true;
+	bool useGencase;
 
 public:
 	GenCaseBis_T();
 	~GenCaseBis_T();
-	void GenCaseBis_T::UseGencase(std::string caseName);
-	void GenCaseBis_T::Bridge(std::string caseName);
-	boolean getUseGencase() { return useGencase; }
+	void UseGencase(std::string caseName);
+	void Bridge(std::string caseName);
+	void Bridge2_M(std::string caseName);
+	bool getUseGencase() { return useGencase; }
 private:
-	int GenCaseBis_T::calculNbParticles();
-	std::vector<std::string> GenCaseBis_T::split(std::string line, char delim);
-	void GenCaseBis_T::loadCsv(int np, int *idp, double *vol, tdouble3 *pos);
-	float GenCaseBis_T::loadRhop0();
-	double GenCaseBis_T::computeRayMax(int np, double *vol);
-	void GenCaseBis_T::computeMassP(int np, double *vol, float *mp, float *rhop, float rhop0);
-	void GenCaseBis_T::researchCasePosMaxAndMin(tdouble3 *pos, int np, tdouble3 *posMax, tdouble3 *posMin);
-	double GenCaseBis_T::computeBorddomain(int np, tdouble3 posMax, tdouble3 posMin);
-	void GenCaseBis_T::updateXml(std::string caseName, int np, double rMax, double borddomain);
+	int calculNbParticles();
+	std::vector<std::string> split(std::string line, char delim);
+	void loadCsv(int np, int *idp, double *vol, tdouble3 *pos);
+	float loadRhop0();
+	double computeRayMax(int np, double *vol);
+	void computeMassP(int np, double *vol, float *mp, float *rhop, float rhop0);
+	void researchCasePosMaxAndMin(tdouble3 *pos, int np, tdouble3 *posMax, tdouble3 *posMin);
+	double computeBorddomain(int np, tdouble3 posMax, tdouble3 posMin);
+	void updateXml(std::string caseName, int np, double rMax, double borddomain);
 };
 #endif
-

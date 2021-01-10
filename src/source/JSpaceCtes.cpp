@@ -70,17 +70,21 @@ void JSpaceCtes::Reset(){
   H=B=MassBound=MassFluid=0;
   Dp=0;
   //Matthias
+  typeCase = typeCompression = typeDivision = typeGrowth = typeYoung = 0;
+  curvAM0 = xYoung = kYoung = psu = psi = ptu = pti = csti = cstu = 0.0f;
+  sti = stu = ssi = ssu = 1.0f;
+  typeDev = false;
   // Extension Domain
   BordDomain = 0;
   // Solid
   //K = 0; Mu = 0;
-  Ef = Et = Gf = nuxy = nuyz = 0;
+  Ef = Et = Gf = nuxy = nuyz = dampCoef = 0;
   // Pore
   PoreZero = 0;
   // Mass
   LambdaMass = 0;
   // Cell division
-  LocalDiv_M = { 0,0,0 };
+  LocalDiv_M = TDouble3(0,0,0);
   Spread_M = 0;
   VelDivCoef_M = 0;
 
@@ -250,9 +254,35 @@ void JSpaceCtes::ReadAddXmlRun_M(JXml *sxml, TiXmlElement* node) {
 	SetLocalDivision(sxml->ReadElementDouble3(node, "localdivision"));
 	SetSpreadDivision(sxml->ReadElementFloat(node, "spreaddivision", "value"));
 	SetVelocityDivisionCoef(sxml->ReadElementFloat(node, "velocitydivisioncoef", "value"));
-	//SetAnisotropyK(sxml->ReadElementDouble3(node, "anisotropyk"));
-	//SetAnisotropyG(sxml->ReadElementTsymatrix3f(node, "anisotropyg", "value"));
+	
+	// Simulation choices
+	SetCase(sxml->ReadElementInt(node, "typeCase", "value"));
+	SetComp(sxml->ReadElementInt(node, "typeCompression", "value"));
+	SetDiv(sxml->ReadElementInt(node, "typeDivision", "value"));
+	SetAM0(sxml->ReadElementFloat(node, "typeDivision", "aM0"));
+	SetGrow(sxml->ReadElementInt(node, "typeGrowth", "value"));
 
+	SetPsu(sxml->ReadElementFloat(node, "typeGrowth", "psu"));
+	SetPsi(sxml->ReadElementFloat(node, "typeGrowth", "psi"));
+	SetPtu(sxml->ReadElementFloat(node, "typeGrowth", "ptu"));
+	SetPti(sxml->ReadElementFloat(node, "typeGrowth", "pti"));
+	SetSsu(sxml->ReadElementFloat(node, "typeGrowth", "ssu"));
+	SetSsi(sxml->ReadElementFloat(node, "typeGrowth", "ssi"));
+	SetStu(sxml->ReadElementFloat(node, "typeGrowth", "stu"));
+	SetSti(sxml->ReadElementFloat(node, "typeGrowth", "sti"));
+	SetCu(sxml->ReadElementFloat(node, "typeGrowth", "cstu"));
+	SetCi(sxml->ReadElementFloat(node, "typeGrowth", "csti"));
+
+	SetKlGr(sxml->ReadElementFloat(node, "typeGrowth", "kill"));
+	SetAdv(sxml->ReadElementFloat(node, "typeDivision", "a"));
+	SetBdv(sxml->ReadElementFloat(node, "typeDivision", "b"));
+	SetPdv(sxml->ReadElementFloat(node, "typeDivision", "p"));
+	SetYoung(sxml->ReadElementInt(node, "typeYoung", "value"));
+	SetXyg(sxml->ReadElementFloat(node, "typeYoung", "position"));
+	SetKyg(sxml->ReadElementFloat(node, "typeYoung", "stiffness"));
+	SetDev(sxml->ReadElementBool(node, "typeDev", "value"));
+	SetDamp(sxml->ReadElementFloat(node, "damping", "value"));
+	SetDpgType(sxml->ReadElementInt(node, "damping", "type"));
 }
 
 //==============================================================================
