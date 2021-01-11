@@ -2,7 +2,7 @@
 <Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugCPU|x64'">
     <LocalDebuggerCommandArguments>-cpu DBG_out\DBG DBG_out -dirdataout data -svres</LocalDebuggerCommandArguments>
-    <LocalDebuggerWorkingDirectory>..\..\test-growth</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerWorkingDirectory>..\..\debug-correction</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>

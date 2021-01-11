@@ -70,7 +70,8 @@ void JSpaceCtes::Reset(){
   H=B=MassBound=MassFluid=0;
   Dp=0;
   //Matthias
-  typeCase = typeCompression = typeDivision = typeGrowth = typeYoung = 0;
+  typeCase = typeCompression = typeDivision = typeGrowth = typeYoung 
+	  = typeCorrection = 0;
   curvAM0 = xYoung = kYoung = psu = psi = ptu = pti = csti = cstu = 0.0f;
   sti = stu = ssi = ssu = 1.0f;
   typeDev = false;
@@ -260,6 +261,7 @@ void JSpaceCtes::ReadAddXmlRun_M(JXml *sxml, TiXmlElement* node) {
 	SetComp(sxml->ReadElementInt(node, "typeCompression", "value"));
 	SetDiv(sxml->ReadElementInt(node, "typeDivision", "value"));
 	SetAM0(sxml->ReadElementFloat(node, "typeDivision", "aM0"));
+	SetCorrectiont(sxml->ReadElementInt(node, "typeCorrection", "value"));
 	SetGrow(sxml->ReadElementInt(node, "typeGrowth", "value"));
 
 	SetPsu(sxml->ReadElementFloat(node, "typeGrowth", "psu"));

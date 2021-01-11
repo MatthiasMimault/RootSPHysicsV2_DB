@@ -224,7 +224,7 @@ protected:
   float SpsBlin;             ///<Blin constant used in the SPS turbulence model.
   // Matthias
   // Simulation #choice markers
-  int typeCase, typeGrowth, typeCompression, typeDivision, typeYoung, typeDamping;
+  int typeCase, typeGrowth, typeCompression, typeDivision, typeYoung, typeDamping, typeCorrection;
   bool typeDev;
   float dampCoef, aM0, xYg, kYg, posGr, spGr, ctGr, po2Gr, s2Gr, c2Gr, klGr, aDv, bDv, pDv;
   // Plan mirroir

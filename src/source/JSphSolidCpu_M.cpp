@@ -1890,8 +1890,37 @@ template<bool psingle, TpKernel tker> void JSphSolidCpu::ComputeNsphCorrection14
 
 
 //==============================================================================
-/// NSPH correction and Co_nsistance coeffcient- Matthias 
+/// Intrface for Gradient correction switch
 // #Nsph #co_M
+//==============================================================================
+template<bool psingle, TpKernel tker> void JSphSolidCpu::InterfaceGradientCorrection
+(unsigned np, unsigned pinit, tint4 nc, int hdiv, unsigned cellinitial
+	, const unsigned* beginendcell, tint3 cellzero, const unsigned* dcell
+	, const tdouble3* pos, const tfloat3* pspos, const tfloat4* velrhop
+	, const float* mass, tmatrix3f* L, float* co)const {
+	switch (typeCorrection) {
+	case 1: {
+		// Full correction computed from 3x3 inversion
+		ComputeNsphCorrection31<psingle, tker>(np, pinit, nc, hdiv, cellinitial,
+			beginendcell, cellzero, dcell, pos, pspos, velrhop, mass, L, co);
+		break;
+	}
+	case 2: {
+		// to_do: DFPM
+		ComputeNoCorrection37<psingle, tker>(np, pinit, L, co);
+		break;
+	}
+	default: {
+		// No inversion
+		ComputeNoCorrection37<psingle, tker>(np, pinit, L, co);
+		break;
+	}
+	}
+}
+
+//==============================================================================
+/// NSPH correction and Co_nsistance coeffcient- Matthias 
+// 
 //==============================================================================
 template<bool psingle, TpKernel tker> void JSphSolidCpu::ComputeNsphCorrection31
 (unsigned n, unsigned pinit, tint4 nc, int hdiv, unsigned cellinitial
@@ -2018,6 +2047,25 @@ template<bool psingle, TpKernel tker> void JSphSolidCpu::ComputeNsphCorrection31
 		L[p1] = Inv3f(Mp1);
 		co[p1] = 1.0f - Mo1;
 		//L[p1] = { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
+	}
+}
+
+//==============================================================================
+/// NSPH no corection- Matthias 
+//==============================================================================
+template<bool psingle, TpKernel tker> void JSphSolidCpu::ComputeNoCorrection37
+(unsigned n, unsigned pinit, tmatrix3f* L, float* co)const
+{
+	//-Initialise execution with OpenMP. | Inicia ejecucion con OpenMP..
+	const int pfin = int(pinit + n);
+
+#ifdef OMP_USE
+#pragma omp parallel for schedule (guided)
+#endif
+
+	for (int p1 = int(pinit); p1 < pfin; p1++) {
+		co[p1] = 0.0f;
+		L[p1] = { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
 	}
 }
 
@@ -3208,7 +3256,29 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 	const int hdiv = (CellMode == CELLMODE_H ? 2 : 1);
 
 	if (npf) {
-		ComputeNsphCorrection31<psingle, tker>(np, 0, nc, hdiv, cellfluid, begincell, cellzero, dcell, pos, pspos, velrhop, mass, L, co);
+		// to_do: turn this switch into an interface method once it works. 
+		InterfaceGradientCorrection<psingle, tker>(np, 0, nc, hdiv, cellfluid,
+			begincell, cellzero, dcell, pos, pspos, velrhop, mass, L, co);
+		// It might carry a lot of arguments with it 
+		/*switch (typeCorrection) {
+		case 1: {
+			// Full correction computed from 3x3 inversion
+			ComputeNsphCorrection31<psingle, tker>(np, 0, nc, hdiv, cellfluid, 
+				begincell, cellzero, dcell, pos, pspos, velrhop, mass, L, co);
+			break;
+		}
+		case 2: {
+			// to_do: DFPM
+			ComputeNoCorrection37<psingle, tker>(np, 0, L, co);
+			break;
+		}
+		default: {
+			// No inversion
+			ComputeNoCorrection37<psingle, tker>(np, 0, L, co);
+			break;
+		}
+		}*/
+		
 
 		//-Interaction Fluid-Fluid.
 		InteractionForces_V31_M<psingle, tker, ftmode, lamsps, tdelta, shift>

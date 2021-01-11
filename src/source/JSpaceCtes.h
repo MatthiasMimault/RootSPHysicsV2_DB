@@ -114,7 +114,7 @@ private:
 
   // Matthias
   // Simulation choices
-  int typeCase, typeCompression, typeGrowth, typeDivision, typeYoung, typeDamping;
+  int typeCase, typeCompression, typeGrowth, typeDivision, typeYoung, typeDamping, typeCorrection;
   float curvAM0, xYoung, kYoung, klGr, aDv, bDv, pDv;
   float psu, psi, ptu, pti, ssu, ssi, stu, sti, cstu, csti;
   bool typeDev;
@@ -214,6 +214,7 @@ public:
   int GetYoung()const { return typeYoung; }
   int GetDpg()const { return typeDamping; }
   bool GetDev()const { return typeDev; }
+  int GetCorrection()const { return typeCorrection; }
 
   // Extension Domain
   double GetBordDomain()const { return BordDomain; }
@@ -287,6 +288,7 @@ public:
   void SetBdv(float v) { bDv = v; }
   void SetPdv(float v) { pDv = v; }
   void SetGrow(int v) { typeGrowth = v; }
+  void SetCorrectiont(int v) { typeCorrection = v; }
   void SetYoung(int v) { typeYoung = v; }
   void SetDpgType(int v) { typeDamping = v; }
   void SetDev(bool v) { typeDev = v; }
