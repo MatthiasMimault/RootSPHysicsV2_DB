@@ -2304,7 +2304,7 @@ template<bool psingle, TpKernel tker> void JSphSolidCpu::ComputeDFPM37
 		if (Simulate2D) M.y = 1.0f;
 
 		// Inversion of diagonal elements
-		L[p1] = {1.0f/M.x, 1.0f / M.y, 1.0f / M.z};
+		L[p1] = {1.0f/M.x, 0, 0, 0, 1.0f / M.y, 0,0,0, 1.0f / M.z};
 	}
 }
 
