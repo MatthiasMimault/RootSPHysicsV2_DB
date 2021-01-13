@@ -194,6 +194,8 @@ inline tfloat3 MinValues(const tfloat3& a, const tfloat3& b){ return(TFloat3((a.
 inline tfloat3 MaxValues(const tfloat3& a, const tfloat3& b){ return(TFloat3((a.x>=b.x? a.x: b.x),(a.y>=b.y? a.y: b.y),(a.z>=b.z? a.z: b.z))); }
 inline float TFloat3Get(const tfloat3& a,unsigned c){ return(!c? a.x: (c==1? a.y: a.z)); }
 inline tfloat3 TFloat3Set(const tfloat3& a,unsigned c,float v){ return(TFloat3((c? a.x: v),(c!=1? a.y: v),(c!=2? a.z: v))); }
+// Failed tentative to overload +=: x,y,z are not recognised as the member of the tfloat3 element
+//inline tfloat3& operator +=(const tfloat3& b) { x += b.x; y += b.y; z += b.z; return *this; }
 
 
 ///Structure of 2 variables of type double.

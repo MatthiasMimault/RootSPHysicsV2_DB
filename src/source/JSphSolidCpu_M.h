@@ -276,6 +276,9 @@ protected:
 	void ComputeDFPMscratch37(unsigned n, unsigned pinit, tint4 nc, int hdiv, unsigned cellinitial, const unsigned* beginendcell, tint3 cellzero, const unsigned* dcell, const tdouble3* pos, const tfloat3* pspos, const tfloat4* velrhop, const float* mass, tmatrix3f* L, float* co) const;
 
 	template<bool psingle, TpKernel tker>
+	void ComputeDFPM37(unsigned n, unsigned pinit, tint4 nc, int hdiv, unsigned cellinitial, const unsigned* beginendcell, tint3 cellzero, const unsigned* dcell, const tdouble3* pos, const tfloat3* pspos, const tfloat4* velrhop, const float* mass, tmatrix3f* L, float* co) const;
+
+	template<bool psingle, TpKernel tker>
 	void ComputeNoCorrection37(unsigned n, unsigned pinit, tmatrix3f* L, float* co) const;
 
 	template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph tdelta, bool shift> void InteractionForces_V11b_M

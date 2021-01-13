@@ -1906,7 +1906,13 @@ template<bool psingle, TpKernel tker> void JSphSolidCpu::InterfaceGradientCorrec
 		break;
 	}
 	case 2: {
-		// to_do: DFPM
+		// DFPM 
+		ComputeDFPM37<psingle, tker>(np, pinit, nc, hdiv, cellinitial,
+			beginendcell, cellzero, dcell, pos, pspos, velrhop, mass, L, co);
+		break;
+	}
+	case 3: {
+		// Scratch DFPM along with full inversion for comparison
 		ComputeDFPMscratch37<psingle, tker>(np, pinit, nc, hdiv, cellinitial,
 			beginendcell, cellzero, dcell, pos, pspos, velrhop, mass, L, co);
 		break;
@@ -2186,6 +2192,119 @@ template<bool psingle, TpKernel tker> void JSphSolidCpu::ComputeDFPMscratch37
 		}
 		
 		co[p1] = 1.0f - Mo1;
+	}
+}
+
+//==============================================================================
+/// Scratch computation of DFPM - Matthias 
+// Can be used to compute both and compare outputs
+//==============================================================================
+template<bool psingle, TpKernel tker> void JSphSolidCpu::ComputeDFPM37
+(unsigned n, unsigned pinit, tint4 nc, int hdiv, unsigned cellinitial
+	, const unsigned* beginendcell, tint3 cellzero, const unsigned* dcell
+	, const tdouble3* pos, const tfloat3* pspos, const tfloat4* velrhop
+	, const float* mass, tmatrix3f* L, float* co)const
+{
+	const bool boundp2 = (!cellinitial); //-Interaction with type boundary (Bound). | Interaccion con Bound.
+	float viscth[OMP_MAXTHREADS * OMP_STRIDE];
+	for (int th = 0; th < OmpThreads; th++)viscth[th * OMP_STRIDE] = 0;
+	//-Initialise execution with OpenMP. | Inicia ejecucion con OpenMP..
+	const int pfin = int(pinit + n);
+
+#ifdef OMP_USE
+#pragma omp parallel for schedule (guided)
+#endif
+
+	for (int p1 = int(pinit); p1 < pfin; p1++) {
+
+		//-Obtain data of particle p1 in case of floating objects. | Obtiene datos de particula p1 en caso de existir floatings.
+		bool ftp1 = false;     //-Indicate if it is floating. | Indica si es floating.
+
+		//-Obtain data of particle p1.
+		const tfloat3 psposp1 = (psingle ? pspos[p1] : TFloat3(0));
+		const tdouble3 posp1 = (psingle ? TDouble3(0) : pos[p1]);
+
+		// Matthias
+		tfloat3 M = { 0,0,0 };
+		//tmatrix3f Mp1 = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+		//float Mo1 = 0.0f;
+
+		//-Obtain interaction limits.
+		int cxini, cxfin, yini, yfin, zini, zfin;
+		GetInteractionCells(dcell[p1], hdiv, nc, cellzero, cxini, cxfin, yini, yfin, zini, zfin);
+
+		//-Search for neighbours in adjacent cells. Bound
+		for (int z = zini; z < zfin; z++) {
+			const int zmod = (nc.w) * z + 0
+				; //-Sum from start of fluid or boundary cells. | Le suma donde empiezan las celdas de fluido o bound.
+			for (int y = yini; y < yfin; y++) {
+				int ymod = zmod + nc.x * y;
+				const unsigned pini = beginendcell[cxini + ymod];
+				const unsigned pfin = beginendcell[cxfin + ymod];
+
+				// Computation of Lp1
+				for (unsigned p2 = pini; p2 < pfin; p2++) {
+					const float drx = (psingle ? psposp1.x - pspos[p2].x : float(posp1.x - pos[p2].x));
+					const float dry = (psingle ? psposp1.y - pspos[p2].y : float(posp1.y - pos[p2].y));
+					const float drz = (psingle ? psposp1.z - pspos[p2].z : float(posp1.z - pos[p2].z));
+					const float rr2 = drx * drx + dry * dry + drz * drz;
+					float massp2 = mass[p2]; //-Contiene masa de particula segun sea bound o fluid.
+
+					if (rr2 <= Fourh2 && rr2 >= ALMOSTZERO) {
+						float frx, fry, frz, fr;
+						if (tker == KERNEL_Wendland)GetKernelWendland(rr2, drx, dry, drz, frx, fry, frz);
+						else if (tker == KERNEL_Gaussian)GetKernelGaussian(rr2, drx, dry, drz, frx, fry, frz);
+						else if (tker == KERNEL_Cubic)GetKernelCubic(rr2, drx, dry, drz, frx, fry, frz);
+						GetKernelDirectWend_M(rr2, fr);
+
+						if (true) {
+							if (!ftp1) {//-When p1 is a fluid particle / Cuando p1 es fluido. 
+								const float volp2 = -massp2 / velrhop[p2].w;
+								M = M + TFloat3( drx * frx, dry * fry, drz * frz ) * volp2;
+							}
+						}
+					}
+				}
+			}
+		}
+
+		//-Search for neighbours in adjacent cells. Fluid
+		for (int z = zini; z < zfin; z++) {
+			const int zmod = (nc.w) * z + cellinitial; //-Sum from start of fluid or boundary cells. | Le suma donde empiezan las celdas de fluido o bound.
+			for (int y = yini; y < yfin; y++) {
+				int ymod = zmod + nc.x * y;
+				const unsigned pini = beginendcell[cxini + ymod];
+				const unsigned pfin = beginendcell[cxfin + ymod];
+
+				// Computation of Lp1
+				for (unsigned p2 = pini; p2 < pfin; p2++) {
+					const float drx = (psingle ? psposp1.x - pspos[p2].x : float(posp1.x - pos[p2].x));
+					const float dry = (psingle ? psposp1.y - pspos[p2].y : float(posp1.y - pos[p2].y));
+					const float drz = (psingle ? psposp1.z - pspos[p2].z : float(posp1.z - pos[p2].z));
+					const float rr2 = drx * drx + dry * dry + drz * drz;
+					float massp2 = mass[p2]; //-Contiene masa de particula segun sea bound o fluid.
+
+					if (rr2 <= Fourh2 && rr2 >= ALMOSTZERO) {
+						float frx, fry, frz, fr;
+						if (tker == KERNEL_Wendland)GetKernelWendland(rr2, drx, dry, drz, frx, fry, frz);
+						else if (tker == KERNEL_Gaussian)GetKernelGaussian(rr2, drx, dry, drz, frx, fry, frz);
+						else if (tker == KERNEL_Cubic)GetKernelCubic(rr2, drx, dry, drz, frx, fry, frz);
+						GetKernelDirectWend_M(rr2, fr);
+
+						if (true) {
+							if (!ftp1) {//-When p1 is a fluid particle / Cuando p1 es fluido. 
+								const float volp2 = -massp2 / velrhop[p2].w;
+								M = M + TFloat3(drx * frx, dry * fry, drz * frz) * volp2;
+							}
+						}
+					}
+				}
+			}
+		}
+		if (Simulate2D) M.y = 1.0f;
+
+		// Inversion of diagonal elements
+		L[p1] = {1.0f/M.x, 1.0f / M.y, 1.0f / M.z};
 	}
 }
 
