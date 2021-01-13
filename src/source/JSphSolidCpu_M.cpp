@@ -1907,7 +1907,8 @@ template<bool psingle, TpKernel tker> void JSphSolidCpu::InterfaceGradientCorrec
 	}
 	case 2: {
 		// to_do: DFPM
-		ComputeNoCorrection37<psingle, tker>(np, pinit, L, co);
+		ComputeDFPMscratch37<psingle, tker>(np, pinit, nc, hdiv, cellinitial,
+			beginendcell, cellzero, dcell, pos, pspos, velrhop, mass, L, co);
 		break;
 	}
 	default: {
@@ -2047,6 +2048,144 @@ template<bool psingle, TpKernel tker> void JSphSolidCpu::ComputeNsphCorrection31
 		L[p1] = Inv3f(Mp1);
 		co[p1] = 1.0f - Mo1;
 		//L[p1] = { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
+	}
+}
+
+
+
+//==============================================================================
+/// Scratch computation of DFPM - Matthias 
+// Can be used to compute both and compare outputs
+//==============================================================================
+template<bool psingle, TpKernel tker> void JSphSolidCpu::ComputeDFPMscratch37
+(unsigned n, unsigned pinit, tint4 nc, int hdiv, unsigned cellinitial
+	, const unsigned* beginendcell, tint3 cellzero, const unsigned* dcell
+	, const tdouble3* pos, const tfloat3* pspos, const tfloat4* velrhop
+	, const float* mass, tmatrix3f* L, float* co)const
+{
+	const bool boundp2 = (!cellinitial); //-Interaction with type boundary (Bound). | Interaccion con Bound.
+	float viscth[OMP_MAXTHREADS * OMP_STRIDE];
+	for (int th = 0; th < OmpThreads; th++)viscth[th * OMP_STRIDE] = 0;
+	//-Initialise execution with OpenMP. | Inicia ejecucion con OpenMP..
+	const int pfin = int(pinit + n);
+
+#ifdef OMP_USE
+#pragma omp parallel for schedule (guided)
+#endif
+
+	for (int p1 = int(pinit); p1 < pfin; p1++) {
+
+		//-Obtain data of particle p1 in case of floating objects. | Obtiene datos de particula p1 en caso de existir floatings.
+		bool ftp1 = false;     //-Indicate if it is floating. | Indica si es floating.
+
+		//-Obtain data of particle p1.
+		const tfloat3 psposp1 = (psingle ? pspos[p1] : TFloat3(0));
+		const tdouble3 posp1 = (psingle ? TDouble3(0) : pos[p1]);
+
+		// Matthias
+		tmatrix3f Mp1 = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+		float Mo1 = 0.0f;
+
+		//-Obtain interaction limits.
+		int cxini, cxfin, yini, yfin, zini, zfin;
+		GetInteractionCells(dcell[p1], hdiv, nc, cellzero, cxini, cxfin, yini, yfin, zini, zfin);
+
+		//-Search for neighbours in adjacent cells. Bound
+		for (int z = zini; z < zfin; z++) {
+			const int zmod = (nc.w) * z + 0
+				; //-Sum from start of fluid or boundary cells. | Le suma donde empiezan las celdas de fluido o bound.
+			for (int y = yini; y < yfin; y++) {
+				int ymod = zmod + nc.x * y;
+				const unsigned pini = beginendcell[cxini + ymod];
+				const unsigned pfin = beginendcell[cxfin + ymod];
+
+				// Computation of Lp1
+				for (unsigned p2 = pini; p2 < pfin; p2++) {
+					const float drx = (psingle ? psposp1.x - pspos[p2].x : float(posp1.x - pos[p2].x));
+					const float dry = (psingle ? psposp1.y - pspos[p2].y : float(posp1.y - pos[p2].y));
+					const float drz = (psingle ? psposp1.z - pspos[p2].z : float(posp1.z - pos[p2].z));
+					const float rr2 = drx * drx + dry * dry + drz * drz;
+					float massp2 = mass[p2]; //-Contiene masa de particula segun sea bound o fluid.
+
+					if (rr2 <= Fourh2 && rr2 >= ALMOSTZERO) {
+						float frx, fry, frz, fr;
+						if (tker == KERNEL_Wendland)GetKernelWendland(rr2, drx, dry, drz, frx, fry, frz);
+						else if (tker == KERNEL_Gaussian)GetKernelGaussian(rr2, drx, dry, drz, frx, fry, frz);
+						else if (tker == KERNEL_Cubic)GetKernelCubic(rr2, drx, dry, drz, frx, fry, frz);
+						GetKernelDirectWend_M(rr2, fr);
+
+						if (true) {
+							if (!ftp1) {//-When p1 is a fluid particle / Cuando p1 es fluido. 
+								const float volp2 = -massp2 / velrhop[p2].w;
+								Mp1.a11 += volp2 * drx * frx;
+								Mp1.a12 += volp2 * drx * fry;
+								Mp1.a13 += volp2 * drx * frz;
+								Mp1.a21 += volp2 * dry * frx;
+								Mp1.a22 += volp2 * dry * fry;
+								Mp1.a23 += volp2 * dry * frz;
+								Mp1.a31 += volp2 * drz * frx;
+								Mp1.a32 += volp2 * drz * fry;
+								Mp1.a33 += volp2 * drz * frz;
+								//Mo1 += -volp2 * fr;
+							}
+						}
+					}
+				}
+			}
+		}
+
+		//-Search for neighbours in adjacent cells. Fluid
+		for (int z = zini; z < zfin; z++) {
+			const int zmod = (nc.w) * z + cellinitial; //-Sum from start of fluid or boundary cells. | Le suma donde empiezan las celdas de fluido o bound.
+			for (int y = yini; y < yfin; y++) {
+				int ymod = zmod + nc.x * y;
+				const unsigned pini = beginendcell[cxini + ymod];
+				const unsigned pfin = beginendcell[cxfin + ymod];
+
+				// Computation of Lp1
+				for (unsigned p2 = pini; p2 < pfin; p2++) {
+					const float drx = (psingle ? psposp1.x - pspos[p2].x : float(posp1.x - pos[p2].x));
+					const float dry = (psingle ? psposp1.y - pspos[p2].y : float(posp1.y - pos[p2].y));
+					const float drz = (psingle ? psposp1.z - pspos[p2].z : float(posp1.z - pos[p2].z));
+					const float rr2 = drx * drx + dry * dry + drz * drz;
+					float massp2 = mass[p2]; //-Contiene masa de particula segun sea bound o fluid.
+
+					if (rr2 <= Fourh2 && rr2 >= ALMOSTZERO) {
+						float frx, fry, frz, fr;
+						if (tker == KERNEL_Wendland)GetKernelWendland(rr2, drx, dry, drz, frx, fry, frz);
+						else if (tker == KERNEL_Gaussian)GetKernelGaussian(rr2, drx, dry, drz, frx, fry, frz);
+						else if (tker == KERNEL_Cubic)GetKernelCubic(rr2, drx, dry, drz, frx, fry, frz);
+						GetKernelDirectWend_M(rr2, fr);
+
+						if (true) {
+							if (!ftp1) {//-When p1 is a fluid particle / Cuando p1 es fluido. 
+								const float volp2 = -massp2 / velrhop[p2].w;
+								Mp1.a11 += volp2 * drx * frx;
+								Mp1.a12 += volp2 * drx * fry;
+								Mp1.a13 += volp2 * drx * frz;
+								Mp1.a21 += volp2 * dry * frx;
+								Mp1.a22 += volp2 * dry * fry;
+								Mp1.a23 += volp2 * dry * frz;
+								Mp1.a31 += volp2 * drz * frx;
+								Mp1.a32 += volp2 * drz * fry;
+								Mp1.a33 += volp2 * drz * frz;
+								Mo1 += -volp2 * fr;
+							}
+						}
+					}
+				}
+			}
+		}
+		if (Simulate2D) Mp1.a22 = 1.0f;
+
+		// Original L
+		L[p1] = Inv3f({ Mp1.a11, 0, 0, 0, Mp1.a22, 0, 0, 0, Mp1.a33 });
+		tmatrix3f L_full = Inv3f(Mp1);
+		if (sqrt(normSquareFrobenius(L[p1] - L_full) > 50.0)) {
+			printf("L is large: %.8f\n", sqrt(normSquareFrobenius(L[p1] - L_full)));
+		}
+		
+		co[p1] = 1.0f - Mo1;
 	}
 }
 
@@ -3256,30 +3395,11 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 	const int hdiv = (CellMode == CELLMODE_H ? 2 : 1);
 
 	if (npf) {
-		// to_do: turn this switch into an interface method once it works. 
+		// to_do: turn this switch into an interface method once it works.
+		// #correction #gradient #nsph
 		InterfaceGradientCorrection<psingle, tker>(np, 0, nc, hdiv, cellfluid,
 			begincell, cellzero, dcell, pos, pspos, velrhop, mass, L, co);
-		// It might carry a lot of arguments with it 
-		/*switch (typeCorrection) {
-		case 1: {
-			// Full correction computed from 3x3 inversion
-			ComputeNsphCorrection31<psingle, tker>(np, 0, nc, hdiv, cellfluid, 
-				begincell, cellzero, dcell, pos, pspos, velrhop, mass, L, co);
-			break;
-		}
-		case 2: {
-			// to_do: DFPM
-			ComputeNoCorrection37<psingle, tker>(np, 0, L, co);
-			break;
-		}
-		default: {
-			// No inversion
-			ComputeNoCorrection37<psingle, tker>(np, 0, L, co);
-			break;
-		}
-		}*/
 		
-
 		//-Interaction Fluid-Fluid.
 		InteractionForces_V31_M<psingle, tker, ftmode, lamsps, tdelta, shift>
 			(npf, npb, nc, hdiv, cellfluid, Visco, begincell, cellzero, dcell

@@ -393,6 +393,9 @@ inline tmatrix3f Inv3f(tmatrix3f a) {
 		, a.a23*a.a31 - a.a21*a.a33, a.a11*a.a33 - a.a13*a.a31, a.a13*a.a21 - a.a11*a.a23
 		, a.a21*a.a32 - a.a22*a.a31, a.a12*a.a31 - a.a11*a.a32, a.a11*a.a22 - a.a12*a.a21);
 }
+inline float normSquareFrobenius(tmatrix3f a) {
+	return a.a11 * a.a11 + a.a12 * a.a12 + a.a13 * a.a13 + a.a21 * a.a21 + a.a22 * a.a22 + a.a23 * a.a23 + a.a31 * a.a31 + a.a32 * a.a32 + a.a33 * a.a33;
+};
 
 
 ///Matrix of 4x4 values of type float.
