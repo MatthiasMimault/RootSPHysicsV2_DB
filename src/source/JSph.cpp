@@ -139,10 +139,11 @@ void JSph::InitVars(){
 
   H=CteB=Gamma=RhopZero=CFLnumber=0;
   // Matthias
-  typeCase = typeCompression = typeGrowth = typeDivision = typeYoung 
+  typeCase = typeCompression = typeGrowth = typeDivision = typeAni
 	  = typeDamping = typeCorrection = 0;
-  aM0 = xYg = kYg = posGr = po2Gr = ctGr = c2Gr = aDv = pDv = 0.0f;
-  spGr = s2Gr = klGr = bDv = 1.0f;
+  aM0 = posGr = po2Gr = ctGr = c2Gr = aDv = pDv = posAn = cstAn 
+	  = 0.0f;
+  spGr = s2Gr = klGr = bDv = spAn = 1.0f;
   Dp=0;
   Cs0=0;
   Delta2H=0;
@@ -699,12 +700,17 @@ void JSph::LoadCaseConfig(){
   typeCorrection = ctes.GetCorrection();
   typeDivision = ctes.GetDiv();
   aM0 = ctes.getAM0();
-  xYg = ctes.getXyg();
-  kYg = ctes.getKyg();
 
   aDv = ctes.getAdv();
   bDv = ctes.getBdv();
   pDv = ctes.getPdv();
+
+  // Anisotropy parameters
+  // (To be dependant on turgor pressure)
+  typeAni = ctes.getTan();
+  posAn = ctes.getPan();
+  spAn = ctes.getSan();
+  cstAn = ctes.getCan();
 
   // Growth parameters depending on turgor pressure 
   posGr = (2.0f * PoreZero - 1.0f) * ctes.getPsu() + (2.0f - 2.0f * PoreZero) * ctes.getPsi();
@@ -716,7 +722,7 @@ void JSph::LoadCaseConfig(){
   klGr = ctes.getKlGr();
 
   typeGrowth = ctes.GetGrow();
-  typeYoung = ctes.GetYoung();
+  // typeYoung = ctes.GetYoung();
   typeDamping = ctes.GetDpg();
   typeDev = ctes.GetDev();
 
@@ -1120,27 +1126,7 @@ float JSph::CalcK(double x) {
 	float K;
 	// #MdYoung #Gradual #young
 	//int typeMdYoung = 0;
-	float theta = 1.0f; // Theta constant
-	//const float theta = 2.0f-float(x); // Theta linear
-	switch (typeYoung){
-		case 1: {
-			theta = SigmoidGrowth(float(x)); // Theta sigmoid
-			break;
-			break;
-		}
-		case 2: {
-			theta = CircleYoung(float(x)); // Circle shape theta
-			break;
-		}
-		case 3: {
-			theta = 0.0f; // FullI
-			break;
-		}
-		default: {
-			theta = 1.0f; // FullA
-			break;
-		}
-	}
+	float theta = interfaceAnisotropyBalance(float(x)); 
 	const float E = theta * Ey + (1.0f - theta) * Ex;
 	const float G = theta * Gf + (1.0f - theta) * Ex * 0.5f * (1 + nuxy);
 	const float nu = theta * nuyz + (1.0f - theta) * nuxy;
@@ -1190,12 +1176,6 @@ float JSph::CalcMaxK() {
 	return maxK;
 }
 
-float JSph::SigmoidGrowth(double x) const {
-	//float x0 = 0.15f;
-	//float k = 15.0f;
-	return 1.0f / (1.0f + exp(-kYg * (float(x) - xYg)));
-}
-
 float JSph::CircleYoung(float x) const {
 	const float radius = 0.5f;
 	//float c = 2.0f * (radius - sqrt(pow(radius, 2) - pow(x - radius, 2)));
@@ -1203,6 +1183,22 @@ float JSph::CircleYoung(float x) const {
 	if (x < 0.0f) return 0.0f;
 	else if (x < radius) return 2.0f * (sqrt(pow(radius, 2) - pow(radius - x, 2)));
 	else return 1.0f;
+}
+
+float JSph::interfaceAnisotropyBalance(float x) const {
+	switch (typeAni) {
+	case 1: // Anisotropic
+		return 1.0f;
+	case 2: // Sigmoid
+		return distributionSigmoid(x);
+	default: // Isotropic
+		return 0.0f;
+	}
+}
+
+float JSph::distributionSigmoid(float x) const {
+	// No kill switch planned (var: killAn)
+	return cstAn+(1-cstAn)/(1.0f+exp(-spAn*(x-posAn))) ;
 }
 
 //==============================================================================

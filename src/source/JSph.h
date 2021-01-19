@@ -224,9 +224,10 @@ protected:
   float SpsBlin;             ///<Blin constant used in the SPS turbulence model.
   // Matthias
   // Simulation #choice markers
-  int typeCase, typeGrowth, typeCompression, typeDivision, typeYoung, typeDamping, typeCorrection;
+  int typeCase, typeGrowth, typeCompression, typeDivision, typeAni, typeDamping, typeCorrection;
   bool typeDev;
-  float dampCoef, aM0, xYg, kYg, posGr, spGr, ctGr, po2Gr, s2Gr, c2Gr, klGr, aDv, bDv, pDv;
+  float dampCoef, aM0, posGr, spGr, ctGr, po2Gr, s2Gr, c2Gr, klGr, 
+	  aDv, bDv, pDv, posAn, spAn, cstAn;
   // Plan mirroir
   float PlanMirror;
   // Extension Domain
@@ -390,8 +391,11 @@ protected:
   // Matthias
   float CalcK(double x); 
   float CalcMaxK();
-  float SigmoidGrowth(double x)const;
   float CircleYoung(float x)const;
+
+  float interfaceAnisotropyBalance(float x) const;
+
+  float distributionSigmoid(float x) const;
 
   void VisuConfig()const;
   void VisuParticleSummary()const;

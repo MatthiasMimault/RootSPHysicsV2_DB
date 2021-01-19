@@ -70,9 +70,9 @@ void JSpaceCtes::Reset(){
   H=B=MassBound=MassFluid=0;
   Dp=0;
   //Matthias
-  typeCase = typeCompression = typeDivision = typeGrowth = typeYoung 
+  typeCase = typeCompression = typeDivision = typeGrowth
 	  = typeCorrection = 0;
-  curvAM0 = xYoung = kYoung = psu = psi = ptu = pti = csti = cstu = 0.0f;
+  curvAM0 = psu = psi = ptu = pti = csti = cstu = 0.0f;
   sti = stu = ssi = ssu = 1.0f;
   typeDev = false;
   // Extension Domain
@@ -279,9 +279,10 @@ void JSpaceCtes::ReadAddXmlRun_M(JXml *sxml, TiXmlElement* node) {
 	SetAdv(sxml->ReadElementFloat(node, "typeDivision", "a"));
 	SetBdv(sxml->ReadElementFloat(node, "typeDivision", "b"));
 	SetPdv(sxml->ReadElementFloat(node, "typeDivision", "p"));
-	SetYoung(sxml->ReadElementInt(node, "typeYoung", "value"));
-	SetXyg(sxml->ReadElementFloat(node, "typeYoung", "position"));
-	SetKyg(sxml->ReadElementFloat(node, "typeYoung", "stiffness"));
+	SetTan(sxml->ReadElementInt(node, "typeAni", "value"));
+	SetPan(sxml->ReadElementFloat(node, "typeAni", "position"));
+	SetCan(sxml->ReadElementFloat(node, "typeAni", "spread"));
+	SetSan(sxml->ReadElementFloat(node, "typeAni", "baseline"));
 	SetDev(sxml->ReadElementBool(node, "typeDev", "value"));
 	SetDamp(sxml->ReadElementFloat(node, "damping", "value"));
 	SetDpgType(sxml->ReadElementInt(node, "damping", "type"));

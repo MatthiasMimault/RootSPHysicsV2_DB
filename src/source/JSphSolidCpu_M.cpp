@@ -3234,6 +3234,85 @@ void JSphSolidCpu::ComputeJauTauDot_M(unsigned n, unsigned pini, const tsymatrix
 }
 
 
+
+//==============================================================================
+/// Computes stress tensor rate for solid deformation
+/// V37#02 - Matthias
+/// #Tau #Anisotropy #Young
+//============================================================================== 
+void JSphSolidCpu::computeDeformationSolid01(unsigned n, unsigned pini, tsymatrix3f* taudot)const {
+	const int pfin = int(pini + n);
+#ifdef OMP_USE
+#pragma omp parallel for schedule (static)
+#endif
+	for (int p = int(pini); p < pfin; p++) {
+		const tsymatrix3f tau = Tauc_M[p];
+		const tsymatrix3f gradvel = StrainDotc_M[p];
+		const tsymatrix3f omega = Spinc_M[p];
+		
+		tsymatrix3f EM;
+		float theta = interfaceAnisotropyBalance(maxPosX - float(Posc[p].x));
+		const float E = theta * Ey + (1.0f - theta) * Ex;
+		const float G = theta * Gf + (1.0f - theta) * Ex * 0.5f * (1 + nuxy);
+		const float nf = E / Ex;
+
+		if (Simulate2D) {
+			const float Delta = 1.0f / (1.0f - nuxy * nuxy * nf);
+			const float C1 = Delta * Ex;
+			const float C12 = 0.0f;
+			const float C13 = Delta * nuxy * E;
+			const float C2 = 0.0f;
+			const float C23 = 0.0f;
+			const float C3 = Delta * E;
+
+			const float C4 = 0.0f;
+			const float C5 = G;
+			const float C6 = 0.0f;
+
+			EM = {
+				1.0f / 2.0f * (C1 - C13) * gradvel.xx + 1.0f / 2.0f * (C13 - C3) * gradvel.zz,
+				0.0f,
+				C5 * gradvel.xz,
+				0.0f,
+				0.0f,
+				1.0f / 2.0f * (-C1 + C13) * gradvel.xx + 1.0f / 2.0f * (-C13 + C3) * gradvel.zz };
+		}
+		else {
+			const float nu = theta * nuyz + (1.0f - theta) * nuxy;
+			const float Delta = nf * Ex / (1.0f - nu - 2.0f * nf * nuxy * nuxy);
+			const float C1 = Delta * (1.0f - nu) / nf;
+			const float C12 = Delta * nuxy;
+			const float C13 = Delta * nuxy;
+			const float C2 = Delta * (1.0f - nf * nuxy * nuxy) / (1.0f + nu);
+			const float C23 = Delta * (nu + nf * nuxy * nuxy) / (1.0f + nu);
+			const float C3 = Delta * (1.0f - nf * nuxy * nuxy) / (1.0f + nu);
+
+			const float C4 = E / (2.0f + 2.0f * nuxy);
+			const float C5 = G;
+			const float C6 = G;
+
+			EM = {
+				(2.0f / 3.0f * C1 - 1.0f / 3.0f * C12 - 1.0f / 3.0f * C13) * gradvel.xx + (2.0f / 3.0f * C12 - 1.0f / 3.0f * C2 - 1.0f / 3.0f * C23) * gradvel.yy + (2.0f / 3.0f * C13 - 1.0f / 3.0f * C23 - 1.0f / 3.0f * C3) * gradvel.zz,
+				C4 * gradvel.xy,
+				C5 * gradvel.xz,
+				(-1.0f / 3.0f * C1 + 2.0f / 3.0f * C12 - 1.0f / 3.0f * C13) * gradvel.xx + (-1.0f / 3.0f * C12 + 2.0f / 3.0f * C2 - 1.0f / 3.0f * C23) * gradvel.yy + (-1.0f / 3.0f * C13 + 2.0f / 3.0f * C23 - 1.0f / 3.0f * C3) * gradvel.zz,
+				C6 * gradvel.yz,
+				(-1.0f / 3.0f * C1 - 1.0f / 3.0f * C12 + 2.0f / 3.0f * C13) * gradvel.xx + (-1.0f / 3.0f * C12 - 1.0f / 3.0f * C2 + 2.0f / 3.0f * C23) * gradvel.yy + (-1.0f / 3.0f * C13 - 1.0f / 3.0f * C23 + 2.0f / 3.0f * C3) * gradvel.zz };
+		}
+
+		taudot[p].xx = EM.xx + 2.0f * tau.xy * omega.xy + 2.0f * tau.xz * omega.xz;
+		taudot[p].xy = EM.xy + (tau.yy - tau.xx) * omega.xy + tau.xz * omega.yz + tau.yz * omega.xz;
+		taudot[p].xz = EM.xz + (tau.zz - tau.xx) * omega.xz - tau.xy * omega.yz + tau.yz * omega.xy;
+		taudot[p].yy = EM.yy - 2.0f * tau.xy * omega.xy + 2.0f * tau.yz * omega.yz;
+		taudot[p].yz = EM.yz + (tau.zz - tau.yy) * omega.yz - tau.xz * omega.xy - tau.xy * omega.xz;
+		taudot[p].zz = EM.zz - 2.0f * tau.xz * omega.xz - 2.0f * tau.yz * omega.yz;
+
+		StrainDotSave[p] = TFloat3(gradvel.xx, gradvel.yy, gradvel.zz);
+		GradVelSave[p] = gradvel.xx + gradvel.yy + gradvel.zz;
+	}
+}
+
+
 //==============================================================================
 /// Computes stress tensor rate for solid - #Gradual Young
 //==============================================================================
@@ -3254,9 +3333,9 @@ void JSphSolidCpu::ComputeTauDot_Gradual_M(unsigned n, unsigned pini, tsymatrix3
 		//int typeMdYoung = 0;
 		float theta = 1.0f; // Theta constant
 		//const float theta = 2.0f-float(x); // Theta linear
-		switch (typeYoung) {
+		switch (typeAni) {
 			case 1: {
-				theta = SigmoidGrowth(maxPosX - float(Posc[p].x)); // Theta sigmoid
+				theta = distributionSigmoid(maxPosX - float(Posc[p].x)); // Theta sigmoid
 				break;
 			}
 			case 2: {
@@ -3495,7 +3574,7 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 
 //==============================================================================
 //#InteractionForces
-// #V34d w Ace output - Matthias
+// #V37 w Gradient correction - Matthias
 //==============================================================================
 template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph tdelta, bool shift> void JSphSolidCpu::Interaction_ForcesT
 (unsigned np, unsigned npb, unsigned npbok
@@ -3541,20 +3620,10 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 			, ar, mass, jaugradvel, jauomega, L);
 	}
 
-	// Overall computation of taudot
-	// #Young
-
-	ComputeTauDot_Gradual_M(np, 0, jautaudot);
-	/*switch (typeYoung) {
-	case 0: {
-		ComputeJauTauDot_M(np, 0, jaugradvel, jautau, jautaudot, jauomega);
-		break;
-	}
-	default: {
-		ComputeTauDot_Gradual_M(np, 0, jautaudot);
-		break;
-	}
-	}*/
+	// Computation of solid deformation
+    // #young #anisotropy
+	computeDeformationSolid01(np, 0, jautaudot);
+	//ComputeTauDot_Gradual_M(np, 0, jautaudot);
 }
 
 //==============================================================================

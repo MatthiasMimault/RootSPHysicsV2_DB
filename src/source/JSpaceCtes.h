@@ -114,8 +114,8 @@ private:
 
   // Matthias
   // Simulation choices
-  int typeCase, typeCompression, typeGrowth, typeDivision, typeYoung, typeDamping, typeCorrection;
-  float curvAM0, xYoung, kYoung, klGr, aDv, bDv, pDv;
+  int typeCase, typeCompression, typeGrowth, typeDivision, typeAni, typeDamping, typeCorrection;
+  float curvAM0, posAn, spAn, cstAn, klGr, aDv, bDv, pDv;
   float psu, psi, ptu, pti, ssu, ssi, stu, sti, cstu, csti;
   bool typeDev;
 
@@ -192,8 +192,10 @@ public:
   int GetComp()const { return typeCompression; }
   int GetDiv()const { return typeDivision; }
   float getAM0()const { return curvAM0; }
-  float getXyg()const { return xYoung; }
-  float getKyg()const { return kYoung; }
+  int getTan()const { return typeAni; }
+  float getPan()const { return posAn; }
+  float getSan()const { return spAn; }
+  float getCan()const { return cstAn; }
 
   float getPtu()const { return ptu; }
   float getPsu()const { return psu; }
@@ -211,7 +213,6 @@ public:
   float getBdv()const { return bDv; }
   float getPdv()const { return pDv; }
   int GetGrow()const { return typeGrowth; }
-  int GetYoung()const { return typeYoung; }
   int GetDpg()const { return typeDamping; }
   bool GetDev()const { return typeDev; }
   int GetCorrection()const { return typeCorrection; }
@@ -269,8 +270,11 @@ public:
   void SetComp(int v) { typeCompression = v; }
   void SetDiv(int v) { typeDivision = v; }
   void SetAM0(float v) { curvAM0 = v; }
-  void SetXyg(float v) { xYoung = v; }
-  void SetKyg(float v) { kYoung = v; }
+
+  void SetTan(int v) { typeAni = v; }
+  void SetPan(float v) { posAn = v; }
+  void SetSan(float v) { spAn = v; }
+  void SetCan(float v) { cstAn = v; }
 
   void SetPsu(float v) { psu = v; }
   void SetPtu(float v) { ptu = v; }
@@ -289,7 +293,6 @@ public:
   void SetPdv(float v) { pDv = v; }
   void SetGrow(int v) { typeGrowth = v; }
   void SetCorrectiont(int v) { typeCorrection = v; }
-  void SetYoung(int v) { typeYoung = v; }
   void SetDpgType(int v) { typeDamping = v; }
   void SetDev(bool v) { typeDev = v; }
 
