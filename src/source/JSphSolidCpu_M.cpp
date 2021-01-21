@@ -3188,7 +3188,6 @@ void JSphSolidCpu::ComputeSpsTau(unsigned n, unsigned pini, const tfloat4 *velrh
 
 //==============================================================================
 /// Computes stress tensor rate for solid - Matthias 
-// #anisotropy #tau
 //==============================================================================
 void JSphSolidCpu::ComputeJauTauDot_M(unsigned n, unsigned pini, const tsymatrix3f *gradvel, tsymatrix3f *tau, tsymatrix3f *taudot, tsymatrix3f *omega)const {
 	const int pfin = int(pini + n);

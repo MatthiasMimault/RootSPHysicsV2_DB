@@ -1188,11 +1188,11 @@ float JSph::CircleYoung(float x) const {
 float JSph::interfaceAnisotropyBalance(float x) const {
 	switch (typeAni) {
 	case 1: // Anisotropic
-		return 1.0f;
+		return 0.0f;
 	case 2: // Sigmoid
 		return distributionSigmoid(x);
 	default: // Isotropic
-		return 0.0f;
+		return 1.0f;
 	}
 }
 
