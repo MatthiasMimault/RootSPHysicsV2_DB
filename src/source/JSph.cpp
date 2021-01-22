@@ -1198,7 +1198,7 @@ float JSph::interfaceAnisotropyBalance(float x) const {
 
 float JSph::distributionSigmoid(float x) const {
 	// No kill switch planned (var: killAn)
-	return 1-cstAn-(1-cstAn)/(1.0f+exp(-spAn*(x-posAn))) ;
+	return cstAn+(1-cstAn)/(1.0f+exp(-spAn*(x-posAn))) ;
 }
 
 //==============================================================================
