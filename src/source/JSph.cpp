@@ -1191,6 +1191,8 @@ float JSph::interfaceAnisotropyBalance(float x) const {
 		return 1.0f;
 	case 2: // Sigmoid
 		return distributionSigmoid(x);
+	case 3: // Gaussian
+		return distributionGaussian(x);
 	default: // Isotropic
 		return 0.0f;
 	}
@@ -1199,6 +1201,11 @@ float JSph::interfaceAnisotropyBalance(float x) const {
 float JSph::distributionSigmoid(float x) const {
 	// No kill switch planned (var: killAn)
 	return cstAn+(1-cstAn)/(1.0f+exp(-spAn*(x-posAn))) ;
+}
+
+float JSph::distributionGaussian(float x) const {
+	// 
+	return 1.0f - exp(-pow((x - posAn), 2.0f) / (2.0f * spAn * spAn));
 }
 
 //==============================================================================

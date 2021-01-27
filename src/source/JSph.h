@@ -397,6 +397,8 @@ protected:
 
   float distributionSigmoid(float x) const;
 
+  float distributionGaussian(float x) const;
+
   void VisuConfig()const;
   void VisuParticleSummary()const;
   void LoadDcellParticles(unsigned n,const typecode *code,const tdouble3 *pos,unsigned *dcell)const;
