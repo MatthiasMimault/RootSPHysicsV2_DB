@@ -1,5 +1,4 @@
-#DualSPHysics CPU v4.2.038 (21-03-2018)
-#Matthias (16/01/2020)
+#RootSPH CPU v1.0 (28/01/2021)
 
 #=============== Compilation Options ===============
 USE_DEBUG=NO
