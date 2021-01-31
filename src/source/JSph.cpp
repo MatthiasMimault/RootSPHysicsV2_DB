@@ -1205,7 +1205,7 @@ float JSph::distributionSigmoid(float x) const {
 
 float JSph::distributionGaussian(float x) const {
 	// 
-	return cstAn*(1.0f - exp(-pow((x - posAn), 2.0f) / (2.0f * spAn * spAn)));
+	return 1.0f - cstAn * exp(-pow((x - posAn), 2.0f) / (2.0f * spAn * spAn));
 }
 
 //==============================================================================
