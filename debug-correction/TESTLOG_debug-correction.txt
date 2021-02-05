@@ -1,0 +1,49 @@
+# 11/01 Initialisation implementation
+Introduction variables: OK
+Read from XML: OK
+Growth parameters: ptu = 0, stu = 1
+
+# Run-test
+Fast run, smooth, less than a minute
+1800 ptcs
+> ptcs++, T++
+Geometry: OK, growth located on the tip
+>> T++
+
+# Run-time
+T = 2, time_comp = 9 minutes
+Visible deformation
+Lx2
+
+# First implementation of the switch
+- Run control: typeC = 1
+L1e5 is a wee to high, particles are unstable at the tip
+- Run Zero: typeC = 0
+The root tip takes off. It seems that the correction is keeping it down but 
+certains particles suffers from possibly badly inverted matrices
+
+# Second Implement DFPM_scratch
+Simple modification of ComputeNSPH where all non diagonal elements of Mp1 are
+set to zero
+- Run DFPM_s
+A third, different and unstable result
+There does not seem to be any bug in the formulation
+>> Is it just the tip an unstable setting that would be solved by refinement ?
+- Refinement with Frobenius norm (sum sum aij^2)
+There are correction matrices with a difference more than 1 in the Frobenius 
+error from from the beginning
+_The correction is helpless in this situation_
+The problem lies maybe in the [density update]
+>> Check also the volume variation due to the mass intake
+
+# A test solely on pore pressure
+p100 generates a stable visible deformation the 5 first steps
+The full correction improves visibly the connection to the boundary with the 
+turgor only test. The DFPM leads to an even better.
+However, he DFPM _completely changes_ the results: it buldges like an 
+isotropic/anisotropic mix. Something is definitely odd.
+>> Review the mass control (tiny variations are found)
+
+# E test: pore pressure, sample 7.5 long, 
+> consider T++, Tx2 on cluster
+E0: Control

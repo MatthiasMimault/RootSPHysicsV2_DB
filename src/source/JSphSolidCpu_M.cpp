@@ -6258,22 +6258,15 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT(double dt) {
 /// /////////////////////////////////////////////
 // Symplectic code, Matthias version
 // With NSPH, solid dynamics and Cell geometry
-// #Symplectic_M #Version #damping
-// V35c Update ForceVisc + clean old versions
+// #stage #midpoint #step #1step2stage
+// V37-Feat3
 /// /////////////////////////////////////////////
 void JSphSolidCpu::ComputeSymplecticPre_M(double dt) {
-	switch (typeCompression) {
-	case 0: {
-		// No compression
-		if (TShifting)ComputeSymplecticPreT35_M<false>(dt); //-We strongly recommend running the shifting correction only for the corrector. 
-		else         ComputeSymplecticPreT35_M<false>(dt); // If you want to re-enable shifting in the predictor, change the value here to "true".	
-		break;
+	if (typeDev) {
+		ComputeOneStepTwoStagesPreT_M<false>(dt);
 	}
-	default: {
-		if (TShifting)ComputeSymplecticPreT35_M<false>(dt); //-We strongly recommend running the shifting correction only for the corrector. 
-		else         ComputeSymplecticPreT35_M<false>(dt); // If you want to re-enable shifting in the predictor, change the value here to "true".	
-		break;
-	}
+	else {
+		ComputeSymplecticPreT35_M<false>(dt);
 	}
 }
 
@@ -6401,6 +6394,119 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticPreT35_M(double dt) {
 
 }
 
+template<bool shift> void JSphSolidCpu::ComputeOneStepTwoStagesPreT_M(double dt) {
+// #37
+	TmcStart(Timers, TMC_SuComputeStep);
+	//-Assign memory to variables Pre. | Asigna memoria a variables Pre.
+	PosPrec = ArraysCpu->ReserveDouble3();
+	VelrhopPrec = ArraysCpu->ReserveFloat4();
+	MassPrec_M = ArraysCpu->ReserveFloat();
+	TauPrec_M = ArraysCpu->ReserveSymatrix3f();
+	QuadFormPrec_M = ArraysCpu->ReserveSymatrix3f();
+
+	//-Change data to variables Pre to calculate new data. | Cambia datos a variables Pre para calcular nuevos datos.
+	swap(PosPrec, Posc);         //Put value of Pos[] in PosPre[].         | Es decir... PosPre[] <= Pos[].
+	swap(VelrhopPrec, Velrhopc); //Put value of Velrhop[] in VelrhopPre[]. | Es decir... VelrhopPre[] <= Velrhop[].
+								 //-Calculate new values of particles. | Calcula nuevos datos de particulas.
+
+	// Swap MTQ
+	swap(Massc_M, MassPrec_M);
+	swap(Tauc_M, TauPrec_M);
+	swap(QuadFormc_M, QuadFormPrec_M);
+
+	const double dt05 = dt * .5;
+
+	//-Calculate new density for boundary and copy velocity. | Calcula nueva densidad para el contorno y copia velocidad.
+	const int npb = int(Npb);
+#ifdef OMP_USE
+#pragma omp parallel for schedule (static) if(npb>OMP_LIMIT_COMPUTESTEP)
+#endif
+	for (int p = 0; p < npb; p++) {
+		const tfloat4 vr = VelrhopPrec[p];
+		const float rhopnew = float(double(vr.w) + dt05 * Arc[p]);
+		int idp = Idpc[p];
+		Velrhopc[p] = TFloat4(vr.x, vr.y, vr.z, (rhopnew < RhopZero ? RhopZero : rhopnew));
+		//-Avoid fluid particles being absorbed by boundary ones. | Evita q las boundary absorvan a las fluidas.
+		//Velrhopc[p] = TFloat4(vr.x, vr.y, vr.z, rhopnew);
+
+			// Update Shear stress
+		Tauc_M[p].xx = float(double(TauPrec_M[p].xx) + double(TauDotc_M[p].xx) * dt05);
+		Tauc_M[p].xy = float(double(TauPrec_M[p].xy) + double(TauDotc_M[p].xy) * dt05);
+		Tauc_M[p].xz = float(double(TauPrec_M[p].xz) + double(TauDotc_M[p].xz) * dt05);
+		Tauc_M[p].yy = float(double(TauPrec_M[p].yy) + double(TauDotc_M[p].yy) * dt05);
+		Tauc_M[p].yz = float(double(TauPrec_M[p].yz) + double(TauDotc_M[p].yz) * dt05);
+		Tauc_M[p].zz = float(double(TauPrec_M[p].zz) + double(TauDotc_M[p].zz) * dt05);
+
+		Massc_M[p] = MassPrec_M[p];
+	}
+
+	//-Calculate new values of fluid. | Calcula nuevos datos del fluido.
+	const int np = int(Np);
+#ifdef OMP_USE
+#pragma omp parallel for schedule (static) if(np>OMP_LIMIT_COMPUTESTEP)
+#endif
+	for (int p = npb; p < np; p++) {
+		//-Calculate density.
+		// #dev
+		const float gamma = GrowthInterface_M(VelrhopPrec[p].w, float(PosPrec[p].x));
+		const float volume = MassPrec_M[p] / VelrhopPrec[p].w;
+		const float rhopnew = float(double(VelrhopPrec[p].w) + dt05 * (Arc[p]+gamma)); // Not const because of source update 
+		const float massnew = float(double(MassPrec_M[p]) + dt05 * (gamma * volume));
+
+		if (!WithFloating || CODE_IsFluid(Codec[p])) {//-Fluid Particles.
+				//-Calculate displacement & update position. | Calcula desplazamiento y actualiza posicion.
+
+			double dx = double(VelrhopPrec[p].x) * dt05;
+			double dy = double(VelrhopPrec[p].y) * dt05;
+			double dz = double(VelrhopPrec[p].z) * dt05;
+			
+			// Without damping (#34c)
+			Velrhopc[p].x = float(double(VelrhopPrec[p].x) + double(Acec[p].x) * dt05);
+			Velrhopc[p].y = float(double(VelrhopPrec[p].y) + double(Acec[p].y) * dt05);
+			Velrhopc[p].z = float(double(VelrhopPrec[p].z) + double(Acec[p].z) * dt05);
+
+			bool outrhop = (rhopnew<RhopOutMin || rhopnew>RhopOutMax);
+
+			UpdatePos(PosPrec[p], dx, dy, dz, outrhop, p, Posc, Dcellc, Codec);
+
+			//-Update velocity & density. | Actualiza velocidad y densidad.
+
+			//#Speed #Limiter
+			/*if (PosPrec[p].x > 2.0f) {
+				Velrhopc[p].x = float(min(double(VelrhopPrec[p].x) + double(Acec[p].x)* dt05, 0.03));
+				Velrhopc[p].y = 0.0f;
+				Velrhopc[p].z = 0.0f;
+			}*/
+
+			// Update Shear stress
+			Tauc_M[p].xx = float(double(TauPrec_M[p].xx) + double(TauDotc_M[p].xx) * dt05);
+			Tauc_M[p].xy = float(double(TauPrec_M[p].xy) + double(TauDotc_M[p].xy) * dt05);
+			Tauc_M[p].xz = float(double(TauPrec_M[p].xz) + double(TauDotc_M[p].xz) * dt05);
+			Tauc_M[p].yy = float(double(TauPrec_M[p].yy) + double(TauDotc_M[p].yy) * dt05);
+			Tauc_M[p].yz = float(double(TauPrec_M[p].yz) + double(TauDotc_M[p].yz) * dt05);
+			Tauc_M[p].zz = float(double(TauPrec_M[p].zz) + double(TauDotc_M[p].zz) * dt05);
+
+
+			// Source Density and Mass - Commented since Source/Mass only in CorrT
+			Velrhopc[p].w = rhopnew;
+			Massc_M[p] = massnew;
+
+		}
+
+		else {//-Floating Particles.
+			Velrhopc[p] = VelrhopPrec[p];
+			Velrhopc[p].w = (rhopnew < RhopZero ? RhopZero : rhopnew); //-Avoid fluid particles being absorbed by floating ones. | Evita q las floating absorvan a las fluidas.
+																	 //-Copy position. | Copia posicion.
+			Posc[p] = PosPrec[p];
+		}
+	}
+
+	//-Copy previous position of boundary. | Copia posicion anterior del contorno.
+	memcpy(Posc, PosPrec, sizeof(tdouble3) * Npb);
+
+	TmcStop(Timers, TMC_SuComputeStep);
+
+}
 
 // BdVis (#34): General damping term in acceleration
 template<bool shift> void JSphSolidCpu::ComputeSymplecticPreT_M(double dt) {
@@ -6512,20 +6618,11 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticPreT_M(double dt) {
 }
 
 void JSphSolidCpu::ComputeSymplecticCorr_M(double dt) {
-
-	switch (typeCompression) {
-	case 0: {
-		// No compression
-		if (TShifting)ComputeSymplecticCorrT35_M<true>(dt);
-		else          ComputeSymplecticCorrT35_M<false>(dt);
-		break;
+	if (typeDev) {
+		ComputeOneStepTwoStagesCorrT37_M<false>(dt);
 	}
-	default: {
-		// No compression
-		if (TShifting)ComputeSymplecticCorrT35_M<true>(dt);
-		else          ComputeSymplecticCorrT35_M<false>(dt);
-		break;
-	}
+	else {
+		ComputeSymplecticCorrT35_M<false>(dt);
 	}
 }
 
@@ -6792,6 +6889,122 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticCorrT35_M(double dt) {
 	ArraysCpu->Free(QuadFormPrec_M);  QuadFormPrec_M = NULL;
 	TmcStop(Timers, TMC_SuComputeStep);
 }
+
+template<bool shift> void JSphSolidCpu::ComputeOneStepTwoStagesCorrT37_M(double dt) {
+	// #32 (merged from b): Include density treatment on boundary (removal of rho0 filter)
+	// #34 BdVis: General damping term in acceleration
+	// #35 ForceVisc: Update of Force Visc
+	TmcStart(Timers, TMC_SuComputeStep);
+
+	//-Calculate rhop of boudary and set velocity=0. | Calcula rhop de contorno y vel igual a cero.
+	const int npb = int(Npb);
+
+	//
+#ifdef OMP_USE
+#pragma omp parallel for schedule (static) if(npb>OMP_LIMIT_COMPUTESTEP)
+#endif
+	for (int p = 0; p < npb; p++) {
+		int idp = Idpc[p];
+		float ar = Arc[p];
+		float rp = Velrhopc[p].w;
+		const double epsilon_rdot = (-double(Arc[p]) / double(Velrhopc[p].w)) * dt;
+		const float rhopnew = float(double(VelrhopPrec[p].w) * (2. - epsilon_rdot) / (2. + epsilon_rdot));
+		Velrhopc[p] = TFloat4(0, 0, 0, (rhopnew < RhopZero ? RhopZero : rhopnew));
+		//Velrhopc[p] = TFloat4(0, 0, 0, rhopnew);
+
+		// Update Shear stress
+		Tauc_M[p].xx = float(double(TauPrec_M[p].xx) + double(TauDotc_M[p].xx) * dt);
+		Tauc_M[p].xy = float(double(TauPrec_M[p].xy) + double(TauDotc_M[p].xy) * dt);
+		Tauc_M[p].xz = float(double(TauPrec_M[p].xz) + double(TauDotc_M[p].xz) * dt);
+		Tauc_M[p].yy = float(double(TauPrec_M[p].yy) + double(TauDotc_M[p].yy) * dt);
+		Tauc_M[p].yz = float(double(TauPrec_M[p].yz) + double(TauDotc_M[p].yz) * dt);
+		Tauc_M[p].zz = float(double(TauPrec_M[p].zz) + double(TauDotc_M[p].zz) * dt);
+	}
+
+	//-Calculate fluid values. | Calcula datos de fluido.
+	const double dt05 = dt * .5;
+	const int np = int(Np);
+#ifdef OMP_USE
+#pragma omp parallel for schedule (static) if(np>OMP_LIMIT_COMPUTESTEP)
+#endif
+	for (int p = npb; p < np; p++) {
+		const float gamma = GrowthInterface_M(Velrhopc[p].w, float(Posc[p].x));
+		const float volume = Massc_M[p] / Velrhopc[p].w;
+		const double epsilon_rdot = (-double(Arc[p] + gamma) / double(Velrhopc[p].w)) * dt;
+		const float rhopnew = float(double(VelrhopPrec[p].w) * (2. - epsilon_rdot) / (2. + epsilon_rdot));
+
+		const double epsilon_mdot = (-double(gamma) / double(Velrhopc[p].w)) * dt;
+		const float massnew = float(double(MassPrec_M[p] * (2. - epsilon_mdot) / (2. + epsilon_mdot)));
+
+		// 27/03/19 - I need to find references for this equation, report on it
+		// 05/02/21 - Thread Dualsphysics and Pashnikov 2000
+
+		if (!WithFloating || CODE_IsFluid(Codec[p])) {//-Fluid Particles.
+													  //-Update velocity & density. | Actualiza velocidad y densidad.
+			Velrhopc[p].x = float(double(VelrhopPrec[p].x) + double(Acec[p].x) * dt);
+			Velrhopc[p].y = float(double(VelrhopPrec[p].y) + double(Acec[p].y) * dt);
+			Velrhopc[p].z = float(double(VelrhopPrec[p].z) + double(Acec[p].z) * dt);
+			Velrhopc[p].w = rhopnew;
+			Massc_M[p] = massnew;
+
+			//-Calculate displacement and update position. | Calcula desplazamiento y actualiza posicion.
+			double dx = (double(VelrhopPrec[p].x) + double(Velrhopc[p].x)) * dt05;
+			double dy = (double(VelrhopPrec[p].y) + double(Velrhopc[p].y)) * dt05;
+			double dz = (double(VelrhopPrec[p].z) + double(Velrhopc[p].z)) * dt05;
+			if (shift) {
+				dx += double(ShiftPosc[p].x);
+				dy += double(ShiftPosc[p].y);
+				dz += double(ShiftPosc[p].z);
+			}
+			bool outrhop = (rhopnew<RhopOutMin || rhopnew>RhopOutMax);
+			UpdatePos(PosPrec[p], dx, dy, dz, outrhop, p, Posc, Dcellc, Codec);
+
+			// Update Shear stress
+			Tauc_M[p].xx = float(double(TauPrec_M[p].xx) + double(TauDotc_M[p].xx) * dt);
+			Tauc_M[p].xy = float(double(TauPrec_M[p].xy) + double(TauDotc_M[p].xy) * dt);
+			Tauc_M[p].xz = float(double(TauPrec_M[p].xz) + double(TauDotc_M[p].xz) * dt);
+			Tauc_M[p].yy = float(double(TauPrec_M[p].yy) + double(TauDotc_M[p].yy) * dt);
+			Tauc_M[p].yz = float(double(TauPrec_M[p].yz) + double(TauDotc_M[p].yz) * dt);
+			Tauc_M[p].zz = float(double(TauPrec_M[p].zz) + double(TauDotc_M[p].zz) * dt);
+
+			// Update Quadratic form
+			// ep+om modified 09042019
+			// #Velocity #Gradient
+			tmatrix3f Q = TMatrix3f(QuadFormPrec_M[p].xx, QuadFormPrec_M[p].xy, QuadFormPrec_M[p].xz
+				, QuadFormPrec_M[p].xy, QuadFormPrec_M[p].yy, QuadFormPrec_M[p].yz, QuadFormPrec_M[p].xz, QuadFormPrec_M[p].yz, QuadFormPrec_M[p].zz);
+
+			tmatrix3f GdVel = TMatrix3f(StrainDotc_M[p].xx, StrainDotc_M[p].xy, StrainDotc_M[p].xz
+				, StrainDotc_M[p].xy, StrainDotc_M[p].yy, StrainDotc_M[p].yz
+				, StrainDotc_M[p].xz, StrainDotc_M[p].yz, StrainDotc_M[p].zz) + TMatrix3f(Spinc_M[p].xx, Spinc_M[p].xy, Spinc_M[p].xz
+					, -Spinc_M[p].xy, Spinc_M[p].yy, Spinc_M[p].yz
+					, -Spinc_M[p].xz, -Spinc_M[p].yz, Spinc_M[p].zz);
+
+			tmatrix3f DQD = ToTMatrix3f((TMatrix3d(1, 0, 0, 0, 1, 0, 0, 0, 1) - dt
+				* ToTMatrix3d(Ttransp(GdVel))) * ToTMatrix3d(Q) * (TMatrix3d(1, 0, 0, 0, 1, 0, 0, 0, 1) - dt * ToTMatrix3d(GdVel)));
+			//27/03/19 - Is it possible to reduce this DQD line ? -> no because there is the complete multiplication of three dense matrices.
+			QuadFormc_M[p].xx = float(DQD.a11);
+			QuadFormc_M[p].xy = float(DQD.a12);
+			QuadFormc_M[p].xz = float(DQD.a13);
+			QuadFormc_M[p].yy = float(DQD.a22);
+			QuadFormc_M[p].yz = float(DQD.a23);
+			QuadFormc_M[p].zz = float(DQD.a33);
+		}
+		else {//-Floating Particles.
+			Velrhopc[p] = VelrhopPrec[p];
+			Velrhopc[p].w = (rhopnew < RhopZero ? RhopZero : rhopnew); //-Avoid fluid particles being absorbed by floating ones. | Evita q las floating absorvan a las fluidas.
+																	 //-Copy position. | Copia posicion.
+			Posc[p] = PosPrec[p];
+		}
+	}
+
+	//-Free memory assigned to variables Pre and ComputeSymplecticPre(). | Libera memoria asignada a variables Pre en ComputeSymplecticPre().
+	ArraysCpu->Free(PosPrec);         PosPrec = NULL;
+	ArraysCpu->Free(VelrhopPrec);	  VelrhopPrec = NULL;
+	ArraysCpu->Free(MassPrec_M);	  MassPrec_M = NULL;
+	ArraysCpu->Free(TauPrec_M);		  TauPrec_M = NULL;
+	ArraysCpu->Free(QuadFormPrec_M);  QuadFormPrec_M = NULL;
+	TmcStop(Timers, TMC_SuComputeStep);
+}
 // End Symplectic_M
 
 void JSphSolidCpu::GrowthCell_M(double dt) {
@@ -6934,6 +7147,83 @@ void JSphSolidCpu::GrowthCell_M(double dt) {
 
 }
 
+float JSphSolidCpu::GrowthInterface_M(float density, float pos) const{
+	switch (typeGrowth) {
+	case 0: {// #Turgor growth model
+		return float(LambdaMass) * (RhopZero / density - 1);
+	}
+	case 1: {// #Constant growth Cut-off Kill
+		return KillSwitchSigmoid(pos) * LambdaMass;
+	}
+	case 2: {// #Gaussian #Sigmoid growth
+		float x = maxPosX - float(pos);
+		float xs = 0.5f;
+		float xg = 0.6f;
+		float k = 15.0f;
+		float L = 0.125f;
+		float b = 0.15f;
+		return LambdaMass * (L - L / (1.0f + exp(-k * (x - xs))) + exp(-0.5f * pow((x - xg) / b, 2.0f)));
+	}
+	case 3: {// #SigGauDrop
+		float x = maxPosX - pos;
+		// Sigmoid
+		float L = 0.125f;
+		float k = 15.0f;
+		float xs = 0.5f;
+		// Gaussian 				
+		float xg = 0.5f;
+		float b = 0.15f;
+		// Drop
+		float kd = 50.0f;
+		float xd = 0.65f;
+
+		double Gamma = 0.0;
+
+		if (x < xg) return LambdaMass / 1.065f * (L - L / (1.0f + exp(-k * (x - xs))) + exp(-0.5f * pow((x - xg) / b, 2.0f)));
+		else return LambdaMass * (1.0f - 1.0f / (1.0f + exp(-kd * (x - xd))));
+	}
+	case 4: {
+		return LambdaMass * GrowthRateSpaceNormalised(pos) * (RhopZero / density - 1);
+	}
+
+	case 5: {// #Turgor growth model + Beemster
+		float x = maxPosX - pos;
+		// Sigmoid
+		float L = 0.125f;
+		float k = 15.0f;
+		float xs = 0.5f;
+		// Gaussian 				
+		float xg = 0.5f;
+		float b = 0.15f;
+		// Drop
+		float kd = 50.0f;
+		float xd = 0.65f;
+
+		double Gamma = 0.0;
+
+		if (x < xg) return LambdaMass / 1.065f * (L - L / (1.0f + exp(-k * (x - xs))) + exp(-0.5f * pow((x - xg) / b, 2.0f)))
+			* (RhopZero / density - 1);
+		else return LambdaMass * (1.0f - 1.0f / (1.0f + exp(-kd * (x - xd)))) * (RhopZero / density - 1);
+	}
+	case 6: { // #Turgor growth model + Constant
+		return LambdaMass * (RhopZero / density);
+	}
+	case 7: { // #Turgor growth model + Triangle
+		return GrowthNormTrigle(pos) * LambdaMass * (RhopZero / density - 1);
+	}
+	case 8: { // #Composite distribution for turgor growth
+		return GrowthNormComposite(pos) * LambdaMass * (RhopZero / density - 1);
+	}
+	case 9: { // #Kill #Composite distribution
+		return KillSwitchSigmoid(pos)* GrowthNormComposite(pos) * LambdaMass * (RhopZero / density - 1);
+	}
+	case 10: { // #Composite distribution II: From Croser 1999 I, 6 parameters (2 baselines, 2 tip positions, 2 spreads
+		return CroserGrowth(pos) * LambdaMass * (RhopZero / density - 1);
+	}
+	default: return 0.0f;
+}
+}
+
 // #Viscous function
 tfloat3 JSphSolidCpu::ViscousDamping36(tfloat3 vel, float co, float rho, float l) {
 	switch (typeDamping) {
@@ -6969,7 +7259,7 @@ float JSphSolidCpu::GrowthNormGauss(float pos) {
 }
 
 // Growth function - Normalised Composite
-float JSphSolidCpu::GrowthNormComposite(float pos) {
+float JSphSolidCpu::GrowthNormComposite(float pos) const{
 	float distance = abs(pos - maxPosX);
 	return float(ctGr * (1.0f - 1.0f / (1.0f + exp(-20.0 * (distance - posGr)))) + exp(-pow(distance - posGr, 2.0f) / (2.0f * pow(spGr, 2.0f)))) / (ctGr + 1.0f);
 }
@@ -6978,7 +7268,7 @@ float JSphSolidCpu::GrowthNormComposite(float pos) {
 // cs, cg are the scale parameters
 // ps, pg are the positions of the tilt of the sigmoid and the dGaussian
 // ss, sg are the spread parameters
-float JSphSolidCpu::CroserGrowth(float pos) {
+float JSphSolidCpu::CroserGrowth(float pos) const{
 	// Values in mm for a 15 mm long sample
 	/*float cs = 0.025f;
 	float cg = 0.16f;
@@ -6991,7 +7281,7 @@ float JSphSolidCpu::CroserGrowth(float pos) {
 }
 
 // Anti Sigmoid function (1 minus Sigmoid)
-float JSphSolidCpu::AntiSigmoid(float x, float p, float s) {
+float JSphSolidCpu::AntiSigmoid(float x, float p, float s) const {
 	// x is evaluation position
 	// p is tilt position
 	// s is spread value
@@ -6999,7 +7289,7 @@ float JSphSolidCpu::AntiSigmoid(float x, float p, float s) {
 }
 
 // Normalised space first derivative of Gaussian function (Bell and tail)
-float JSphSolidCpu::dGaussian(float x, float p, float s) {
+float JSphSolidCpu::dGaussian(float x, float p, float s) const{
 	// x is evaluation position
 	// p is tilt position
 	// s is spread value
@@ -7007,7 +7297,7 @@ float JSphSolidCpu::dGaussian(float x, float p, float s) {
 }
 
 // Growth function - Normalised Triangle 0-0.6
-float JSphSolidCpu::GrowthNormTrigle(float pos) {
+float JSphSolidCpu::GrowthNormTrigle(float pos)const {
 	float distance = abs(pos - maxPosX);
 	if (distance < 0.3f) {
 		return distance/ 0.3f;
@@ -7019,7 +7309,7 @@ float JSphSolidCpu::GrowthNormTrigle(float pos) {
 }
 
 // Growth function - Kill switch (Sigmoid)
-float JSphSolidCpu::KillSwitchSigmoid(float pos) {
+float JSphSolidCpu::KillSwitchSigmoid(float pos) const{
 	float distance = abs(pos - maxPosX);
 	return 1.0f - 1.0f / (1.0f + exp(-40.0f * (distance - klGr)));
 }
@@ -7039,7 +7329,7 @@ float JSphSolidCpu::GrowthRateSpace(float pos) {
 }
 
 // Growth function - Normalised
-float JSphSolidCpu::GrowthRateSpaceNormalised(float pos) {
+float JSphSolidCpu::GrowthRateSpaceNormalised(float pos) const{
 	//float distance = 0.25f *abs(pos - maxPosX); // Beemster
 	float distance = 20.0f * abs(pos - maxPosX); // Rescale to Bassel_2014 meristem data
 	return exp(1.0f) * distance * exp(-distance);

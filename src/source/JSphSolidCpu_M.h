@@ -468,24 +468,28 @@ protected:
 	template<bool shift> void ComputeSymplecticPreT_M(double dt);
 	template<bool shift> void ComputeSymplecticPreT35_M(double dt);
 
+	template<bool shift> void ComputeOneStepTwoStagesPreT_M(double dt);
+
 
 	void ComputeSymplecticPre_M(double dt);
 	template<bool shift> void ComputeSymplecticCorrT_M(double dt);
 	template<bool shift> void ComputeSymplecticCorrT35_M(double dt);
+	template<bool shift> void ComputeOneStepTwoStagesCorrT37_M(double dt);
+	void ComputeOneStepTwoStagesCorrT37_M(double dt);
 	void ComputeSymplecticCorr_M(double dt);
 
 	void GrowthCell_M(double dt);
+	float GrowthInterface_M(float density, float pos) const;
 	tfloat3 ViscousDamping36(tfloat3 vel, float co, float rho, float l);
-	tfloat3 ViscousDamping(tfloat3 vel, float co);
 	float GrowthNormGauss(float pos);
-	float GrowthNormComposite(float pos);
-	float CroserGrowth(float pos);
-	float AntiSigmoid(float x, float p, float s);
-	float dGaussian(float x, float p, float s);
-	float GrowthNormTrigle(float pos);
-	float KillSwitchSigmoid(float pos);
+	float GrowthNormComposite(float pos) const;
+	float CroserGrowth(float pos)const;
+	float AntiSigmoid(float x, float p, float s) const;
+	float dGaussian(float x, float p, float s)const;
+	float GrowthNormTrigle(float pos) const;
+	float KillSwitchSigmoid(float pos) const;
 	float GrowthRateSpace(float pos);
-	float GrowthRateSpaceNormalised(float pos);
+	float GrowthRateSpaceNormalised(float pos) const;
 	float GrowthRateGaussian(float pos);
 	double GrowthRateSpaceNormalised(double pos);
 	double GrowthRate2(double pos, double tip);

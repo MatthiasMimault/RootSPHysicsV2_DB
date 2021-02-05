@@ -9,8 +9,11 @@ src/VS/*
 ## Ignores bin, debug and Eigen library
 __Tools__
 bin/*
-debug*/*
 src/lib/EigenLibs/*
+*.png
+*.vtk
+*.csv
+*.bi4
 
 ## Ignores temporary files.
 bin/windows/*.iobj
@@ -20,3 +23,8 @@ bin/windows/*.ilk
 
 ## Ignore data in test-growth
 test-growth/*_out
+*.bat
+*.json
+*.out
+*.ibi4
+*.obi4
