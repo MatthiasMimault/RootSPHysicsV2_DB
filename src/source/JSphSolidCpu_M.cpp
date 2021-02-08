@@ -3512,9 +3512,10 @@ template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph t
 
 
 //==============================================================================
-//#InteractionForces
+//InteractionForces
 // #V34c - Damping and surface detection - Matthias
 // #V35d - Generalise Taudt computation
+// #Discard, with overload of version 35 if necessary
 //==============================================================================
 template<bool psingle, TpKernel tker, TpFtMode ftmode, bool lamsps, TpDeltaSph tdelta, bool shift> void JSphSolidCpu::Interaction_ForcesT
 (unsigned np, unsigned npb, unsigned npbok

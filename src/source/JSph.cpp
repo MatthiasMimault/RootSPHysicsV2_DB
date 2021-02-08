@@ -708,9 +708,9 @@ void JSph::LoadCaseConfig(){
   // Anisotropy parameters
   // (To be dependant on turgor pressure)
   typeAni = ctes.getTan();
-  posAn = ctes.getPan();
-  spAn = ctes.getSan();
-  cstAn = ctes.getCan();
+  posAn = thetaTransition(PoreZero) * ctes.getPan_m() + (1.0f - thetaTransition(PoreZero)) * ctes.getPan_p();
+  spAn = thetaTransition(PoreZero) * ctes.getSan_m() + (1.0f - thetaTransition(PoreZero)) * ctes.getSan_p();
+  cstAn = thetaTransition(PoreZero) * ctes.getCan_m() + (1.0f - thetaTransition(PoreZero)) * ctes.getCan_p();
 
   // Growth parameters depending on turgor pressure 
   posGr = (2.0f * PoreZero - 1.0f) * ctes.getPsu() + (2.0f - 2.0f * PoreZero) * ctes.getPsi();
@@ -1185,7 +1185,17 @@ float JSph::CircleYoung(float x) const {
 	else return 1.0f;
 }
 
+float JSph::thetaTransition(float p) const
+{
+	float minpre = 0.3;
+	float maxpre = 1.0;
+	float a = 1.0 / (minpre - maxpre);
+	float b = -maxpre / (minpre - maxpre);
+	return a*p+b;
+}
+
 float JSph::interfaceAnisotropyBalance(float x) const {
+    // #transition
 	switch (typeAni) {
 	case 1: // Anisotropic
 		return 1.0f;

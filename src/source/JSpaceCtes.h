@@ -115,7 +115,7 @@ private:
   // Matthias
   // Simulation choices
   int typeCase, typeCompression, typeGrowth, typeDivision, typeAni, typeDamping, typeCorrection;
-  float curvAM0, posAn, spAn, cstAn, klGr, aDv, bDv, pDv;
+  float curvAM0, posAn_m, spAn_m, cstAn_m, posAn_p, spAn_p, cstAn_p, klGr, aDv, bDv, pDv;
   float psu, psi, ptu, pti, ssu, ssi, stu, sti, cstu, csti;
   bool typeDev;
 
@@ -193,9 +193,12 @@ public:
   int GetDiv()const { return typeDivision; }
   float getAM0()const { return curvAM0; }
   int getTan()const { return typeAni; }
-  float getPan()const { return posAn; }
-  float getSan()const { return spAn; }
-  float getCan()const { return cstAn; }
+  float getPan_m()const { return posAn_m; }
+  float getSan_m()const { return spAn_m; }
+  float getCan_m()const { return cstAn_m; }
+  float getPan_p()const { return posAn_p; }
+  float getSan_p()const { return spAn_p; }
+  float getCan_p()const { return cstAn_p; }
 
   float getPtu()const { return ptu; }
   float getPsu()const { return psu; }
@@ -272,9 +275,12 @@ public:
   void SetAM0(float v) { curvAM0 = v; }
 
   void SetTan(int v) { typeAni = v; }
-  void SetPan(float v) { posAn = v; }
-  void SetSan(float v) { spAn = v; }
-  void SetCan(float v) { cstAn = v; }
+  void SetPan_m(float v) { posAn_m = v; }
+  void SetSan_m(float v) { spAn_m = v; }
+  void SetCan_m(float v) { cstAn_m = v; }
+  void SetPan_p(float v) { posAn_p = v; }
+  void SetSan_p(float v) { spAn_p = v; }
+  void SetCan_p(float v) { cstAn_p = v; }
 
   void SetPsu(float v) { psu = v; }
   void SetPtu(float v) { ptu = v; }

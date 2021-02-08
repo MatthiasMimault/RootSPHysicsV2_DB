@@ -392,6 +392,7 @@ protected:
   float CalcK(double x); 
   float CalcMaxK();
   float CircleYoung(float x)const;
+  float thetaTransition(float p) const;
 
   float interfaceAnisotropyBalance(float x) const;
 

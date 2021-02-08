@@ -280,9 +280,12 @@ void JSpaceCtes::ReadAddXmlRun_M(JXml *sxml, TiXmlElement* node) {
 	SetBdv(sxml->ReadElementFloat(node, "typeDivision", "b"));
 	SetPdv(sxml->ReadElementFloat(node, "typeDivision", "p"));
 	SetTan(sxml->ReadElementInt(node, "typeAni", "value"));
-	SetPan(sxml->ReadElementFloat(node, "typeAni", "position"));
-	SetSan(sxml->ReadElementFloat(node, "typeAni", "spread"));
-	SetCan(sxml->ReadElementFloat(node, "typeAni", "baseline"));
+	SetPan_m(sxml->ReadElementFloat(node, "typeAni", "pm"));
+	SetSan_m(sxml->ReadElementFloat(node, "typeAni", "sm"));
+	SetCan_m(sxml->ReadElementFloat(node, "typeAni", "cm"));
+	SetPan_p(sxml->ReadElementFloat(node, "typeAni", "pp"));
+	SetSan_p(sxml->ReadElementFloat(node, "typeAni", "sp"));
+	SetCan_p(sxml->ReadElementFloat(node, "typeAni", "cp"));
 	SetDev(sxml->ReadElementBool(node, "typeDev", "value"));
 	SetDamp(sxml->ReadElementFloat(node, "damping", "value"));
 	SetDpgType(sxml->ReadElementInt(node, "damping", "type"));
