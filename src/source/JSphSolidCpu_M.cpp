@@ -6920,6 +6920,8 @@ template<bool shift> void JSphSolidCpu::ComputeOneStepTwoStagesCorrT37_M(double 
 		Tauc_M[p].yy = float(double(TauPrec_M[p].yy) + double(TauDotc_M[p].yy) * dt);
 		Tauc_M[p].yz = float(double(TauPrec_M[p].yz) + double(TauDotc_M[p].yz) * dt);
 		Tauc_M[p].zz = float(double(TauPrec_M[p].zz) + double(TauDotc_M[p].zz) * dt);
+
+		QuadFormc_M[p] = QuadFormPrec_M[p];
 	}
 
 	//-Calculate fluid values. | Calcula datos de fluido.
