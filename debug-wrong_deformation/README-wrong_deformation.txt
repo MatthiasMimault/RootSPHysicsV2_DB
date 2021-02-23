@@ -12,3 +12,5 @@ A. Investigation - debug_d
 Parameters pairs from RG4
 | p1.0 P4 S4 C0.5	| T0.4 	| 5min	| 
 |-----------------------|-------|-------|
+
+== Fixed: Qf update of boundary particles
