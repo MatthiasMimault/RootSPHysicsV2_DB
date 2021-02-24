@@ -916,21 +916,23 @@ void JSphSolidCpu::PreInteractionVars_Forces(TpInter tinter, unsigned np, unsign
 
 	//-Prepare values of rhop for interaction. | Prepara datos derivados de rhop para interaccion.
 	const int n = int(np);
+	const float tip_position = MaxPosition().x;
 #ifdef OMP_USE
 #pragma omp parallel for schedule (static) if(n>OMP_LIMIT_COMPUTELIGHT)
 #endif
 	// #Pore #Pressure Matthias
 	for (int p = 0; p<n; p++) {
 		const float rhop = Velrhopc[p].w, rhop_r0 = rhop / RhopZero;
-		Pressc[p] = CalcK(abs(MaxPosition().x - Posc[p].x)) / Gamma * (pow(rhop_r0, Gamma) - 1.0f);
+		Pressc[p] = CalcK(abs(tip_position - Posc[p].x)) / Gamma * (pow(rhop_r0, Gamma) - 1.0f);
+
 		// Time growing Pore pressure
-		switch (typeGrowth) {
+		/*switch (typeGrowth) {
 		case 6:
 			if (TimeStep<0.2) Porec_M[p] = CalcK(abs(MaxPosition().x - float(Posc[p].x))) * float(TimeStep);
 			else Porec_M[p] = CalcK(abs(MaxPosition().x - float(Posc[p].x))) * 0.2f;
 		default:
 			Porec_M[p] = PoreZero;
-		}
+		}*/
 
 		if (Posc[p].x > 0.3) 
 			Porec_M[p] = PoreZero;
@@ -966,11 +968,12 @@ void JSphSolidCpu::PreInteractionVars_Forces(TpInter tinter, unsigned np, unsign
 		//Porec_M[p] = PoreZero;
 
 		// Augustin
-		if (Simulate2D)
+		/*if (Simulate2D)
 			//VonMises[p] = sqrt(((Tauc_M[p].xx - Tauc_M[p].yy) * (Tauc_M[p].xx - Tauc_M[p].yy) + (Tauc_M[p].yy - Tauc_M[p].zz) * (Tauc_M[p].yy - Tauc_M[p].zz) + (Tauc_M[p].xx - Tauc_M[p].zz) * (Tauc_M[p].xx - Tauc_M[p].zz) + 6 * (Tauc_M[p].xy * Tauc_M[p].xy + Tauc_M[p].xz * Tauc_M[p].xz + Tauc_M[p].yz * Tauc_M[p].yz)) / 2.0f);
 			VonMises[p] = sqrt((pow(Tauc_M[p].xx - Tauc_M[p].yy, 2.0f) + pow(Tauc_M[p].yy - Tauc_M[p].zz, 2.0f) + pow(Tauc_M[p].xx - Tauc_M[p].zz, 2.0f)
 				+ 6.0f * (pow(Tauc_M[p].xy, 2.0f) + pow(Tauc_M[p].xz, 2.0f) + pow(Tauc_M[p].yz, 2.0f))) / 2.0f);
 		else VonMises[p] = sqrt(pow(Tauc_M[p].xx, 2.0f) + pow(Tauc_M[p].zz, 2.0f) - Tauc_M[p].xx * Tauc_M[p].zz + 3.0f * pow(Tauc_M[p].xz, 2.0f));
+	*/
 	}
 }
 
@@ -6318,6 +6321,7 @@ template<bool shift> void JSphSolidCpu::ComputeSymplecticPreT35_M(double dt) {
 
 	//-Calculate new values of fluid. | Calcula nuevos datos del fluido.
 	const int np = int(Np);
+
 #ifdef OMP_USE
 #pragma omp parallel for schedule (static) if(np>OMP_LIMIT_COMPUTESTEP)
 #endif
