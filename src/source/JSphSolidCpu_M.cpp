@@ -573,9 +573,22 @@ unsigned JSphSolidCpu::GetParticlesData35_M(unsigned n, unsigned pini, bool cell
 	// Matthias
 	if (pore)memcpy(pore, Porec_M + pini, sizeof(float) * n);
 	if (press) {
-		for (unsigned p = 0; p < n; p++) {
-			press[p] = CalcK(abs(MaxPosition().x - Posc[p].x)) / Gamma * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f);
-			//press[p] = -0.5f*RhopZero*float(Posc[p].x*Posc[p].x);
+		if (true) {
+			const float tip_position = MaxPosition().x;
+#ifdef OMP_USE
+#pragma omp parallel for schedule (static) if(n>OMP_LIMIT_COMPUTELIGHT)
+#endif
+			for (int p = 0; p < n; p++) {
+				press[p] = CalcK(abs(tip_position - Posc[p].x)) / Gamma * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f);
+				//press[p] = -0.5f*RhopZero*float(Posc[p].x*Posc[p].x);
+			}
+
+		}
+		else {
+			for (int p = 0; p < n; p++) {
+				press[p] = CalcK(abs(MaxPosition().x - Posc[p].x)) / Gamma * (pow(Velrhopc[p + pini].w / RhopZero, Gamma) - 1.0f);
+				//press[p] = -0.5f*RhopZero*float(Posc[p].x*Posc[p].x);
+			}
 		}
 	}
 	if (mass)memcpy(mass, Massc_M + pini, sizeof(float) * n);
