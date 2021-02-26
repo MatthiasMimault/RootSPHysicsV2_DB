@@ -37,6 +37,7 @@
 #include <Eigen/Eigenvalues>
 #include <random>
 #include <chrono>
+#include <vector>
 
 using namespace std;
 using Eigen::MatrixXd;
@@ -733,8 +734,72 @@ uint64_t nanos()
 	return ns;
 }
 
-// #V32-Da
-void JSphCpuSingle::RunSizeDivision12_M(double stepdt){
+// #V37-2 - #parallel fix and lean marking
+void JSphCpuSingle::RunSizeDivision37_M(double stepdt) {
+	const char met[] = "RunSizeDivision37";
+	TmcStart(Timers, TMC_SuPeriodic); // Use of Periodic timer for creation of particles
+	std::vector<int> mark_for_div;
+
+	// 1. Test division cellulaire
+	switch (typeDivision) {
+		// #division #parallel possible
+	default: { // No division
+		break;
+	}
+	case 1: { // Size double
+		for (int p = Npb; p < Np; p++) {
+			if (Massc_M[p] > SizeDivision_M * MassFluid) {
+				//Divisionc_M[p] = true;
+				mark_for_div.push_back(Idpc[p]);
+				//run = true;
+			}
+		}
+		break;
+	}
+	}
+
+	if (!mark_for_div.empty()) {
+		// 2. Prepare memory for count particles
+		//-Maximum number of particles that fit in the list / Numero maximo de particulas que caben en la lista.
+		unsigned nmax = CpuParticlesSize - 1;
+
+		if (Np >= 0x80000000)RunException(met, "The number of particles is too big.");//-Because the last bit is used to mark the direction in which a new periodic particle is created / Pq el ultimo bit se usa para marcar el sentido en que se crea la nueva periodica.
+																					  // Maximal number of division per turn
+																					  //-Redimension memory for particles if there is insufficient space and repeat the search process.
+		if (mark_for_div.size() > nmax || mark_for_div.size() + Np > CpuParticlesSize) {
+			TmcStop(Timers, TMC_SuPeriodic);
+			// Peut etre qu'ici on a la source de certains bug (trop particles, need extend)
+			ResizeParticlesSize(Np + mark_for_div.size(), PERIODIC_OVERMEMORYNP, false);
+			TmcStart(Timers, TMC_SuPeriodic);
+		}
+
+		// 3 Cell division
+		if (TStep == STEP_Verlet) {
+			MarkedDivision_M(mark_for_div.size(), Np, Npb, DomCells, Idpc, Codec, Dcellc
+				, Posc, Velrhopc, Tauc_M, Divisionc_M, Porec_M, Massc_M, QuadFormc_M, VelrhopM1c, TauM1c_M, MassM1c_M, QuadFormM1c_M);
+		}
+		else {
+			if (true) MarkedDivision37_M(mark_for_div, Np, Npb, DomCells, Idpc, Codec, Dcellc
+				, Posc, Velrhopc, Tauc_M, Divisionc_M, Porec_M, Massc_M, QuadFormc_M
+				, PosPrec, VelrhopPrec, TauPrec_M, MassPrec_M, QuadFormPrec_M, CellOffSpring, GradVelSave, VonMises,
+				StrainDotSave, AceSave);
+			else MarkedDivision34_M(mark_for_div.size(), Np, Npb, DomCells, Idpc, Codec, Dcellc
+				, Posc, Velrhopc, Tauc_M, Divisionc_M, Porec_M, Massc_M, QuadFormc_M
+				, PosPrec, VelrhopPrec, TauPrec_M, MassPrec_M, QuadFormPrec_M, CellOffSpring, GradVelSave, VonMises,
+				StrainDotSave, AceSave);
+		}
+
+		// 4, Update Minimal number of ptcs
+		Np += mark_for_div.size();
+		NpMinimum = Np - unsigned(PartsOutMax * (Np - Npb));
+	}
+
+	TmcStop(Timers, TMC_SuPeriodic);
+
+}
+
+// #V37 - #parallel fix
+void JSphCpuSingle::RunSizeDivision12_M(double stepdt) {
 	const char met[] = "RunSizeDivision_M2";
 	//double distance;
 	double proba;
@@ -742,94 +807,94 @@ void JSphCpuSingle::RunSizeDivision12_M(double stepdt){
 	//double posx_quiescent;
 //	double test;
 	double tip = 0.15;
-//	double ms;
+	//	double ms;
 	TmcStart(Timers, TMC_SuPeriodic); // Use of Periodic timer for creation of particles
 	bool run = false;
 	unsigned count = 0;
-	double number;	
+	double number;
 
 	// 1. Test division cellulaire
 	switch (typeDivision) {
-		// #division
-		default: { // No division
-			break;
-		}
-		case 1: { // Size double
-			for (unsigned p = Npb; p < Np; p++) {
-				if (Massc_M[p]> SizeDivision_M * MassFluid) {
-					Divisionc_M[p] = true;
-					count++;
-					run = true;
-				}
+		// #division #parallel possible
+	default: { // No division
+		break;
+	}
+	case 1: { // Size double
+		for (int p = Npb; p < Np; p++) {
+			if (Massc_M[p] > SizeDivision_M * MassFluid) {
+				Divisionc_M[p] = true;
+				count++;
+				run = true;
 			}
-			break;
 		}
-		case 2: { // Mathis 2019
-			for (unsigned p = Npb; p < Np; p++) {
-				//random number generator
-				std::default_random_engine generator((unsigned)nanos());
-				std::uniform_real_distribution<double> distribution(0.0, 1.0);
-				number = distribution(generator);
-				proba = VelDivCoef_M;
-				proba1 = proba * stepdt;
-				
-				//version 1
-				if ((Posc[p].x < maxPosX - 0.05) && (Posc[p].x > maxPosX - 0.25) && (number < proba * stepdt)) {
-					Divisionc_M[p] = true;
-					count++;
-					run = true;
-				}
-			}	
-			break;	
-		}
-		case 3: { // Size quadratic forced distribution
-			for (unsigned p = Npb; p < Np; p++) {
-				float x = maxPosX - float(Posc[p].x);
-				float threshold = 0.05f;
-				float length = 2.0f / sqrt(QuadFormc_M[p].xx);
-				float baseline = 1.0f;
-				float aperture = 25.0f;
-				float locationMin = 0.1f;
-				float kill = 0.6f;
-				float l0;
-				if (x < kill) l0 = float(SizeDivision_M) * threshold * (baseline + aperture * pow(x - locationMin, 2.0f));
-				else l0 = 0.8f * H;
-				if (length > l0) {
-					Divisionc_M[p] = true;
-					count++;
-					run = true;
-				}
+		break;
+	}
+	case 2: { // Mathis 2019
+		for (unsigned p = Npb; p < Np; p++) {
+			//random number generator
+			std::default_random_engine generator((unsigned)nanos());
+			std::uniform_real_distribution<double> distribution(0.0, 1.0);
+			number = distribution(generator);
+			proba = VelDivCoef_M;
+			proba1 = proba * stepdt;
+
+			//version 1
+			if ((Posc[p].x < maxPosX - 0.05) && (Posc[p].x > maxPosX - 0.25) && (number < proba * stepdt)) {
+				Divisionc_M[p] = true;
+				count++;
+				run = true;
 			}
-			break;
 		}
-		case 4: { // Volume division 2
-			for (unsigned p = Npb; p < Np; p++) {
-				float x = maxPosX - float(Posc[p].x);
-				float l0 = bDv + aDv * pow(x - pDv, 2.0f);
-				if (2.0f / sqrt(QuadFormc_M[p].xx) > min(0.75f*H,l0)) {
-					Divisionc_M[p] = true;
-					count++;
-					run = true;
-				}
+		break;
+	}
+	case 3: { // Size quadratic forced distribution
+		for (unsigned p = Npb; p < Np; p++) {
+			float x = maxPosX - float(Posc[p].x);
+			float threshold = 0.05f;
+			float length = 2.0f / sqrt(QuadFormc_M[p].xx);
+			float baseline = 1.0f;
+			float aperture = 25.0f;
+			float locationMin = 0.1f;
+			float kill = 0.6f;
+			float l0;
+			if (x < kill) l0 = float(SizeDivision_M) * threshold * (baseline + aperture * pow(x - locationMin, 2.0f));
+			else l0 = 0.8f * H;
+			if (length > l0) {
+				Divisionc_M[p] = true;
+				count++;
+				run = true;
 			}
-			break;
 		}
-		case 5: { // Mass cubic distribution variable
-			for (unsigned p = Npb; p < Np; p++) {
-				float x = maxPosX - float(Posc[p].x);
-				float x0 = 0.1f;
-				float m0 = float(SizeDivision_M) * MassFluid * (1.0f + aM0 * pow(x - x0, 2.0f));
-				if (Massc_M[p] > m0) {
-					Divisionc_M[p] = true;
-					count++;
-					run = true;
-				}
+		break;
+	}
+	case 4: { // Volume division 2
+		for (unsigned p = Npb; p < Np; p++) {
+			float x = maxPosX - float(Posc[p].x);
+			float l0 = bDv + aDv * pow(x - pDv, 2.0f);
+			if (2.0f / sqrt(QuadFormc_M[p].xx) > min(0.75f * H, l0)) {
+				Divisionc_M[p] = true;
+				count++;
+				run = true;
 			}
-			break;
 		}
+		break;
+	}
+	case 5: { // Mass cubic distribution variable
+		for (unsigned p = Npb; p < Np; p++) {
+			float x = maxPosX - float(Posc[p].x);
+			float x0 = 0.1f;
+			float m0 = float(SizeDivision_M) * MassFluid * (1.0f + aM0 * pow(x - x0, 2.0f));
+			if (Massc_M[p] > m0) {
+				Divisionc_M[p] = true;
+				count++;
+				run = true;
+			}
+		}
+		break;
+	}
 	}
 
-	
+
 
 	while (run) {
 
@@ -856,23 +921,23 @@ void JSphCpuSingle::RunSizeDivision12_M(double stepdt){
 					, Posc, Velrhopc, Tauc_M, Divisionc_M, Porec_M, Massc_M, QuadFormc_M, VelrhopM1c, TauM1c_M, MassM1c_M, QuadFormM1c_M);
 			}
 			else {
-				MarkedDivision34_M(count, Np, Npb, DomCells, Idpc, Codec, Dcellc
+				if (true) MarkedDivision34_M(count, Np, Npb, DomCells, Idpc, Codec, Dcellc
 					, Posc, Velrhopc, Tauc_M, Divisionc_M, Porec_M, Massc_M, QuadFormc_M
 					, PosPrec, VelrhopPrec, TauPrec_M, MassPrec_M, QuadFormPrec_M, CellOffSpring, GradVelSave, VonMises,
 					StrainDotSave, AceSave);
+
 
 			}
 			Np += count;
 
 		}
 		// 4, Update Minimal number of ptcs
-		NpMinimum = Np - unsigned(PartsOutMax * (Np-Npb));
+		NpMinimum = Np - unsigned(PartsOutMax * (Np - Npb));
 	}
 	//printf("RUnsizeDivision2\n");
 	TmcStop(Timers, TMC_SuPeriodic);
 	//printf("RuSizeDiv1\n");
 }
-
 
 //#Mathis #V31-Dd
 void JSphCpuSingle::RunSizeDivision_M2(double stepdt) {
@@ -1631,6 +1696,105 @@ void JSphCpuSingle::MarkedDivision35_M(unsigned countMax, unsigned np, unsigned 
 
 }
 
+
+// Division v34d: with parallel acceleration
+// #parallel
+void JSphCpuSingle::MarkedDivision37_M(std::vector<int> mark, unsigned np, unsigned pini, tuint3 cellmax
+	, unsigned* idp, typecode* code, unsigned* dcell
+	, tdouble3* pos, tfloat4* velrhop, tsymatrix3f* taup, bool* divisionp, float* porep, float* massp, tsymatrix3f* qfp
+	, tdouble3* pospre, tfloat4* velrhopre, tsymatrix3f* taupre, float* masspre, tsymatrix3f* qfpre
+	, unsigned* cellOSpr, float* straindot, float* vonMises, tfloat3* sds, tfloat3* ace)const {
+
+	const char met[] = "MarkedDivision_M";
+
+
+#ifdef OMP_USE
+#pragma omp parallel for schedule (static)
+#endif
+	for (int n = 0; n < mark.size(); n++) {
+		int p = mark.at(n);
+
+		// Eigen resolution of qf[p], defintion of V, D
+		Matrix3f Qg;
+		tdouble3 orientation;
+		Qg << qfp[p].xx, qfp[p].xy, qfp[p].xz, qfp[p].xy, qfp[p].yy, qfp[p].yz, qfp[p].xz, qfp[p].yz, qfp[p].zz;
+		EigenSolver<Matrix3f> es(Qg);
+
+		//printf("Max index\n");
+		// Index of maximal eigenvalue
+		float l0 = es.eigenvalues()[0].real();
+		float l1 = es.eigenvalues()[1].real();
+		float l2 = es.eigenvalues()[2].real();
+		unsigned i;
+		if (l0 < l1) {
+			if (l0 > l2) i = 2;
+			else i = 0;
+		}
+		else {
+			if (l1 > l2) i = 2;
+			else i = 1;
+		}
+
+		//printf("UpdateQ\n");
+		Matrix3f D = es.eigenvalues().real().asDiagonal();
+		Matrix3f V = es.eigenvectors().real();
+		D(i, i) *= 4.0;
+		Matrix3f Qt = V * D * V.transpose();
+
+		qfp[p] = TSymatrix3f(Qt(0, 0), Qt(0, 1), Qt(0, 2), Qt(1, 1), Qt(1, 2), Qt(2, 2));
+
+		// Update Pos
+		orientation = TDouble3(V(0, i) / sqrt(D(i, i)), V(1, i) / sqrt(D(i, i)), V(2, i) / sqrt(D(i, i)));
+		tdouble3 ps = { pos[p].x + orientation.x, pos[p].y + orientation.y, pos[p].z + orientation.z };
+
+		//-Calculate coordinates of cell inside of domain / Calcula coordendas de celda dentro de dominio.
+		unsigned cx = unsigned((ps.x - DomPosMin.x) / Scell);
+		unsigned cy = unsigned((ps.y - DomPosMin.y) / Scell);
+		unsigned cz = unsigned((ps.z - DomPosMin.z) / Scell);
+		//-Adjust coordinates of cell is they exceed maximum / Ajusta las coordendas de celda si sobrepasan el maximo.
+		cx = (cx <= cellmax.x ? cx : cellmax.x);
+		cy = (cy <= cellmax.y ? cy : cellmax.y);
+		cz = (cz <= cellmax.z ? cz : cellmax.z);
+
+		// Augustin -- CellOffSpring
+		cellOSpr[p]++;
+
+		//-Record position and cell of new particles /  Graba posicion y celda de nuevas particulas.
+		pos[np+n] = ps;
+		dcell[np + n] = PC__Cell(DomCellCode, cx, cy, cz);
+		idp[np + n] = Np + n;
+		code[np + n] = code[p];
+		velrhop[np + n] = velrhop[p];
+		taup[np + n] = taup[p];
+		porep[np + n] = porep[p];
+		massp[np + n] = massp[p] / 2;
+		qfp[np + n] = qfp[p];
+		divisionp[np + n] = false;
+		cellOSpr[np + n] = cellOSpr[p];
+		vonMises[np + n] = vonMises[p];
+		straindot[np + n] = straindot[p];
+		sds[np + n] = sds[p];
+
+
+		// MOVE
+		//-Get pos of particle to be duplicated / Obtiene pos de particula a duplicar.
+		ps = { pos[p].x - orientation.x, pos[p].y - orientation.y, pos[p].z - orientation.z };
+
+		//-Calculate coordinates of cell inside of domain / Calcula coordendas de celda dentro de dominio.
+		cx = unsigned((ps.x - DomPosMin.x) / Scell);
+		cy = unsigned((ps.y - DomPosMin.y) / Scell);
+		cz = unsigned((ps.z - DomPosMin.z) / Scell);
+		//-Adjust coordinates of cell is they exceed maximum / Ajusta las coordendas de celda si sobrepasan el maximo.
+		cx = (cx <= cellmax.x ? cx : cellmax.x);
+		cy = (cy <= cellmax.y ? cy : cellmax.y);
+		cz = (cz <= cellmax.z ? cz : cellmax.z);
+		pos[p] = ps;
+		dcell[p] = PC__Cell(DomCellCode, cx, cy, cz);
+		massp[p] = massp[np + n];
+		divisionp[p] = false;
+	}
+}
+
 //==============================================================================
 /// Manages excluded particles fixed, moving and floating before aborting the execution.
 /// Gestiona particulas excluidas fixed, moving y floating antes de abortar la ejecucion.
@@ -1835,7 +1999,7 @@ double JSphCpuSingle::ComputeStep_Eul_M() {
 double JSphCpuSingle::ComputeStep_Sym(){
   const double dt=DtPre;
 
-  maxPosX = MaxPosition().x+Dp/2.0f;
+  maxPosX = float(MaxPosition().x+Dp/2.0f);
   
   //-Predictor
   //-----------
@@ -2126,8 +2290,8 @@ void JSphCpuSingle::Run(std::string appname,JCfgRun *cfg,JLog2 *log){
     if(CaseNmoving)RunMotion(stepdt);
 	
 	// Matthias - Cell division
-	if (true) RunSizeDivision12_M(stepdt);
-	else RunSizeDivision_M2(stepdt);
+	if (true) RunSizeDivision37_M(stepdt);
+	else RunSizeDivision12_M(stepdt);
 	RunCellDivide(true);
 
     TimeStep+=stepdt;

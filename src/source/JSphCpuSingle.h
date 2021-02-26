@@ -25,6 +25,7 @@
 #include "JSphCpu.h"
 #include "JSphSolidCpu_M.h"
 #include <string>
+#include <vector>
 
 class JCellDivCpuSingle;
 class JPartsLoad4;
@@ -65,6 +66,7 @@ protected:
   void RunRandomDivision_M();
   //Mathis - Cell Divison stepdt
   void RunSizeDivision_M2(double stepdt);
+  void RunSizeDivision37_M(double stepdt);
   void RunSizeDivision12_M(double stepdt);
   void RunDivisionDisplacement_M();
 
@@ -99,6 +101,8 @@ protected:
 	  , tdouble3* pos, tfloat4* velrhop, tsymatrix3f* taup, bool* divisionp, float* porep, float* massp, tsymatrix3f* qfp
 	  , tdouble3* pospre, tfloat4* velrhopre, tsymatrix3f* taupre, float* masspre, tsymatrix3f* qfpre
 	  , unsigned* cellOSpr, float* straindot, float* vonMises, tfloat3* sds, tfloat3* ace, tfloat3* fvi)const;
+
+  void MarkedDivision37_M(std::vector<int> mark, unsigned np, unsigned pini, tuint3 cellmax, unsigned* idp, typecode* code, unsigned* dcell, tdouble3* pos, tfloat4* velrhop, tsymatrix3f* taup, bool* divisionp, float* porep, float* massp, tsymatrix3f* qfp, tdouble3* pospre, tfloat4* velrhopre, tsymatrix3f* taupre, float* masspre, tsymatrix3f* qfpre, unsigned* cellOSpr, float* straindot, float* vonMises, tfloat3* sds, tfloat3* ace) const;
 
   void AbortBoundOut();
 
