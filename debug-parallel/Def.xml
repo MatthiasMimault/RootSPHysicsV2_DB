@@ -7,14 +7,14 @@
         <constantsdef>
             <typeCase value="0" /> %0 Gencase generation, 1 Real data generation
             <!-- Growth - mass -->
-            <rhop0 value="25.0" comment="Reference density of the fluid" units_comment="ug/mm^3" />
-            <lambdamass value="0"/>
-            <typeGrowth value="0" psu="1" ssu="2" ptu="0" stu="1" psi="1" ssi="1" pti="0" sti="1" cstu="0" csti="0" kill="1"/> 
+            <rhop0 value="10.0" comment="Reference density of the fluid" units_comment="ug/mm^3" />
+            <lambdamass value="500"/>
+            <typeGrowth value="10" psu="6" ssu="2" ptu="0" stu="2" psi="8" ssi="2" pti="0" sti="2" cstu="0" csti="0" kill="1"/> 
 	        %0 No Growth, 1 Cutoff 0.3, 10 Croser1999
             <!-- Solid - anisotropic constants-->
-            <typeAni value="2"  pm="2" pp="4" sm="2" sp="4" cm="1.0" cp="0.5"/> 
+            <typeAni value="2"  pm="2" pp="4" sm="2" sp="4" cm="1.0" cp="0.2"/> 
 			%0 Isotropc, 1 Anisotropic, 2 Sigmoid -- Xm parameter for low p value, Xp for high
-            <porezero value="0.3"/> %0.3 MPa
+            <porezero value="1.0"/> %0.3 MPa
             <youngx value="1020"/> %1020 MPa
             <youngy value="15000"/> %15000 MPa
             <shear1 value="85000"/> %85000 MPa
@@ -24,7 +24,7 @@
             <localdivision x="1.5" y="0.5" z="0.5"/>
             <spreaddivision value="0.1"/>
             <velocitydivisioncoef value="0" units_comment="cell.cell-1.s-1"/>
-            <sizedivision value = "0.9"/> % Mass threshold
+            <sizedivision value = "1.2"/> % Mass threshold
 			<typeDivision value="1" aM0 = "25" a="0" b="0.04" p="0.15"/> %0 No Division, 1 Double size, 2 Mathis proba, 3 aM0 22 4 aM0 10 5 aM0 variable
             <!-- Numerics -->
             <typeDev value="true" /> %0 Full Aniso, 1 Sigmoid, 2 Circle, 3 Full Iso
@@ -46,7 +46,7 @@
         </constantsdef>
         <mkconfig boundcount="240" fluidcount="10"/>
         <geometry>
-            <definition dp="0.1" units_comment="metres (m)">
+            <definition dp="0.2" units_comment="metres (m)">
                 <pointmin x="-2" y="0.01" z="-3" />
                 <pointmax x="20" y="0.01" z="3" />
             </definition>
@@ -62,10 +62,10 @@
                     <setmkfluid mk="0" />
                     <drawcylinder radius="1">
                       <point x="0" y="0" z = "0"/>
-                      <point x="7.5" y="0" z = "0"/>
+                      <point x="5" y="0" z = "0"/>
                     </drawcylinder>	
                     <drawsphere radius="1">
-                      <point x="7.5" y="0" z = "0"/>
+                      <point x="5" y="0" z = "0"/>
                     </drawsphere>			
                 </mainlist>
             </commands>
@@ -96,8 +96,8 @@
             <parameter key="#DtFixed" value="DtFixed.dat" comment="Dt values are loaded from file (default=disabled)" />
             <parameter key="DtAllParticles" value="0" comment="Velocity of particles used to calculate DT. 1:All, 0:Only fluid/floating (default=0)" />
             <!-- Case Time dimensions-->
-            <parameter key="TimeMax" value="0.4" comment="Time of simulation" units_comment="seconds" />
-            <parameter key="TimeOut" value="0.01" comment="Time out data" units_comment="seconds" />
+            <parameter key="TimeMax" value="12.5" comment="Time of simulation" units_comment="seconds" />
+            <parameter key="TimeOut" value="0.5" comment="Time out data" units_comment="seconds" />
             <parameter key="IncZ" value="0" comment="Increase of Z+" units_comment="decimal" />
             <parameter key="PartsOutMax" value="0" comment="%/100 of fluid particles allowed to be excluded from domain (default=1)" units_comment="decimal" />
             <parameter key="RhopOutMin" value="9" comment="Minimum rhop valid (default=700)" units_comment="ug/mm^3" />

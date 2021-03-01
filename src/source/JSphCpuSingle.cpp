@@ -750,15 +750,13 @@ void JSphCpuSingle::RunSizeDivision37_M(double stepdt) {
 		for (int p = Npb; p < Np; p++) {
 			if (Massc_M[p] > SizeDivision_M * MassFluid) {
 				//Divisionc_M[p] = true;
-				mark_for_div.push_back(Idpc[p]);
-				//run = true;
+				// Original line mark_for_div.push_back(Idpc[p]);
+				mark_for_div.push_back(p);
 			}
 		}
 		break;
 	}
 	}
-
-	for (int c = 0; c < mark_for_div.size(); c++) printf("Cell %u\n", mark_for_div[c]);
 
 	if (!mark_for_div.empty()) {
 		// 2. Prepare memory for count particles
@@ -771,7 +769,7 @@ void JSphCpuSingle::RunSizeDivision37_M(double stepdt) {
 		if (mark_for_div.size() > nmax || mark_for_div.size() + Np > CpuParticlesSize) {
 			TmcStop(Timers, TMC_SuPeriodic);
 			// Peut etre qu'ici on a la source de certains bug (trop particles, need extend)
-			ResizeParticlesSize(Np + mark_for_div.size(), PERIODIC_OVERMEMORYNP, false);
+			ResizeParticlesSize(Np + mark_for_div.size(), PERIODIC_OVERMEMORYNP, false); // No particle sorting
 			TmcStart(Timers, TMC_SuPeriodic);
 		}
 
@@ -794,6 +792,7 @@ void JSphCpuSingle::RunSizeDivision37_M(double stepdt) {
 		// 4, Update Minimal number of ptcs
 		Np += mark_for_div.size();
 		NpMinimum = Np - unsigned(PartsOutMax * (Np - Npb));
+		//mark_for_div.clear();
 	}
 
 	TmcStop(Timers, TMC_SuPeriodic);
