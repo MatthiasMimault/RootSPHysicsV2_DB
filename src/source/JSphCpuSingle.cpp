@@ -758,6 +758,8 @@ void JSphCpuSingle::RunSizeDivision37_M(double stepdt) {
 	}
 	}
 
+	for (int c = 0; c < mark_for_div.size(); c++) printf("Cell %u\n", mark_for_div[c]);
+
 	if (!mark_for_div.empty()) {
 		// 2. Prepare memory for count particles
 		//-Maximum number of particles that fit in the list / Numero maximo de particulas que caben en la lista.
